@@ -1,0 +1,21 @@
+<main class="kontainer-utama">
+  <section>
+    <div class="kartu">
+      <h2 class="kartu-judul">📖 Daftar Resep</h2>
+      <div class="form-grup"><input type="text" class="form-input" id="cariResep" placeholder="🔍 Cari resep..."></div>
+    </div>
+    <div class="grid-resep" id="daftarResep">
+      {{#each resep}}
+      <div class="kartu-resep">
+        <div class="gambar-resep">🍲</div>
+        <div class="info-resep">
+          <div class="nama-resep">{{this.nama}}</div>
+          <div class="meta-resep"><span>⏱️ {{this.waktu}} menit</span><span>🔥 {{this.kalori}} kkal</span></div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+</main>
+
+{{> footer}}

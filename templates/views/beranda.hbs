@@ -1,0 +1,28 @@
+<main class="kontainer-utama">
+  <section>
+    <div class="kartu">
+      <h2 class="kartu-judul">👋 Selamat Datang di Koki AI Pribadi!</h2>
+      <p>Aplikasi asisten memasak pintar yang akan membantu Anda:</p>
+      <ul style="margin:12px 0 0 20px;">
+        <li>🤖 Chat dengan Koki AI untuk panduan memasak step-by-step</li>
+        <li>📷 Identifikasi bahan makanan dari foto</li>
+        <li>🎯 Pantry Challenge - gunakan bahan yang hampir kadaluarsa</li>
+        <li>📊 Hitung kalori dan nutrisi resep</li>
+        <li>⏱️ Timer memasak real-time</li>
+        <li>📧 Terima email menu mingguan otomatis</li>
+      </ul>
+    </div>
+
+    <div class="kartu">
+      <h3 class="kartu-judul">📊 Statistik Dapur Anda</h3>
+      <div class="info-nutrisi">
+        <div class="item-nutrisi"><div class="nilai-nutrisi">{{totalBahan}}</div><div class="label-nutrisi">Total Bahan</div></div>
+        <div class="item-nutrisi"><div class="nilai-nutrisi">{{bahanKadaluarsa}}</div><div class="label-nutrisi">Hampir Kadaluarsa</div></div>
+        <div class="item-nutrisi"><div class="nilai-nutrisi">{{totalResep}}</div><div class="label-nutrisi">Resep Tersimpan</div></div>
+        <div class="item-nutrisi"><div class="nilai-nutrisi">{{resepFavorit}}</div><div class="label-nutrisi">Resep Favorit</div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+{{> footer}}

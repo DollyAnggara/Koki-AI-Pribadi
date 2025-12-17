@@ -44,6 +44,22 @@ const loginPengguna = async (req, res) => {
     // Attach to session for browser form submissions
     if (!req.is('application/json')) {
       req.session.user = { id: pengguna._id, namaPengguna: pengguna.namaPengguna, email: pengguna.email };
+
+      // "Remember me" support: if the form included the remember field, make session persistent
+      // and set a long-lived cookie with the remembered email so the client can pre-fill the login form.
+      if (req.body && req.body.remember) {
+        const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        req.session.cookie.maxAge = maxAge;
+        // store a non-httpOnly cookie so client-side JS can read it to pre-fill the email
+        res.cookie('rememberEmail', pengguna.email, { maxAge, httpOnly: false, sameSite: 'Lax' });
+        res.cookie('rememberMe', '1', { maxAge, httpOnly: false, sameSite: 'Lax' });
+      } else {
+        // default: session cookie (expires on browser close) and clear any existing remember cookies
+        req.session.cookie.maxAge = null;
+        res.clearCookie('rememberEmail');
+        res.clearCookie('rememberMe');
+      }
+
       return res.redirect('/');
     }
 

@@ -1,0 +1,22 @@
+<main class="kontainer-utama">
+  <section>
+    <div class="kartu">
+      <h2 class="kartu-judul">📷 Identifikasi Bahan dari Gambar</h2>
+      <div class="area-upload" id="areaUpload">
+        <p>📤 Klik atau seret gambar bahan makanan ke sini</p>
+        <p style="font-size:.85rem;color:var(--warna-teks-sekunder);margin-top:8px;">AI akan mengidentifikasi bahan secara otomatis</p>
+        <input type="file" id="inputGambar" accept="image/*" style="display:none;">
+      </div>
+      <img id="previewGambar" class="preview-gambar" style="display:none;" />
+      <div id="hasilIdentifikasi" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="kartu">
+      <h2 class="kartu-judul">🥗 Bahan di Dapur Saya</h2>
+      <div class="form-grup"><div style="display:flex;gap:10px;"><input type="text" class="form-input" id="namaBahanBaru" placeholder="Nama bahan"><input type="number" class="form-input" id="jumlahBahanBaru" placeholder="Jumlah" style="width:100px;"><input type="date" class="form-input" id="kadaluarsaBahanBaru" style="width:150px;"><button class="tombol-kirim" id="tombolTambahBahan">Tambah</button></div></div>
+      <ul class="daftar-bahan-kadaluarsa" id="daftarBahanSaya"></ul>
+    </div>
+  </section>
+</main>
+
+{{> footer}}

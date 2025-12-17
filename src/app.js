@@ -66,7 +66,7 @@ const jalankanServer = async () => {
     extname: '.hbs',
     defaultLayout: 'layout',
     layoutsDir: path.join(__dirname, '..', 'templates', 'layouts'),
-    partialsDir: path.join(__dirname, '..', 'templates', 'partials')
+    partialsDir: [ path.join(__dirname, '..', 'templates', 'partials'), path.join(__dirname, '..', 'templates', 'views') ]
   }));
   aplikasi.set('view engine', 'hbs');
   aplikasi.set('views', path.join(__dirname, '..', 'templates', 'views'));
