@@ -1,0 +1,47 @@
+<main class="site-root auth-body">
+  <section class="reset-page">
+    <div class="container auth-single">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="brand-row">
+            <img src="/img/logo-pngegg.png" alt="logo" class="login-logo" />
+            <div class="brand-text">
+              <h1>Koki AI Pribadi</h1>
+              <div class="brand-sub">Reset Password</div>
+            </div>
+          </div>
+        </div>
+
+        {{#if error}}<div class="alert alert-error">{{error}}</div>{{/if}}
+        {{#if success}}<div class="alert alert-success">{{success}}</div>{{/if}}
+
+        <form action="/api/pengguna/reset" method="post" class="reset-form">
+          <input type="hidden" name="token" value="{{token}}" />
+
+          <div id="resetError" class="alert alert-error" style="display:none;"></div>
+
+          <div class="input-with-icon">
+            <input id="kataSandi" name="kataSandi" type="password" placeholder="Password baru" required class="form-control password-field" />
+            <button type="button" class="btn-icon toggle-password" aria-label="Tampilkan password" title="Tampilkan password">
+              <img src="/img/eye-closed.png" data-open="/img/eye-open.png" data-closed="/img/eye-closed.png" alt="toggle" />
+            </button>
+          </div>
+
+          <div class="input-with-icon">
+            <input id="kataSandiConfirm" name="kataSandiConfirm" type="password" placeholder="Konfirmasi password" required class="form-control password-field" />
+            <button type="button" class="btn-icon toggle-password" aria-label="Tampilkan password" title="Tampilkan password">
+              <img src="/img/eye-closed.png" data-open="/img/eye-open.png" data-closed="/img/eye-closed.png" alt="toggle" />
+            </button>
+          </div>
+
+          <small class="help-text">Gunakan setidaknya 8 karakter. Gunakan kombinasi huruf dan angka untuk keamanan yang lebih baik.</small>
+
+          <button class="btn-primary" type="submit">Perbarui password</button>
+        </form>
+
+        <div class="signup-note-center"><a href="/login" class="link-red">Kembali ke Login</a></div>
+      </div>
+      <div class="auth-footer"><div class="login-footer">© 2025 Koki AI</div></div>
+    </div>
+  </section>
+</main>

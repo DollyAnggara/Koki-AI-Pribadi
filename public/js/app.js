@@ -184,4 +184,142 @@ document.addEventListener('DOMContentLoaded', () => {
   inisialisasiTimer();
   inisialisasiUploadGambar();
   setTimeout(()=>tampilkanNotifikasi('Selamat datang di Koki AI Pribadi! 🍳','sukses'),1000);
+
+  // Toggle password eye for auth pages (target the input inside the same .input-with-icon)
+  document.querySelectorAll('.toggle-password').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const img = btn.querySelector('img');
+      const container = btn.closest('.input-with-icon');
+      const target = container ? container.querySelector('.password-field') : null;
+      if (!target) return;
+
+      const isPassword = target.getAttribute('type') === 'password';
+      target.setAttribute('type', isPassword ? 'text' : 'password');
+
+      if (img) {
+        img.src = isPassword ? (img.dataset.open || img.src) : (img.dataset.closed || img.src);
+        img.setAttribute('alt', isPassword ? 'Sembunyikan password' : 'Tampilkan password');
+      }
+
+      btn.setAttribute('aria-pressed', String(isPassword));
+      btn.title = isPassword ? 'Sembunyikan password' : 'Tampilkan password';
+    });
+  });
+
+  // Logout confirmation and AJAX logout
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const confirmed = confirm('Yakin ingin keluar?');
+      if (!confirmed) return;
+      try {
+        btnLogout.disabled = true;
+        const url = btnLogout.dataset.logoutUrl || '/api/pengguna/logout';
+        const resp = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } });
+        const data = await resp.json();
+        if (data && data.sukses) {
+          window.location.href = '/login';
+        } else {
+          tampilkanNotifikasi(data.pesan || 'Gagal keluar', 'error');
+          btnLogout.disabled = false;
+        }
+      } catch (err) {
+        console.error('Logout failed', err);
+        tampilkanNotifikasi('Gagal keluar', 'error');
+        btnLogout.disabled = false;
+      }
+    });
+  }
+
+  // Register form client validation (password confirmation) + OTP verification before submit
+  document.querySelectorAll('.register-form').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      const pw = form.querySelector('input[name="kataSandi"]');
+      const pwc = form.querySelector('input[name="kataSandiConfirm"]');
+      const errEl = document.getElementById('registerError');
+      if (pw && pwc && pw.value !== pwc.value) {
+        e.preventDefault();
+        if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Password dan konfirmasi tidak cocok.'; }
+        return false;
+      }
+      // OTP verification
+      const email = form.querySelector('input[name="email"]');
+      const otpInput = form.querySelector('input[name="otp"]');
+      if (otpInput && email) {
+        e.preventDefault();
+        const kode = otpInput.value.trim();
+        if (!kode) {
+          if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Masukkan kode OTP sebelum mendaftar.'; }
+          return false;
+        }
+        try {
+          const resp = await fetch(`${API_URL}/otp/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.value, kode }) });
+          const data = await resp.json();
+          if (data.sukses) {
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+            form.submit(); // submit now that OTP is verified
+          } else {
+            if (errEl) { errEl.style.display = 'block'; errEl.textContent = data.pesan || 'Verifikasi OTP gagal'; }
+          }
+        } catch (err) {
+          if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Gagal memverifikasi OTP'; }
+        }
+        return false;
+      }
+      if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    });
+  });
+
+  // OTP button: send OTP to given email and start cooldown
+  document.querySelectorAll('.otp-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const form = btn.closest('form');
+      const emailEl = form ? form.querySelector('input[name="email"]') : null;
+      if (!emailEl || !emailEl.value) { tampilkanNotifikasi('Masukkan alamat email terlebih dahulu', 'error'); return; }
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      try {
+        const resp = await fetch(`${API_URL}/otp/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: emailEl.value }) });
+        const data = await resp.json();
+        if (data.sukses) {
+          tampilkanNotifikasi(data.pesan || 'Kode OTP dikirim', 'sukses');
+        } else {
+          tampilkanNotifikasi(data.pesan || 'Gagal mengirim OTP', 'error');
+          btn.disabled = false;
+          return;
+        }
+      } catch (err) {
+        tampilkanNotifikasi('Gagal mengirim permintaan OTP', 'error');
+        btn.disabled = false;
+        return;
+      }
+
+      // Cooldown countdown (60s)
+      let sisa = 60;
+      btn.textContent = `Terkirim (${sisa}s)`;
+      const interval = setInterval(() => {
+        sisa -= 1;
+        if (sisa <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = originalText; }
+        else btn.textContent = `Terkirim (${sisa}s)`;
+      }, 1000);
+    });
+  });
+
+  // Reset form client-side validation (password match)
+  document.querySelectorAll('.reset-form').forEach(form => {
+    form.addEventListener('submit', (e) => {
+      const errEl = document.getElementById('resetError');
+      const pw = form.querySelector('input[name="kataSandi"]');
+      const pwc = form.querySelector('input[name="kataSandiConfirm"]');
+      if (!pw || !pwc) return true;
+      if (pw.value !== pwc.value) {
+        e.preventDefault();
+        if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Password dan konfirmasi tidak cocok.'; }
+        return false;
+      }
+      if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+      return true;
+    });
+  });
 });

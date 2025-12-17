@@ -11,12 +11,18 @@ const skemaPengguna = new mongoose.Schema({
   resepFavorit: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Resep' }],
   tanggalDaftar: { type: Date, default: Date.now },
   statusAktif: { type: Boolean, default: true }
-});
+}, { collection: 'pengguna' });
 
-skemaPengguna.pre('save', function(next) {
-  if (!this.isModified('kataSandi')) return next();
-  this.kataSandi = crypto.createHash('sha256').update(this.kataSandi).digest('hex');
-  next();
+skemaPengguna.pre('save', async function() {
+  // Use async hook (returning a promise) to avoid callback-style expectations.
+  try {
+    if (!this.isModified('kataSandi')) return;
+    // Hash password before saving
+    this.kataSandi = crypto.createHash('sha256').update(this.kataSandi).digest('hex');
+  } catch (err) {
+    console.error('Error in pre-save hook (Pengguna):', err);
+    throw err;
+  }
 });
 
 skemaPengguna.methods.verifikasiKataSandi = function(kataSandiInput) {

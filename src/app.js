@@ -46,6 +46,18 @@ const jalankanServer = async () => {
   aplikasi.use(express.urlencoded({ extended: true, limit: '50mb' }));
   aplikasi.use(cors());
 
+  // session (server-side) — used to track authenticated user
+  const session = require('express-session');
+  aplikasi.use(session({
+    secret: process.env.SESSION_SECRET || 'keyboard cat',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 day
+  }));
+
+  // Make session user available in templates
+  aplikasi.use((req, res, next) => { res.locals.user = req.session ? req.session.user : null; next(); });
+
   // static files
   aplikasi.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -53,11 +65,11 @@ const jalankanServer = async () => {
   aplikasi.engine('hbs', exphbs.engine({
     extname: '.hbs',
     defaultLayout: 'layout',
-    layoutsDir: path.join(__dirname, 'templates', 'layouts'),
-    partialsDir: path.join(__dirname, 'templates', 'partials')
+    layoutsDir: path.join(__dirname, '..', 'templates', 'layouts'),
+    partialsDir: path.join(__dirname, '..', 'templates', 'partials')
   }));
   aplikasi.set('view engine', 'hbs');
-  aplikasi.set('views', path.join(__dirname, 'templates', 'views'));
+  aplikasi.set('views', path.join(__dirname, '..', 'templates', 'views'));
 
   // mount routes
   aplikasi.use('/', ruteHome);
@@ -70,6 +82,22 @@ const jalankanServer = async () => {
   aplikasi.get('/api/status', (req, res) => {
     res.json({ sukses: true, pesan: '🍳 Koki AI Pribadi berjalan', waktuServer: new Date().toISOString() });
   });
+
+  // Auth pages
+  aplikasi.get('/login', (req, res) => {
+    let successMessage = null;
+    if (req.query.success === '1' || req.query.registered === '1') successMessage = 'Akun berhasil dibuat. Silakan masuk.';
+    else if (req.query.success) successMessage = req.query.success;
+    return res.render('login', { layout: 'auth', title: 'Masuk - Koki AI Pribadi', successMessage, error: req.query.error });
+  });
+
+  aplikasi.get('/register', (req, res) => {
+    res.render('register', { layout: 'auth', title: 'Daftar - Koki AI Pribadi', error: req.query.error });
+  });
+
+  // Forgot / Reset pages
+  aplikasi.get('/forgot', (req, res) => res.render('forgot', { layout: 'auth' }));
+  aplikasi.get('/reset', (req, res) => res.render('reset', { layout: 'auth', token: req.query.token }));
 
   // cron: notifikasi bahan hampir kadaluarsa setiap hari jam 09:00
   cron.schedule('0 9 * * *', async () => {
@@ -92,9 +120,9 @@ const jalankanServer = async () => {
     }
   }, { timezone: 'Asia/Jakarta' });
 
-  // 404 handler
+  // 404 handler (render the 404 partial via the 404 view and use auth layout)
   aplikasi.use((req, res) => {
-    if (req.accepts('html')) return res.status(404).render('404', { judul: '404 - Tidak Ditemukan' });
+    if (req.accepts('html')) return res.status(404).render('404', { layout: 'auth', judul: '404 - Tidak Ditemukan' });
     return res.status(404).json({ sukses: false, pesan: 'Endpoint tidak ditemukan' });
   });
 

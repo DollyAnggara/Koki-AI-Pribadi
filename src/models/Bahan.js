@@ -10,7 +10,7 @@ const skemaBahan = new mongoose.Schema({
   lokasiPenyimpanan: { type: String, enum: ['kulkas','freezer','rak_dapur','lainnya'], default: 'rak_dapur' },
   pemilik: { type: mongoose.Schema.Types.ObjectId, ref: 'Pengguna' },
   statusAktif: { type: Boolean, default: true }
-});
+}, { collection: 'bahan' });
 
 skemaBahan.virtual('sisaHariKadaluarsa').get(function() {
   if (!this.tanggalKadaluarsa) return null;

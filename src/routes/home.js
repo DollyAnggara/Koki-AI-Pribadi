@@ -8,6 +8,9 @@ const router = express.Router();
 const Resep = require('../models/Resep');
 
 router.get('/', async (req, res) => {
+  // Redirect to login if user not authenticated. When auth is implemented, set `req.session.user` on login.
+  if (!req.session || !req.session.user) return res.redirect('/login');
+
   try {
     const daftarResep = await Resep.find().limit(12);
     res.render('index', { judul: 'Koki AI Pribadi', resep: daftarResep });

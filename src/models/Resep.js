@@ -31,4 +31,4 @@ const skemaResep = new mongoose.Schema({
 
 skemaResep.pre('save', function(next) { this.tanggalDiperbarui = Date.now(); next(); });
 
-module.exports = mongoose.model('Resep', skemaResep);
+module.exports = mongoose.model('Resep', skemaResep, 'resep');

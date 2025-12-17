@@ -47,4 +47,4 @@ skemaRencanaMenu.methods.hitungDaftarBelanja = async function() {
   return this.daftarBelanja;
 };
 
-module.exports = mongoose.model('RencanaMenu', skemaRencanaMenu);
+module.exports = mongoose.model('RencanaMenu', skemaRencanaMenu, 'rencanamenu');

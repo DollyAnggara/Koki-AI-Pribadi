@@ -1,0 +1,25 @@
+<header class="header-utama">
+  <div class="header-row">
+    <div class="header-brand">
+      <h1>🍳 Koki AI Pribadi</h1>
+      <p>Asisten Memasak Cerdas dengan Teknologi AI</p>
+    </div>
+
+    {{#if user}}
+    <div class="header-actions">
+      <span class="user-name">Halo, {{{user.namaPengguna}}}</span>
+      <button class="btn-logout" id="btnLogout" data-logout-url="/api/pengguna/logout" title="Keluar">Keluar</button>
+    </div>
+    {{/if}}
+  </div>
+</header>
+
+<nav class="navigasi-utama">
+  <button class="tombol-nav aktif" data-panel="beranda">🏠 Beranda</button>
+  <button class="tombol-nav" data-panel="resep">📖 Resep</button>
+  <button class="tombol-nav" data-panel="bahan">🥗 Bahan Saya</button>
+  <button class="tombol-nav" data-panel="pantry">🎯 Pantry Challenge</button>
+  <button class="tombol-nav" data-panel="chat">💬 Chat Koki AI</button>
+  <button class="tombol-nav" data-panel="timer">⏱️ Timer</button>
+  <button class="tombol-nav" data-panel="menu">📅 Menu Mingguan</button>
+</nav>

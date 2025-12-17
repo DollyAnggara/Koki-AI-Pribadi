@@ -1,0 +1,53 @@
+<main class="site-root auth-body">
+  <section class="login-page">
+    <div class="container auth-single">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="brand-row">
+            <img src="/img/logo-pngegg.png" alt="logo" class="login-logo logo-left" />
+            <div class="brand-text">
+              <h1>Koki AI Pribadi</h1>
+              <div class="brand-sub">Masuk ke akun Anda</div>
+            </div>
+          </div>
+        </div>
+
+        {{#if successMessage}}
+          <div class="alert alert-success">{{successMessage}}</div>
+        {{/if}}
+
+        {{#if error}}
+          <div class="alert alert-error">{{error}}</div>
+        {{/if}}
+
+        <form action="/api/pengguna/login" method="post" class="login-form">
+          <label class="sr-only" for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="Email" required class="form-control" />
+
+          <label class="sr-only" for="password">Password</label>
+          <div class="input-with-icon">
+            <input id="password" name="kataSandi" type="password" placeholder="Password" required class="form-control password-field" />
+            <button type="button" class="btn-icon toggle-password" aria-label="Tampilkan password" title="Tampilkan password">
+              <img src="/img/eye-closed.png" data-open="/img/eye-open.png" data-closed="/img/eye-closed.png" alt="toggle" />
+            </button>
+          </div>
+
+          <div class="forgot-link"><a href="/forgot">Lupa password?</a></div>
+
+          <div class="login-meta">
+            <label class="remember"><input type="checkbox" name="remember" /> Remember me</label>
+          </div>
+
+          <button class="btn-primary" type="submit">Masuk</button>
+
+          <div class="signup-note-center">Belum punya akun? <a href="/register" class="link-red">Daftar</a></div>
+        </form>
+
+      </div>
+
+      <div class="auth-footer">
+        <div class="login-footer">© 2025 Koki AI</div>
+      </div>
+    </div>
+  </section>
+</main>

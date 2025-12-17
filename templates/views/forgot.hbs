@@ -1,0 +1,29 @@
+<main class="site-root auth-body">
+  <section class="forgot-page">
+    <div class="container auth-single">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="brand-row">
+            <img src="/img/logo-pngegg.png" alt="logo" class="login-logo" />
+            <div class="brand-text">
+              <h1>Koki AI Pribadi</h1>
+              <div class="brand-sub">Permintaan Reset Password</div>
+            </div>
+          </div>
+        </div>
+
+        {{#if success}}<div class="alert alert-success">{{success}}</div>{{/if}}
+        {{#if error}}<div class="alert alert-error">{{error}}</div>{{/if}}
+
+        <form action="/api/pengguna/lupa" method="post" class="forgot-form">
+          <p>Masukkan alamat email yang terdaftar. Kami akan mengirimkan tautan untuk mereset password Anda.</p>
+          <input name="email" type="email" placeholder="Email" required class="form-control" />
+          <button class="btn-primary" type="submit">Kirim tautan reset</button>
+        </form>
+
+        <div class="signup-note-center"><a href="/login" class="link-red">Kembali ke Login</a></div>
+      </div>
+      <div class="auth-footer"><div class="login-footer">© 2025 Koki AI</div></div>
+    </div>
+  </section>
+</main>
