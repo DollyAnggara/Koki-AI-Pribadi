@@ -13,7 +13,34 @@
 
     <div class="kartu">
       <h2 class="kartu-judul">🥗 Bahan di Dapur Saya</h2>
-      <div class="form-grup"><div style="display:flex;gap:10px;"><input type="text" class="form-input" id="namaBahanBaru" placeholder="Nama bahan"><input type="number" class="form-input" id="jumlahBahanBaru" placeholder="Jumlah" style="width:100px;"><input type="date" class="form-input" id="kadaluarsaBahanBaru" style="width:150px;"><button class="tombol-kirim" id="tombolTambahBahan">Tambah</button></div></div>
+      <div class="form-grup">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <input type="text" class="form-input" id="namaBahanBaru" placeholder="Nama bahan" style="flex:1;">
+          <input type="number" class="form-input" id="jumlahBahanBaru" placeholder="Jumlah" style="width:100px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <select id="satuanBahanBaru" class="form-input" style="width:110px;">
+              <option value="gram">gram</option>
+              <option value="kg">kg</option>
+              <option value="liter">liter</option>
+              <option value="ml">ml</option>
+              <option value="butir">butir</option>
+              <option value="potong">potong</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <select id="kategoriBahanBaru" class="form-input" style="width:160px;">
+              <option value="lainnya">lainnya</option>
+              <option value="sayur">sayur</option>
+              <option value="buah">buah</option>
+              <option value="daging">daging</option>
+              <option value="rempah">rempah</option>
+              <option value="bumbu">bumbu</option>
+            </select>
+          </div>
+          <input type="date" class="form-input" id="kadaluarsaBahanBaru" style="width:150px;">
+          <button class="tombol-kirim" id="tombolTambahBahan">Tambah</button>
+        </div>
+      </div>
       <ul class="daftar-bahan-kadaluarsa" id="daftarBahanSaya"></ul>
     </div>
   </section>

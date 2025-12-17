@@ -184,6 +184,72 @@ function inisialisasiUploadGambar() {
   });
 }
 
+// Initialize add-bahan button functionality
+function inisialisasiTambahBahan() {
+  const btn = document.getElementById("tombolTambahBahan");
+  if (!btn) return;
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const namaEl = document.getElementById("namaBahanBaru");
+    const jumlahEl = document.getElementById("jumlahBahanBaru");
+    const kadaluarsaEl = document.getElementById("kadaluarsaBahanBaru");
+    const nama = namaEl ? namaEl.value.trim() : "";
+    const jumlah = jumlahEl ? parseFloat(jumlahEl.value) : 0;
+    const tanggalKadaluarsa =
+      kadaluarsaEl && kadaluarsaEl.value ? kadaluarsaEl.value : undefined;
+    const satuan = document.getElementById("satuanBahanBaru")
+      ? document.getElementById("satuanBahanBaru").value
+      : "gram";
+    const kategori = document.getElementById("kategoriBahanBaru")
+      ? document.getElementById("kategoriBahanBaru").value
+      : "lainnya";
+
+    if (!nama) {
+      tampilkanNotifikasi("Masukkan nama bahan", "error");
+      return;
+    }
+    btn.disabled = true;
+    const payload = {
+      namaBahan: nama,
+      jumlahTersedia: jumlah,
+      satuan,
+      kategoriBahan: kategori,
+      tanggalKadaluarsa,
+    };
+    try {
+      const resp = await fetch("/api/bahan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (data && data.sukses && data.data) {
+        tampilkanNotifikasi("Bahan ditambahkan", "sukses");
+        // reload authoritative list from server
+        await loadDaftarBahan();
+        // reset fields
+        if (namaEl) namaEl.value = "";
+        if (jumlahEl) jumlahEl.value = "";
+        if (kadaluarsaEl) kadaluarsaEl.value = "";
+        const satuanEl = document.getElementById("satuanBahanBaru");
+        const kategoriEl = document.getElementById("kategoriBahanBaru");
+        if (satuanEl) satuanEl.value = "gram";
+        if (kategoriEl) kategoriEl.value = "lainnya";
+      } else {
+        tampilkanNotifikasi(
+          (data && data.pesan) || "Gagal menambahkan bahan",
+          "error"
+        );
+      }
+    } catch (err) {
+      console.error("Add bahan failed", err);
+      tampilkanNotifikasi("Gagal menambahkan bahan", "error");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 async function prosesGambar(file) {
   const previewGambar = document.getElementById("previewGambar");
   const hasilIdentifikasi = document.getElementById("hasilIdentifikasi");
@@ -277,13 +343,58 @@ function playBunyi() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// Load bahan list and render (top-level so we can call it from multiple places)
+async function loadDaftarBahan() {
+  try {
+    const resp = await fetch("/api/bahan");
+    const data = await resp.json();
+    const ul = document.getElementById("daftarBahanSaya");
+    if (!ul) return;
+    ul.innerHTML = "";
+    if (!data || !data.sukses) return;
+    data.data.forEach((b) => {
+      const li = document.createElement("li");
+      li.className = "item-bahan";
+      const sisaHari = b.tanggalKadaluarsa
+        ? Math.ceil(
+            (new Date(b.tanggalKadaluarsa) - new Date()) / (1000 * 60 * 60 * 24)
+          )
+        : null;
+      const kategoriTag = b.kategoriBahan
+        ? `<span class="tag">${b.kategoriBahan}</span>`
+        : "";
+      li.innerHTML = `<span>${b.namaBahan} - ${b.jumlahTersedia || 0}${
+        b.satuan ? " " + b.satuan : ""
+      }${kategoriTag}</span>${
+        sisaHari !== null
+          ? `<span class="badge-kadaluarsa ${
+              sisaHari <= 1 ? "segera" : sisaHari <= 3 ? "perhatian" : ""
+            }">${
+              sisaHari <= 1
+                ? "SEGERA GUNAKAN!"
+                : sisaHari <= 3
+                ? sisaHari + " hari lagi"
+                : ""
+            }</span>`
+          : ""
+      }`;
+      ul.appendChild(li);
+    });
+  } catch (err) {
+    console.error("Failed to load bahan", err);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   console.log("🍳 Koki AI Pribadi - Frontend Dimulai");
   inisialisasiNavigasi();
   inisialisasiSocket();
   inisialisasiChat();
   inisialisasiTimer();
   inisialisasiUploadGambar();
+  inisialisasiTambahBahan();
+
+  await loadDaftarBahan();
   setTimeout(
     () =>
       tampilkanNotifikasi("Selamat datang di Koki AI Pribadi! 🍳", "sukses"),

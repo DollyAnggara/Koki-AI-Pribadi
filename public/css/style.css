@@ -339,6 +339,17 @@ body {
   color: var(--warna-teks-sekunder);
 }
 
+/* Generic tag used for category labels */
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: var(--warna-teks-sekunder);
+  margin-left: 6px;
+}
+
 /* Small micro-animation for stats */
 .stat-value {
   transition: transform 0.4s ease;
@@ -347,6 +358,7 @@ body {
 .stat-value.pop {
   transform: scale(1.08);
 }
+
 .nama-resep {
   font-weight: 700;
   margin-bottom: 6px;
