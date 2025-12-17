@@ -120,9 +120,9 @@ const jalankanServer = async () => {
     }
   }, { timezone: 'Asia/Jakarta' });
 
-  // 404 handler
+  // 404 handler (render the 404 partial via the 404 view and use auth layout)
   aplikasi.use((req, res) => {
-    if (req.accepts('html')) return res.status(404).render('404', { judul: '404 - Tidak Ditemukan' });
+    if (req.accepts('html')) return res.status(404).render('404', { layout: 'auth', judul: '404 - Tidak Ditemukan' });
     return res.status(404).json({ sukses: false, pesan: 'Endpoint tidak ditemukan' });
   });
 

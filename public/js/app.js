@@ -206,6 +206,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Logout confirmation and AJAX logout
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const confirmed = confirm('Yakin ingin keluar?');
+      if (!confirmed) return;
+      try {
+        btnLogout.disabled = true;
+        const url = btnLogout.dataset.logoutUrl || '/api/pengguna/logout';
+        const resp = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } });
+        const data = await resp.json();
+        if (data && data.sukses) {
+          window.location.href = '/login';
+        } else {
+          tampilkanNotifikasi(data.pesan || 'Gagal keluar', 'error');
+          btnLogout.disabled = false;
+        }
+      } catch (err) {
+        console.error('Logout failed', err);
+        tampilkanNotifikasi('Gagal keluar', 'error');
+        btnLogout.disabled = false;
+      }
+    });
+  }
+
   // Register form client validation (password confirmation) + OTP verification before submit
   document.querySelectorAll('.register-form').forEach(form => {
     form.addEventListener('submit', async (e) => {
