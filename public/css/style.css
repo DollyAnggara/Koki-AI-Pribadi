@@ -118,6 +118,54 @@ body {
 
 /* Upload area */
 .area-upload { border:3px dashed #ccc; border-radius:var(--radius); padding:36px; text-align:center; cursor:pointer; transition:all .12s ease; }
+
+/* Auth / Login & Register (improved layout) */
+.auth-body { display:flex; align-items:center; justify-content:center; min-height:100vh; background: var(--warna-latar); padding: 40px 16px; }
+.auth-grid { display:grid; grid-template-columns: 1fr 420px; gap:40px; align-items:center; width:100%; max-width:1100px; }
+.auth-left { display:flex; flex-direction:column; align-items:flex-start; gap:18px; padding:24px; }
+.auth-illustration img { width:100%; max-width:420px; border-radius:12px; box-shadow: 0 16px 40px rgba(0,0,0,0.06); display:block; }
+.auth-welcome h1 { margin:0; font-size:1.8rem; color:var(--warna-teks); }
+.auth-welcome p { color:var(--warna-teks-sekunder); max-width:560px; line-height:1.5; }
+
+.login-page .container, .register-page .container { max-width: 100%; width:100%; padding: 0; }
+.login-card, .register-card { background: #fff; border-radius: 12px; box-shadow: 0 18px 60px rgba(0,0,0,0.08); overflow: hidden; padding: 28px; }
+.brand-row { display:flex; align-items:center; gap:12px; justify-content:flex-start; margin-bottom: 8px; }
+.login-logo { width:56px; height:56px; object-fit:contain; border-radius:8px; }
+.brand-text h1 { font-size:1.1rem; margin:0; color:var(--warna-primer); font-weight:700; }
+.brand-text .brand-sub { font-size:0.9rem; color:var(--warna-teks-sekunder); margin-top:4px; }
+.login-brand h2, .register-brand h2 { margin-top:6px; font-size:1rem; color:var(--warna-teks-sekunder); text-align:center; }
+.login-form, .register-form { display:flex; flex-direction:column; gap:12px; margin-top: 10px; }
+.form-control { padding:12px 14px; border:1px solid #f0f2f4; border-radius:10px; width:100%; background:#fcfcfd; }
+.form-control:focus { outline:none; border-color:var(--warna-primer); box-shadow:0 0 0 6px rgba(231,76,60,0.06); }
+.input-with-icon { position:relative; display:flex; align-items:center; }
+.input-with-icon .btn-icon { background:transparent; border:none; position:absolute; right:8px; top:50%; transform: translateY(-50%); padding:6px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:6px; }
+.input-with-icon .btn-icon:focus { outline: 2px solid rgba(231,76,60,0.16); }
+.input-with-icon .btn-icon img { width:18px; height:18px; display:block; }
+/* Make sure the input has right padding so text doesn't overlap the icon */
+.input-with-icon .form-control { padding-right:46px; }
+.alert { padding:12px 14px; border-radius:10px; margin-bottom:12px; font-size:0.95rem; }
+.alert-success { background:#e9f7ef; color:#1f8b4a; }
+.alert-error { background:#fff2f2; color:#c0392b; border:1px solid #f5c6c6; }
+#registerError { display:block; margin-bottom:8px; }
+.btn-primary { padding:12px 18px; background:var(--warna-primer); color:#fff; border:none; border-radius:10px; cursor:pointer; width:100%; font-weight:700; font-size:1rem; box-shadow: 0 8px 24px rgba(231,76,60,0.16); }
+.btn-primary:hover { transform: translateY(-2px); }
+.btn-secondary { padding:10px 12px; border-radius:8px; background:#f3f4f6; border:1px solid #e6e6e6; cursor:pointer; }
+.login-meta, .register-meta { display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.95rem; }
+.signup-note a { color:var(--warna-primer); text-decoration:none; font-weight:600; }
+.otp-row { display:flex; gap:8px; align-items:center; }
+.otp-input { flex:1; }
+.login-footer { text-align:center; margin-top:14px; color:var(--warna-teks-sekunder); font-size:0.9rem; }
+.remember input { margin-right:8px; }
+
+@media (max-width:900px) {
+  .auth-grid { grid-template-columns: 1fr; gap:24px; }
+  .auth-left { order:2; align-items:center; text-align:center; }
+  .auth-illustration img { max-width:320px; }
+}
+
+@media (max-width:600px) { .brand-row{flex-direction:column} .login-card, .register-card{padding:18px} }
+
+
 .area-upload:hover { border-color:var(--warna-primer); background:#fff6f6; }
 .area-upload.dragover { border-color:var(--warna-aksen); background:#e8f8f0; }
 .preview-gambar { max-width:100%; max-height:300px; border-radius:var(--radius); margin-top:14px; }
@@ -138,3 +186,17 @@ body {
   .kontainer-chat { height: 400px; }
   .tampilan-timer { font-size: 2rem; }
 }
+
+/* Single card centered layout for login */
+.auth-single { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; padding: 24px; }
+.auth-single .login-card { width:100%; max-width:420px; }
+.signup-note-center { text-align:center; margin-top:12px; color:var(--warna-teks-sekunder); }
+.auth-footer { text-align:center; margin-top:16px; }
+
+@media (max-width:900px) {
+  .auth-grid { grid-template-columns: 1fr; gap:24px; }
+  .auth-left { order:2; align-items:center; text-align:center; }
+  .auth-illustration img { max-width:320px; }
+}
+
+@media (max-width:600px) { .brand-row{flex-direction:column} .login-card, .register-card{padding:18px} }

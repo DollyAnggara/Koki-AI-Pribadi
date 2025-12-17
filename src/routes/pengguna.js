@@ -8,6 +8,7 @@ const kontrolerPengguna = require('../controller/kontrolerPengguna');
 
 router.post('/registrasi', kontrolerPengguna.registrasiPengguna);
 router.post('/login', kontrolerPengguna.loginPengguna);
+router.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/login')); });
 router.get('/:id', kontrolerPengguna.dapatkanProfil);
 router.put('/:id', kontrolerPengguna.perbaruiProfil);
 router.patch('/:id/preferensi-diet', kontrolerPengguna.perbaruiPreferensiDiet);

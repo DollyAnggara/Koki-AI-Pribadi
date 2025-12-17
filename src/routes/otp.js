@@ -5,11 +5,13 @@
 
 const express = require('express');
 const router = express.Router();
+const otpController = require('../controller/otpController');
 
-// Contoh endpoint OTP (placeholder)
-router.post('/send', (req, res) => {
-  // logic kirim OTP dapat ditaruh di src/controller/otpController.js
-  res.json({ sukses: true, pesan: 'OTP dikirim (placeholder)' });
-});
+// Kirim OTP ke email
+router.post('/send', otpController.sendOtp);
+// Verifikasi OTP
+router.post('/verify', otpController.verifyOtp);
+// Test koneksi SMTP (POST saja untuk menghindari caching di browser)
+router.post('/test', otpController.testSmtp);
 
 module.exports = router;
