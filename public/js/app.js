@@ -206,6 +206,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // "Remember me" support: pre-fill and save credentials locally when user opts in
+  (function initRememberMe() {
+    const loginForm = document.querySelector('.login-form');
+    if (!loginForm) return;
+
+    const emailEl = loginForm.querySelector('input[name="email"]');
+    const pwEl = loginForm.querySelector('input[name="kataSandi"]');
+    const rememberCheckbox = loginForm.querySelector('input[name="remember"]');
+
+    function getCookie(name) {
+      const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return match ? decodeURIComponent(match.pop()) : null;
+    }
+
+    // Prefill from server-set cookie or localStorage
+    try {
+      const savedEmail = getCookie('rememberEmail') || localStorage.getItem('remember:email');
+      const savedPassword = localStorage.getItem('remember:password');
+      if (emailEl && savedEmail) { emailEl.value = savedEmail; if (rememberCheckbox) rememberCheckbox.checked = true; }
+      if (pwEl && savedPassword) { pwEl.value = savedPassword; if (rememberCheckbox) rememberCheckbox.checked = true; }
+    } catch (e) { console.warn('Remember me: failed to access storage', e); }
+
+    // On submit, persist or clear creds in localStorage based on checkbox
+    loginForm.addEventListener('submit', () => {
+      try {
+        if (rememberCheckbox && rememberCheckbox.checked) {
+          if (emailEl) localStorage.setItem('remember:email', emailEl.value);
+          if (pwEl) localStorage.setItem('remember:password', pwEl.value);
+        } else {
+          localStorage.removeItem('remember:email');
+          localStorage.removeItem('remember:password');
+        }
+      } catch (e) { console.warn('Remember me: failed to save credentials', e); }
+    });
+  })();
+
   // Logout confirmation and AJAX logout
   const btnLogout = document.getElementById('btnLogout');
   if (btnLogout) {
