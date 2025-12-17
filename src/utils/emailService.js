@@ -1,38 +1,88 @@
 // nodemailer wrapper (sama seperti sebelumnya) - fungsi kirimEmailMenuMingguan & kirimNotifikasiKadaluarsa
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
+// If dotenv hasn't been loaded by the app by the time this module is required,
+// try to load it here so the module is more robust when required directly.
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  try {
+    require("dotenv").config();
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+// diagnostic info: show masked user and whether pass is set (do not print secrets)
+const _rawUser =
+  process.env.EMAIL_USER || process.env.EMAIL_USERNAME || process.env.EMAIL;
+const _rawPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
+const _maskedUser = _rawUser
+  ? String(_rawUser).replace(/^(.{2}).+(@.+)$/, "$1***$2")
+  : "<not set>";
+console.log(`🔍 Email env: user=${_maskedUser}, passSet=${!!_rawPass}`);
 const ensureEmailConfig = () => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('⚠️ Email credentials not configured. Set EMAIL_USER and EMAIL_PASS in your .env to enable email sending.');
+  // Support alternate env names and provide helpful debug output when missing
+  const user =
+    process.env.EMAIL_USER || process.env.EMAIL_USERNAME || process.env.EMAIL;
+  const pass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
+
+  if (!user || !pass) {
+    console.warn(
+      `⚠️ Email credentials not configured. Found EMAIL_USER=${!!user}, EMAIL_PASS=${!!pass}. Set EMAIL_USER and EMAIL_PASS (or EMAIL_USERNAME/EMAIL_PASSWORD) in your .env to enable email sending.`
+    );
     return false;
   }
+
+  // Normalize to the expected keys for the rest of the module
+  process.env.EMAIL_USER =
+    process.env.EMAIL_USER || process.env.EMAIL_USERNAME || process.env.EMAIL;
+  process.env.EMAIL_PASS = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
   return true;
 };
 
-const buatTransporter = () => nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT) : 587,
-  secure: false,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-});
+const buatTransporter = () =>
+  nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || "smtp.gmail.com",
+    port: process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT) : 587,
+    secure: false,
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
 
 const kirimEmailMenuMingguan = async (penerima, rencana) => {
-  if (!ensureEmailConfig()) throw new Error('Email config missing. Set EMAIL_USER and EMAIL_PASS in .env');
+  if (!ensureEmailConfig())
+    throw new Error(
+      "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
+    );
   const transporter = buatTransporter();
   // Implement sending logic here
-  return transporter.sendMail({ from: process.env.EMAIL_USER, to: penerima, subject: 'Menu Mingguan', text: 'Isi menu...' });
+  return transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: penerima,
+    subject: "Menu Mingguan",
+    text: "Isi menu...",
+  });
 };
 
 const kirimNotifikasiKadaluarsa = async (penerima, daftar) => {
-  if (!ensureEmailConfig()) throw new Error('Email config missing. Set EMAIL_USER and EMAIL_PASS in .env');
+  if (!ensureEmailConfig())
+    throw new Error(
+      "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
+    );
   const transporter = buatTransporter();
   // Implement sending logic here
-  return transporter.sendMail({ from: process.env.EMAIL_USER, to: penerima, subject: 'Peringatan Kadaluarsa', text: 'Ada bahan hampir kadaluarsa.' });
+  return transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: penerima,
+    subject: "Peringatan Kadaluarsa",
+    text: "Ada bahan hampir kadaluarsa.",
+  });
 };
 
 const kirimOtpEmail = async (penerima, kode) => {
-  if (!ensureEmailConfig()) throw new Error('Email config missing. Set EMAIL_USER and EMAIL_PASS in .env');
+  if (!ensureEmailConfig())
+    throw new Error(
+      "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
+    );
   const transporter = buatTransporter();
-  const appName = process.env.APP_NAME || 'Koki AI Pribadi';
+  const appName = process.env.APP_NAME || "Koki AI Pribadi";
   const supportEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
   const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   const subject = `${appName} - Kode OTP Anda`;
@@ -59,13 +109,22 @@ const kirimOtpEmail = async (penerima, kode) => {
   </body>
   </html>`;
 
-  return transporter.sendMail({ from: fromAddress, to: penerima, subject, text, html });
+  return transporter.sendMail({
+    from: fromAddress,
+    to: penerima,
+    subject,
+    text,
+    html,
+  });
 };
 
 const kirimResetEmail = async (penerima, link) => {
-  if (!ensureEmailConfig()) throw new Error('Email config missing. Set EMAIL_USER and EMAIL_PASS in .env');
+  if (!ensureEmailConfig())
+    throw new Error(
+      "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
+    );
   const transporter = buatTransporter();
-  const appName = process.env.APP_NAME || 'Koki AI Pribadi';
+  const appName = process.env.APP_NAME || "Koki AI Pribadi";
   const supportEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
   const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   const subject = `${appName} - Permintaan Reset Password`;
@@ -88,13 +147,28 @@ const kirimResetEmail = async (penerima, link) => {
     </div>
   </body>
   </html>`;
-  return transporter.sendMail({ from: fromAddress, to: penerima, subject, text, html });
+  return transporter.sendMail({
+    from: fromAddress,
+    to: penerima,
+    subject,
+    text,
+    html,
+  });
 };
 
 const verifyTransport = async () => {
-  if (!ensureEmailConfig()) throw new Error('Email config missing. Set EMAIL_USER and EMAIL_PASS in .env');
+  if (!ensureEmailConfig())
+    throw new Error(
+      "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
+    );
   const transporter = buatTransporter();
   return transporter.verify();
 };
 
-module.exports = { kirimEmailMenuMingguan, kirimNotifikasiKadaluarsa, kirimOtpEmail, kirimResetEmail, verifyTransport };
+module.exports = {
+  kirimEmailMenuMingguan,
+  kirimNotifikasiKadaluarsa,
+  kirimOtpEmail,
+  kirimResetEmail,
+  verifyTransport,
+};

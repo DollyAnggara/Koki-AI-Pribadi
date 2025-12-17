@@ -2,26 +2,28 @@
 
 <main class="kontainer-utama">
   <section class="panel aktif" id="panelBeranda">
-    <div class="kartu">
-      <h2 class="kartu-judul">👋 Selamat Datang di Koki AI Pribadi!</h2>
-      <p>Aplikasi asisten memasak pintar yang akan membantu Anda:</p>
-      <ul style="margin:12px 0 0 20px;">
-        <li>🤖 Chat dengan Koki AI untuk panduan memasak step-by-step</li>
-        <li>📷 Identifikasi bahan makanan dari foto</li>
-        <li>🎯 Pantry Challenge - gunakan bahan yang hampir kadaluarsa</li>
-        <li>📊 Hitung kalori dan nutrisi resep</li>
-        <li>⏱️ Timer memasak real-time</li>
-        <li>📧 Terima email menu mingguan otomatis</li>
-      </ul>
+    <div class="hero">
+      <div class="hero-left">
+        <h1 class="hero-title">👋 Selamat Datang di <strong>Koki AI Pribadi</strong></h1>
+        <p class="hero-sub">Asisten memasak pintar: identifikasi bahan, rekomendasi resep, manajemen pantry, dan panduan langkah demi langkah.</p>
+        <div class="hero-ctas">
+          <button class="btn-cta" id="btnGenerateMenu">🤖 Generate Menu</button>
+          <button class="btn-cta secondary" id="btnChatKoki">💬 Chat dengan Koki AI</button>
+        </div>
+        <div class="hero-features">📷 Identifikasi bahan &nbsp; • &nbsp; ⏱️ Timer real-time &nbsp; • &nbsp; 📧 Notifikasi via Email</div>
+      </div>
+      <div class="hero-right" aria-hidden="true">
+        <svg class="hero-illustration" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustrasi Koki"><g fill="none" fill-rule="evenodd"><rect x="18" y="44" width="84" height="28" rx="6" fill="#f6f9fc" stroke="#e6eefb"/><path d="M28 44v-6a8 8 0 018-8h48a8 8 0 018 8v6" stroke="#d6e7ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 36c2-6 10-8 20-8s18 2 20 8" stroke="#f3c6c6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><g stroke="#b6d9ff" stroke-linecap="round" stroke-width="2"><path d="M60 22c0-3 2-6 4-6s4 3 4 6"/><path d="M68 26c0-2 1-4 2-4s2 2 2 4"/></g></g></svg>
+      </div>
     </div>
 
-    <div class="kartu">
+    <div class="kartu stats-kartu">
       <h3 class="kartu-judul">📊 Statistik Dapur Anda</h3>
-      <div class="info-nutrisi">
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="totalBahan">0</div><div class="label-nutrisi">Total Bahan</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="bahanKadaluarsa">0</div><div class="label-nutrisi">Hampir Kadaluarsa</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="totalResep">0</div><div class="label-nutrisi">Resep Tersimpan</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="resepFavorit">0</div><div class="label-nutrisi">Resep Favorit</div></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">🧾</div><div class="stat-body"><div class="stat-value" id="totalBahan">0</div><div class="stat-label">Total Bahan</div></div></div>
+        <div class="stat-card"><div class="stat-icon">⌛</div><div class="stat-body"><div class="stat-value" id="bahanKadaluarsa">0</div><div class="stat-label">Hampir Kadaluarsa</div></div></div>
+        <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-body"><div class="stat-value" id="totalResep">0</div><div class="stat-label">Resep Tersimpan</div></div></div>
+        <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-body"><div class="stat-value" id="resepFavorit">0</div><div class="stat-label">Resep Favorit</div></div></div>
       </div>
     </div>
   </section>
