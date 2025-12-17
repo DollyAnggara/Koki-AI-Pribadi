@@ -192,11 +192,8 @@ function inisialisasiTambahBahan() {
     e.preventDefault();
     const namaEl = document.getElementById("namaBahanBaru");
     const jumlahEl = document.getElementById("jumlahBahanBaru");
-    const kadaluarsaEl = document.getElementById("kadaluarsaBahanBaru");
     const nama = namaEl ? namaEl.value.trim() : "";
     const jumlah = jumlahEl ? parseFloat(jumlahEl.value) : 0;
-    const tanggalKadaluarsa =
-      kadaluarsaEl && kadaluarsaEl.value ? kadaluarsaEl.value : undefined;
     const satuan = document.getElementById("satuanBahanBaru")
       ? document.getElementById("satuanBahanBaru").value
       : "gram";
@@ -214,7 +211,6 @@ function inisialisasiTambahBahan() {
       jumlahTersedia: jumlah,
       satuan,
       kategoriBahan: kategori,
-      tanggalKadaluarsa,
     };
     try {
       const resp = await fetch("/api/bahan", {
@@ -230,7 +226,6 @@ function inisialisasiTambahBahan() {
         // reset fields
         if (namaEl) namaEl.value = "";
         if (jumlahEl) jumlahEl.value = "";
-        if (kadaluarsaEl) kadaluarsaEl.value = "";
         const satuanEl = document.getElementById("satuanBahanBaru");
         const kategoriEl = document.getElementById("kategoriBahanBaru");
         if (satuanEl) satuanEl.value = "gram";
@@ -248,6 +243,15 @@ function inisialisasiTambahBahan() {
       btn.disabled = false;
     }
   });
+}
+
+function formatTimestamp(ts) {
+  try {
+    const d = new Date(ts);
+    return d.toLocaleString();
+  } catch (e) {
+    return ts;
+  }
 }
 
 async function prosesGambar(file) {
@@ -363,7 +367,12 @@ async function loadDaftarBahan() {
       const kategoriTag = b.kategoriBahan
         ? `<span class="tag">${b.kategoriBahan}</span>`
         : "";
-      li.innerHTML = `<span>${b.namaBahan} - ${b.jumlahTersedia || 0}${
+      const added = b.createdAt
+        ? `<div class="item-meta">Ditambahkan: ${formatTimestamp(
+            b.createdAt
+          )}</div>`
+        : "";
+      li.innerHTML = `<div><span>${b.namaBahan} - ${b.jumlahTersedia || 0}${
         b.satuan ? " " + b.satuan : ""
       }${kategoriTag}</span>${
         sisaHari !== null
@@ -377,7 +386,7 @@ async function loadDaftarBahan() {
                 : ""
             }</span>`
           : ""
-      }`;
+      }</div>${added}`;
       ul.appendChild(li);
     });
   } catch (err) {
