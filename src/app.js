@@ -95,6 +95,10 @@ const jalankanServer = async () => {
     res.render('register', { layout: 'auth', title: 'Daftar - Koki AI Pribadi', error: req.query.error });
   });
 
+  // Forgot / Reset pages
+  aplikasi.get('/forgot', (req, res) => res.render('forgot', { layout: 'auth' }));
+  aplikasi.get('/reset', (req, res) => res.render('reset', { layout: 'auth', token: req.query.token }));
+
   // cron: notifikasi bahan hampir kadaluarsa setiap hari jam 09:00
   cron.schedule('0 9 * * *', async () => {
     console.log('🕘 Cron: cek bahan hampir kadaluarsa');

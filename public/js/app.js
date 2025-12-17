@@ -279,4 +279,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 1000);
     });
   });
+
+  // Reset form client-side validation (password match)
+  document.querySelectorAll('.reset-form').forEach(form => {
+    form.addEventListener('submit', (e) => {
+      const errEl = document.getElementById('resetError');
+      const pw = form.querySelector('input[name="kataSandi"]');
+      const pwc = form.querySelector('input[name="kataSandiConfirm"]');
+      if (!pw || !pwc) return true;
+      if (pw.value !== pwc.value) {
+        e.preventDefault();
+        if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Password dan konfirmasi tidak cocok.'; }
+        return false;
+      }
+      if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+      return true;
+    });
+  });
 });

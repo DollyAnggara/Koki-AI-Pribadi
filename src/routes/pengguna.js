@@ -8,6 +8,8 @@ const kontrolerPengguna = require('../controller/kontrolerPengguna');
 
 router.post('/registrasi', kontrolerPengguna.registrasiPengguna);
 router.post('/login', kontrolerPengguna.loginPengguna);
+router.post('/lupa', require('../controller/resetController').requestReset);
+router.post('/reset', require('../controller/resetController').performReset);
 router.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/login')); });
 router.get('/:id', kontrolerPengguna.dapatkanProfil);
 router.put('/:id', kontrolerPengguna.perbaruiProfil);

@@ -143,10 +143,28 @@ body {
 .input-with-icon .btn-icon img { width:18px; height:18px; display:block; }
 /* Make sure the input has right padding so text doesn't overlap the icon */
 .input-with-icon .form-control { padding-right:46px; }
-.alert { padding:12px 14px; border-radius:10px; margin-bottom:12px; font-size:0.95rem; }
+.alert { padding:12px 14px; border-radius:10px; margin-bottom:18px; font-size:0.95rem; }
 .alert-success { background:#e9f7ef; color:#1f8b4a; }
 .alert-error { background:#fff2f2; color:#c0392b; border:1px solid #f5c6c6; }
 #registerError { display:block; margin-bottom:8px; }
+
+/* Spacing improvements for forgot/reset flow */
+.forgot-page .login-card { padding: 34px; max-width:420px; }
+.forgot-page .forgot-form { display:flex; flex-direction:column; gap:16px; margin-top:8px; }
+.forgot-page .forgot-form p { margin:0 0 4px; color:var(--warna-teks-sekunder); line-height:1.6; }
+.forgot-page .forgot-form .form-control { margin-top:4px; }
+.forgot-page .forgot-form .btn-primary { margin-top:6px; padding:12px 18px; }
+.forgot-page .signup-note-center { margin-top:14px; }
+
+/* Reset form tweaks */
+.reset-page .login-card { padding: 36px; max-width:420px; }
+.reset-form { display:flex; flex-direction:column; gap:14px; }
+.reset-form .input-with-icon { margin-top:6px; }
+.reset-form .help-text { color:var(--warna-teks-sekunder); font-size:0.9rem; margin-top:6px; }
+.reset-form .btn-primary { margin-top:6px; padding:12px 18px; }
+#resetError { display:none; margin-bottom:8px; }
+
+
 .btn-primary { padding:12px 18px; background:var(--warna-primer); color:#fff; border:none; border-radius:10px; cursor:pointer; width:100%; font-weight:700; font-size:1rem; box-shadow: 0 8px 24px rgba(231,76,60,0.16); }
 .btn-primary:hover { transform: translateY(-2px); }
 .btn-secondary { padding:10px 12px; border-radius:8px; background:#f3f4f6; border:1px solid #e6e6e6; cursor:pointer; }
@@ -192,6 +210,9 @@ body {
 .auth-single .login-card { width:100%; max-width:420px; }
 .signup-note-center { text-align:center; margin-top:12px; color:var(--warna-teks-sekunder); }
 .auth-footer { text-align:center; margin-top:16px; }
+.forgot-link { text-align: right; margin-top:8px; }
+.forgot-link a { color:var(--warna-primer); text-decoration:none; font-size:0.95rem; }
+.forgot-link a:hover { text-decoration:underline; }
 
 @media (max-width:900px) {
   .auth-grid { grid-template-columns: 1fr; gap:24px; }

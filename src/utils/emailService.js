@@ -62,10 +62,39 @@ const kirimOtpEmail = async (penerima, kode) => {
   return transporter.sendMail({ from: fromAddress, to: penerima, subject, text, html });
 };
 
+const kirimResetEmail = async (penerima, link) => {
+  if (!ensureEmailConfig()) throw new Error('Email config missing. Set EMAIL_USER and EMAIL_PASS in .env');
+  const transporter = buatTransporter();
+  const appName = process.env.APP_NAME || 'Koki AI Pribadi';
+  const supportEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
+  const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  const subject = `${appName} - Permintaan Reset Password`;
+  const text = `Anda menerima email ini karena ada permintaan untuk mereset password akun Anda. Buka tautan berikut untuk mereset password: ${link}`;
+  const html = `<!doctype html>
+  <html>
+  <body style="margin:0;padding:20px;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;color:#222;background:#f6f9fc;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;padding:24px;border:1px solid #eef2f7;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <img src="https://placehold.co/120x40?text=KokiAI" alt="${appName}" style="height:40px;object-fit:contain;" />
+      </div>
+      <h2 style="margin:0 0 8px;color:#111;font-size:20px;">Permintaan Reset Password</h2>
+      <p style="margin:0 0 16px;color:#6b7280;">Kami menerima permintaan untuk mereset password akun yang terkait dengan email ini.</p>
+      <div style="text-align:center;margin:18px 0;padding:16px;">
+        <a href="${link}" style="display:inline-block;padding:12px 20px;background:#e74c3c;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">Reset Password</a>
+      </div>
+      <p style="color:#6b7280;margin:0 0 18px;">Jika Anda tidak meminta reset ini, abaikan email ini atau hubungi <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+      <hr style="border:none;border-top:1px solid #eef2f6;margin:18px 0;" />
+      <p style="color:#9ca3af;font-size:13px;margin:0;">Email ini dikirim oleh ${appName}.</p>
+    </div>
+  </body>
+  </html>`;
+  return transporter.sendMail({ from: fromAddress, to: penerima, subject, text, html });
+};
+
 const verifyTransport = async () => {
   if (!ensureEmailConfig()) throw new Error('Email config missing. Set EMAIL_USER and EMAIL_PASS in .env');
   const transporter = buatTransporter();
   return transporter.verify();
 };
 
-module.exports = { kirimEmailMenuMingguan, kirimNotifikasiKadaluarsa, kirimOtpEmail, verifyTransport };
+module.exports = { kirimEmailMenuMingguan, kirimNotifikasiKadaluarsa, kirimOtpEmail, kirimResetEmail, verifyTransport };
