@@ -157,6 +157,37 @@ body {
   margin-bottom: 18px;
   box-shadow: var(--bayangan);
 }
+
+/* Bahan page: upload area, form layout and controls */
+.area-upload {
+  border: 2px dashed rgba(0,0,0,0.08);
+  border-radius: 10px;
+  padding: 28px 20px;
+  min-height: 96px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(251,251,251,0.98));
+  color: var(--warna-teks-sekunder);
+}
+.area-upload .hint { text-align:center; font-size:0.95rem; color:var(--warna-teks-sekunder); }
+.area-upload.dragover { background: linear-gradient(90deg, rgba(231,76,60,0.02), rgba(52,152,219,0.02)); border-color: rgba(231,76,60,0.28); }
+.preview-gambar { max-width:100%; border-radius:8px; display:block; margin-top:12px; }
+
+.kartu .form-grup { padding: 6px 0; }
+.kartu .form-grup label { font-weight:700; margin-bottom:6px; display:block; }
+.kartu .form-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+.kartu .form-row > div { flex:1; min-width:180px; }
+.kartu .form-row .select-small { flex:0 0 140px; min-width:120px; }
+.kartu .form-row .select-medium { flex:0 0 180px; min-width:140px; }
+.kartu .form-actions { display:flex; gap:12px; align-items:center; }
+.tombol-kirim { background: var(--warna-primer); color:#fff; border:none; padding:10px 14px; border-radius:20px; cursor:pointer; box-shadow:0 8px 18px rgba(231,76,60,0.12); }
+
+@media (max-width: 900px) {
+  .kartu .form-row { display:block; }
+  .kartu .form-row > div { width:100%; }
+  .kartu .form-row .select-small, .kartu .form-row .select-medium { width:100%; }
+}
 .kartu-judul {
   font-size: 1.2rem;
   margin-bottom: 12px;

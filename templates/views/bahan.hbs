@@ -14,30 +14,68 @@
     <div class="kartu">
       <h2 class="kartu-judul">🥗 Bahan di Dapur Saya</h2>
       <div class="form-grup">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-          <input type="text" class="form-input" id="namaBahanBaru" placeholder="Nama bahan" style="flex:1;">
-          <input type="number" class="form-input" id="jumlahBahanBaru" placeholder="Jumlah" style="width:100px;">
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <select id="satuanBahanBaru" class="form-input" style="width:110px;">
-              <option value="gram">gram</option>
-              <option value="kg">kg</option>
-              <option value="liter">liter</option>
-              <option value="ml">ml</option>
-              <option value="butir">butir</option>
-              <option value="potong">potong</option>
-            </select>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;flex-direction:column;">
+            <label for="namaBahanBaru"><strong>Nama bahan</strong></label>
+            <input type="text" class="form-input" id="namaBahanBaru" placeholder="Nama bahan">
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <select id="kategoriBahanBaru" class="form-input" style="width:160px;">
-              <option value="lainnya">lainnya</option>
-              <option value="sayur">sayur</option>
-              <option value="buah">buah</option>
-              <option value="daging">daging</option>
-              <option value="rempah">rempah</option>
-              <option value="bumbu">bumbu</option>
-            </select>
+
+          <div style="display:flex;flex-direction:column;">
+            <label for="jumlahBahanBaru"><strong>Jumlah</strong></label>
+            <input type="number" class="form-input" id="jumlahBahanBaru" placeholder="Jumlah">
           </div>
-          <button class="tombol-kirim" id="tombolTambahBahan">Tambah</button>
+
+          <div class="form-row">
+            <div>
+              <label for="satuanBahanBaru"><strong>Satuan</strong></label>
+              <select id="satuanBahanBaru" class="form-input select-small">
+                <option value="gram">gram</option>
+                <option value="kg">kg</option>
+                <option value="liter">liter</option>
+                <option value="ml">ml</option>
+                <option value="butir">butir</option>
+                <option value="potong">potong</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="kategoriBahanBaru"><strong>Kategori</strong></label>
+              <select id="kategoriBahanBaru" class="form-input select-medium">
+                <option value="lainnya">lainnya</option>
+                <option value="sayur">sayur</option>
+                <option value="buah">buah</option>
+                <option value="daging">daging</option>
+                <option value="rempah">rempah</option>
+                <option value="bumbu">bumbu</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="lokasiPenyimpananBahanBaru"><strong>Lokasi penyimpanan</strong></label>
+              <select id="lokasiPenyimpananBahanBaru" class="form-input select-small">
+                <option value="rak_dapur">rak_dapur</option>
+                <option value="kulkas">kulkas</option>
+                <option value="freezer">freezer</option>
+                <option value="lainnya">lainnya</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="tanggalPembelianBahanBaru"><strong>Tanggal pembelian</strong></label>
+              <input type="date" id="tanggalPembelianBahanBaru" class="form-input">
+            </div>
+
+            <div>
+              <label for="tanggalKadaluarsaBahanBaru"><strong>Tanggal kadaluarsa</strong></label>
+              <input type="date" id="tanggalKadaluarsaBahanBaru" class="form-input">
+            </div>
+
+            <div class="form-actions">
+              <button class="tombol-kirim" id="tombolTambahBahan">Tambah</button>
+            </div>
+          </div>
         </div>
       </div>
       <ul class="daftar-bahan-kadaluarsa" id="daftarBahanSaya"></ul>
