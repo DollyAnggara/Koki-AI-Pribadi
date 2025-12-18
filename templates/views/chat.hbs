@@ -12,41 +12,23 @@
 </main>
 
 <script>
-  async function sendMessage() {
-    const input = document.getElementById('inputPesan').value;
-    const responseDiv = document.getElementById('areaPesan');
-    if (!input) {
-      responseDiv.innerHTML = 'Please enter a message.';
-      return;
-    }
-    responseDiv.innerHTML = 'Loading...';
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer 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',
-        'HTTP-Referer': 'https://koki-ai-pribadi.vercel.app/',
-        'X-Title': 'Koki AI Pribadi',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek/deepseek-r1:free',
-        messages: [
-        {
-        role: 'user',
-        content: input,
-        }
-        ],
-      }),
-      });
-      const data = await response.json();
-      console.log(data);
-      const markdownText = data.choices?.[0]?.message?.content || 'No response from AI.';
-      responseDiv.innerHTML = markdownText;
-    } catch (error) {
-    responseDiv.innerHTML = 'Error: ' + error.message;
-    }
-  }
+  // Use the app's Socket.io chat rather than calling external APIs from the browser
+  // (keeps API keys secret and reuses server-side Deepseek integration)
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('inputPesan');
+    if (input) input.focus();
+
+    // Allow Ctrl+Enter to submit quickly
+    input?.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        document.getElementById('formChat')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
+    });
+
+    // Minor UX: show placeholder guidance
+    const placeholder = input?.getAttribute('placeholder') || '';
+    input?.setAttribute('placeholder', placeholder + ' (Tekan Enter untuk kirim, Ctrl+Enter untuk kirim cepat)');
+  });
 </script>
 
 {{> footer}}

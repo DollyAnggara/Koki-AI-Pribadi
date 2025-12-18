@@ -29,19 +29,17 @@ const inisialisasiSoketTimer = (io) => {
           });
         }
       } catch (err) {
+        // Log full details server-side for debugging (do not expose to clients)
         console.error("Deepseek error:", err && err.stack ? err.stack : err);
-        // Build a compact, non-sensitive hint for the user
-        let hintParts = [];
-        if (err && err.message) hintParts.push(err.message);
-        if (err && err.attempts) {
-          const triedUrls = err.attempts
-            .map((a) => `${a.url}${a.ok ? "" : " (failed)"}`)
-            .slice(0, 5);
-          if (triedUrls.length)
-            hintParts.push(`tried: ${triedUrls.join(", ")}`);
+
+        // Provide a brief, non-sensitive hint to the user
+        let hint = "";
+        if (err && err.status === 401) {
+          // Authentication failures are common and actionable
+          hint = " (masalah autentikasi layanan AI — hubungi administrator.)";
+        } else if (err && typeof err.status === "number") {
+          hint = ` (gangguan layanan eksternal: kode ${err.status})`;
         }
-        if (err && err.suggestion) hintParts.push(err.suggestion);
-        const hint = hintParts.length ? ` (${hintParts.join("; ")})` : "";
 
         socket.emit("respons_koki", {
           pesan: `Maaf, Koki AI sedang mengalami gangguan—silakan coba lagi nanti.${hint}`,
