@@ -5,15 +5,21 @@
       <div class="form-grup"><input type="text" class="form-input" id="cariResep" placeholder="🔍 Cari resep..."></div>
     </div>
     <div class="grid-resep" id="daftarResep">
-      {{#each resep}}
-      <div class="kartu-resep">
-        <div class="gambar-resep">🍲</div>
-        <div class="info-resep">
-          <div class="nama-resep">{{this.nama}}</div>
-          <div class="meta-resep"><span>⏱️ {{this.waktu}} menit</span><span>🔥 {{this.kalori}} kkal</span></div>
+      {{#if resep.length}}
+        {{#each resep}}
+        <div class="kartu-resep">
+          <div class="gambar-resep">🍲</div>
+          <div class="info-resep">
+            <div class="nama-resep">{{this.nama}}</div>
+            <div class="meta-resep"><span>⏱️ {{this.waktu}} menit</span><span>🔥 {{this.kalori}} kkal</span></div>
+          </div>
         </div>
-      </div>
-      {{/each}}
+        {{/each}}
+      {{else}}
+        <div class="kartu">
+          <p>Tidak ada resep untuk ditampilkan. Coba tambah resep atau jalankan seed database.</p>
+        </div>
+      {{/if}}
     </div>
   </section>
 </main>

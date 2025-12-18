@@ -10,6 +10,7 @@
   --warna-teks-sekunder: #7f8c8d;
   --bayangan: 0 4px 6px rgba(0, 0, 0, 0.08);
   --radius: 12px;
+  --transition-duration: 260ms;
 }
 
 /* Reset */
@@ -138,6 +139,35 @@ body {
 }
 .panel.aktif {
   display: block;
+}
+
+/* Page / panel transition helpers */
+.kontainer-utama {
+  transition: opacity var(--transition-duration) ease, transform var(--transition-duration) ease;
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+}
+.kontainer-utama.page-hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+/* Page fade helper class */
+.page-fade {
+  transition: opacity var(--transition-duration) ease, transform var(--transition-duration) ease;
+  will-change: opacity, transform;
+}
+/* Keep panels behavior simple: we animate container for page-level transitions */
+.panel {
+  transition: opacity var(--transition-duration) ease, transform var(--transition-duration) ease;
+  will-change: opacity, transform;
+}
+.panel.panel-hidden {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
 }
 @keyframes fadeIn {
   from {

@@ -14,8 +14,36 @@ function inisialisasiSocket() {
   soketMemasak = io("http://localhost:3000/memasak");
 
   soketMemasak.on("connect", () => {
-    console.log("✅ Terhubung ke server memasak");
-    tampilkanNotifikasi("Terhubung ke Koki AI", "sukses");
+    // If we already showed a connect notification together with welcome, skip showing again
+    try {
+      const alreadyShown = sessionStorage.getItem("koki_connect_shown");
+      if (alreadyShown === "1") {
+        console.log(
+          "✅ Terhubung ke server memasak (already shown with welcome)"
+        );
+        sessionStorage.removeItem("koki_connect_shown");
+      } else {
+        // Show connect notification only if it was set very recently after login
+        const ts = parseInt(sessionStorage.getItem("koki_show_connect_ts"), 10);
+        if (ts && Date.now() - ts <= 5000) {
+          console.log(
+            "✅ Terhubung ke server memasak (notify immediate post-login)"
+          );
+          tampilkanNotifikasi("Terhubung ke Koki AI", "sukses");
+        } else {
+          console.log("✅ Terhubung ke server memasak (silent)");
+        }
+      }
+    } catch (e) {
+      console.log(
+        "✅ Terhubung ke server memasak (silent, error reading flag)"
+      );
+    }
+    // Always clear the temporary keys to avoid showing later on navigation
+    try {
+      sessionStorage.removeItem("koki_show_connect_ts");
+      sessionStorage.removeItem("koki_connect_shown");
+    } catch (e) {}
   });
 
   soketMemasak.on("respons_koki", (data) => {
@@ -49,34 +77,132 @@ function inisialisasiSocket() {
   );
 }
 
+let isNavigating = false;
+
+function waitForTransitionEnd(el, timeout = 800) {
+  return new Promise((resolve) => {
+    if (!el) return resolve();
+    let done = false;
+    const onEnd = (e) => {
+      if (e.target !== el) return;
+      el.removeEventListener("transitionend", onEnd);
+      if (!done) {
+        done = true;
+        resolve();
+      }
+    };
+    el.addEventListener("transitionend", onEnd);
+    // fallback
+    setTimeout(() => {
+      if (!done) {
+        done = true;
+        el.removeEventListener("transitionend", onEnd);
+        resolve();
+      }
+    }, timeout);
+  });
+}
+
+async function fadeOut(el) {
+  if (!el) return;
+  el.classList.add("page-fade");
+  // ensure starting visible state
+  el.classList.remove("page-hidden");
+  // force reflow to ensure the class change is applied
+  void el.offsetWidth;
+  el.classList.add("page-hidden");
+  await waitForTransitionEnd(el, 900);
+}
+
+async function fadeIn(el) {
+  if (!el) return;
+  el.classList.add("page-fade");
+  // ensure starting hidden state
+  el.classList.add("page-hidden");
+  // force reflow
+  void el.offsetWidth;
+  el.classList.remove("page-hidden");
+  await waitForTransitionEnd(el, 900);
+}
+
 function inisialisasiNavigasi() {
   const tombolNav = document.querySelectorAll(".tombol-nav");
   const panels = document.querySelectorAll(".panel");
+  const main =
+    document.querySelector("main.kontainer-utama") ||
+    document.querySelector("main");
+  // fallback target to animate if main isn't present (some pages like auth use different layout)
+  const fadeTarget =
+    main ||
+    document.querySelector("#app") ||
+    document.body ||
+    document.documentElement;
+
+  // initial enter animation: ensure page-fade class present and animate in
+  if (fadeTarget) {
+    fadeTarget.classList.add("page-fade");
+    if (!fadeTarget.classList.contains("page-hidden")) {
+      fadeTarget.classList.add("page-hidden");
+      requestAnimationFrame(() =>
+        setTimeout(() => fadeTarget.classList.remove("page-hidden"), 20)
+      );
+    }
+  }
 
   // If navigation uses links (page-per-view), mark active link by pathname
   tombolNav.forEach((tombol) => {
-    if (tombol.tagName === 'A') {
+    if (tombol.tagName === "A") {
       // mark active
       try {
         const urlPath = new URL(tombol.href).pathname;
-        if (urlPath === location.pathname) tombol.classList.add('aktif');
-        else tombol.classList.remove('aktif');
+        if (urlPath === location.pathname) tombol.classList.add("aktif");
+        else tombol.classList.remove("aktif");
       } catch (e) {}
 
-      // on click add active class (visual feedback before navigation)
-      tombol.addEventListener('click', () => {
-        tombolNav.forEach((t) => t.classList.remove('aktif'));
-        tombol.classList.add('aktif');
+      // on click: fade-out + navigate using transitionend for accuracy
+      tombol.addEventListener("click", async (e) => {
+        // allow normal browser behaviors: ctrl/meta clicks, middle-click, target="_blank"
+        if (e.defaultPrevented) return;
+        if (
+          e.button !== 0 ||
+          tombol.target === "_blank" ||
+          e.metaKey ||
+          e.ctrlKey ||
+          e.shiftKey ||
+          e.altKey
+        )
+          return;
+        // only intercept same-origin navigations
+        try {
+          const url = new URL(tombol.href);
+          if (url.origin !== location.origin) return;
+        } catch (err) {}
+
+        if (isNavigating) return;
+        e.preventDefault();
+        isNavigating = true;
+        const href = tombol.href;
+        // visual feedback: mark active immediately
+        tombolNav.forEach((t) => t.classList.remove("aktif"));
+        tombol.classList.add("aktif");
+        if (fadeTarget) await fadeOut(fadeTarget);
+        // navigate after transition
+        window.location.href = href;
       });
     } else {
       // legacy behavior (buttons toggling client-side panels)
-      tombol.addEventListener("click", () => {
+      tombol.addEventListener("click", async () => {
+        if (isNavigating) return;
+        isNavigating = true;
+        if (fadeTarget) await fadeOut(fadeTarget);
         tombolNav.forEach((t) => t.classList.remove("aktif"));
         panels.forEach((p) => p.classList.remove("aktif"));
         tombol.classList.add("aktif");
         const panelId = "panel" + kapitalisasi(tombol.dataset.panel);
         const el = document.getElementById(panelId);
         if (el) el.classList.add("aktif");
+        if (fadeTarget) await fadeIn(fadeTarget);
+        isNavigating = false;
       });
     }
   });
@@ -122,17 +248,30 @@ function inisialisasiTimer() {
   if (!tombolBuatTimer) return;
   tombolBuatTimer.addEventListener("click", (e) => {
     e.preventDefault();
-      const namaTimer = document.getElementById("namaTimerBaru").value.trim();
-    const jam = parseInt(document.getElementById("jamTimerBaru") ? document.getElementById("jamTimerBaru").value : 0);
+    const namaTimer = document.getElementById("namaTimerBaru").value.trim();
+    const jam = parseInt(
+      document.getElementById("jamTimerBaru")
+        ? document.getElementById("jamTimerBaru").value
+        : 0
+    );
     const menit = parseInt(document.getElementById("menitTimerBaru").value);
-    const detik = parseInt(document.getElementById("detikTimerBaru") ? document.getElementById("detikTimerBaru").value : 0);
-    const durasi = (isNaN(jam) ? 0 : jam * 3600) + (isNaN(menit) ? 0 : menit * 60) + (isNaN(detik) ? 0 : detik);
+    const detik = parseInt(
+      document.getElementById("detikTimerBaru")
+        ? document.getElementById("detikTimerBaru").value
+        : 0
+    );
+    const durasi =
+      (isNaN(jam) ? 0 : jam * 3600) +
+      (isNaN(menit) ? 0 : menit * 60) +
+      (isNaN(detik) ? 0 : detik);
     if (namaTimer && durasi > 0) {
       buatTimerBaru(namaTimer, durasi);
       document.getElementById("namaTimerBaru").value = "";
-      if (document.getElementById("jamTimerBaru")) document.getElementById("jamTimerBaru").value = "";
+      if (document.getElementById("jamTimerBaru"))
+        document.getElementById("jamTimerBaru").value = "";
       document.getElementById("menitTimerBaru").value = "";
-      if (document.getElementById("detikTimerBaru")) document.getElementById("detikTimerBaru").value = "";
+      if (document.getElementById("detikTimerBaru"))
+        document.getElementById("detikTimerBaru").value = "";
     } else
       tampilkanNotifikasi("Masukkan nama timer dan durasi yang valid", "error");
   });
@@ -178,7 +317,9 @@ function ensureTimerCardExists(idTimer, data) {
   kartuTimer.innerHTML = `
     <h4>${nama}</h4>
     <div class="tampilan-timer" id="tampilan_${idTimer}">${waktu}</div>
-    <div class="progress-timer"><div class="progress-bar" id="progress_${idTimer}" style="width:${data && typeof data.persentase !== 'undefined' ? data.persentase : 0}%"></div></div>
+    <div class="progress-timer"><div class="progress-bar" id="progress_${idTimer}" style="width:${
+    data && typeof data.persentase !== "undefined" ? data.persentase : 0
+  }%"></div></div>
     <div class="kontrol-timer">
       <button class="tombol-timer tombol-jeda" onclick="jedaTimer('${idTimer}')">⏸️ Jeda</button>
       <button class="tombol-timer tombol-lanjut hidden" id="lanjut_${idTimer}" onclick="lanjutkanTimer('${idTimer}')">▶️ Lanjutkan</button>
@@ -202,11 +343,11 @@ function updateTampilanTimer(idTimer, data) {
 
   // toggle controls based on paused state
   if (data.paused) {
-    if (tombolJeda) tombolJeda.classList.add('hidden');
-    if (tombolLanjut) tombolLanjut.classList.remove('hidden');
+    if (tombolJeda) tombolJeda.classList.add("hidden");
+    if (tombolLanjut) tombolLanjut.classList.remove("hidden");
   } else {
-    if (tombolJeda) tombolJeda.classList.remove('hidden');
-    if (tombolLanjut) tombolLanjut.classList.add('hidden');
+    if (tombolJeda) tombolJeda.classList.remove("hidden");
+    if (tombolLanjut) tombolLanjut.classList.add("hidden");
   }
 }
 
@@ -360,6 +501,80 @@ function inisialisasiTambahBahan() {
   });
 }
 
+// --- Recipe search: client-side loader and renderer ---
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function debounce(fn, delay = 300) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), delay);
+  };
+}
+
+async function loadDaftarResep(q = "") {
+  const kontainer = document.getElementById("daftarResep");
+  if (!kontainer) return;
+  kontainer.innerHTML = '<div class="kartu"><p>🔄 Mencari resep...</p></div>';
+  try {
+    const url = q ? `/api/resep?q=${encodeURIComponent(q)}` : "/api/resep";
+    const resp = await fetch(url, { credentials: "same-origin" });
+    const data = await resp.json();
+    if (!data || !data.sukses) {
+      kontainer.innerHTML =
+        '<div class="kartu"><p>Gagal memuat resep</p></div>';
+      return;
+    }
+    renderResepList(data.data || []);
+  } catch (err) {
+    console.error("Load resep failed", err);
+    kontainer.innerHTML = '<div class="kartu"><p>Gagal memuat resep</p></div>';
+  }
+}
+
+function renderResepList(items) {
+  const kontainer = document.getElementById("daftarResep");
+  if (!kontainer) return;
+  if (!items || items.length === 0) {
+    kontainer.innerHTML =
+      '<div class="kartu"><p>Tidak ada resep untuk ditampilkan. Coba tambah resep atau jalankan seed database.</p></div>';
+    return;
+  }
+  kontainer.innerHTML = "";
+  items.forEach((r) => {
+    const waktu = (r.waktuPersiapanMenit || 0) + (r.waktuMemasakMenit || 0);
+    const kaloriVal =
+      r.nutrisiPerPorsi && (r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal)
+        ? r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal
+        : null;
+    const kalori = kaloriVal ? Math.round(kaloriVal) : "-";
+    const nama = r.namaResep || r.nama || "Resep";
+    const div = document.createElement("div");
+    div.className = "kartu-resep";
+    div.innerHTML = `\n      <div class="gambar-resep">🍲</div>\n      <div class="info-resep">\n        <div class="nama-resep">${escapeHtml(
+      nama
+    )}</div>\n        <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>🔥 ${kalori} kkal</span></div>\n      </div>`;
+    kontainer.appendChild(div);
+  });
+}
+
+function inisialisasiPencarianResep() {
+  const input = document.getElementById("cariResep");
+  if (!input) return;
+  const handler = debounce(() => {
+    const q = input.value.trim();
+    loadDaftarResep(q);
+  }, 300);
+  input.addEventListener("input", handler);
+}
+
 function formatTimestamp(ts) {
   try {
     const d = new Date(ts);
@@ -427,71 +642,77 @@ function tampilkanHasilIdentifikasi(data) {
 
 function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
   // For timer alerts or when options.modal === true, render centered modal
-  if (tipe === 'peringatan' || options.modal) {
-    const modalCont = document.getElementById('kontainerModalNotifikasi');
+  if (tipe === "peringatan" || options.modal) {
+    const modalCont = document.getElementById("kontainerModalNotifikasi");
     if (!modalCont) return;
-    modalCont.innerHTML = '';
+    modalCont.innerHTML = "";
 
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
+    const backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop";
 
-    const card = document.createElement('div');
-    card.className = 'modal-card';
+    const card = document.createElement("div");
+    card.className = "modal-card";
 
     // Icon + title
-    const icon = document.createElement('div');
-    icon.className = 'modal-icon';
-    icon.setAttribute('aria-hidden', 'true');
-    icon.textContent = '⏰';
+    const icon = document.createElement("div");
+    icon.className = "modal-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "⏰";
     card.appendChild(icon);
 
-    const title = document.createElement('h3');
-    title.className = 'modal-title';
-    title.textContent = options.title || 'Timer selesai!';
+    const title = document.createElement("h3");
+    title.className = "modal-title";
+    title.textContent = options.title || "Timer selesai!";
     card.appendChild(title);
 
-    const pesanEl = document.createElement('p');
+    const pesanEl = document.createElement("p");
     pesanEl.innerHTML = pesan;
     card.appendChild(pesanEl);
 
-    const actions = document.createElement('div');
-    actions.className = 'modal-actions';
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
 
-    const ok = document.createElement('button');
-    ok.className = 'notifikasi-oke';
-    ok.textContent = options.okLabel || 'OK';
-    ok.addEventListener('click', () => {
-      try { stopBunyi(); } catch (e) {}
-      modalCont.classList.remove('active');
-      modalCont.setAttribute('aria-hidden', 'true');
-      modalCont.innerHTML = '';
+    const ok = document.createElement("button");
+    ok.className = "notifikasi-oke";
+    ok.textContent = options.okLabel || "OK";
+    ok.addEventListener("click", () => {
+      try {
+        stopBunyi();
+      } catch (e) {}
+      modalCont.classList.remove("active");
+      modalCont.setAttribute("aria-hidden", "true");
+      modalCont.innerHTML = "";
     });
     actions.appendChild(ok);
 
     // optional secondary (dismiss quietly)
-    const close = document.createElement('button');
-    close.className = 'notifikasi-secondary';
-    close.textContent = 'Tutup';
-    close.addEventListener('click', () => {
-      try { stopBunyi(); } catch (e) {}
-      modalCont.classList.remove('active');
-      modalCont.setAttribute('aria-hidden', 'true');
-      modalCont.innerHTML = '';
+    const close = document.createElement("button");
+    close.className = "notifikasi-secondary";
+    close.textContent = "Tutup";
+    close.addEventListener("click", () => {
+      try {
+        stopBunyi();
+      } catch (e) {}
+      modalCont.classList.remove("active");
+      modalCont.setAttribute("aria-hidden", "true");
+      modalCont.innerHTML = "";
     });
     actions.appendChild(close);
 
     card.appendChild(actions);
     modalCont.appendChild(backdrop);
     modalCont.appendChild(card);
-    modalCont.classList.add('active');
-    modalCont.setAttribute('aria-hidden', 'false');
+    modalCont.classList.add("active");
+    modalCont.setAttribute("aria-hidden", "false");
 
     // If not persistent, auto-hide after timeout
     if (!options.persistent) {
       setTimeout(() => {
-        try { stopBunyi(); } catch (e) {}
-        modalCont.classList.remove('active');
-        modalCont.innerHTML = '';
+        try {
+          stopBunyi();
+        } catch (e) {}
+        modalCont.classList.remove("active");
+        modalCont.innerHTML = "";
       }, options.timeout || 5000);
     }
 
@@ -504,8 +725,8 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
   const notifikasi = document.createElement("div");
   notifikasi.className = `notifikasi ${tipe}`;
 
-  const pesanEl = document.createElement('div');
-  pesanEl.className = 'notifikasi-pesan';
+  const pesanEl = document.createElement("div");
+  pesanEl.className = "notifikasi-pesan";
   pesanEl.innerHTML = pesan;
   notifikasi.appendChild(pesanEl);
 
@@ -543,7 +764,7 @@ function playBunyi() {
     function playBeep() {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      osc.type = 'square';
+      osc.type = "square";
       // small frequency variation for more natural alarm sound
       osc.frequency.value = 800 + Math.floor(Math.random() * 400);
       gain.gain.value = 0;
@@ -555,8 +776,12 @@ function playBunyi() {
       osc.start(now);
       // stop after beepMs
       setTimeout(() => {
-        try { gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05); } catch (e) {}
-        try { osc.stop(audioCtx.currentTime + 0.06); } catch(e) {}
+        try {
+          gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+        } catch (e) {}
+        try {
+          osc.stop(audioCtx.currentTime + 0.06);
+        } catch (e) {}
       }, beepMs);
       beeper.oscillators.push({ osc, gain });
     }
@@ -581,16 +806,22 @@ function stopBunyi() {
     if (intervalId) clearInterval(intervalId);
     // stop remaining oscillators gracefully
     oscillators.forEach(({ osc, gain }) => {
-      try { gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05); } catch(e) {}
-      try { osc.stop(audioCtx.currentTime + 0.06); } catch(e) {}
+      try {
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+      } catch (e) {}
+      try {
+        osc.stop(audioCtx.currentTime + 0.06);
+      } catch (e) {}
     });
     setTimeout(() => {
-      try { audioCtx.close(); } catch (e) {}
+      try {
+        audioCtx.close();
+      } catch (e) {}
     }, 150);
     currentBunyi = null;
     if (navigator.vibrate) navigator.vibrate(0);
   } catch (e) {
-    console.warn('stopBunyi error', e);
+    console.warn("stopBunyi error", e);
   }
 }
 
@@ -679,13 +910,46 @@ document.addEventListener("DOMContentLoaded", async () => {
   inisialisasiTimer();
   inisialisasiUploadGambar();
   inisialisasiTambahBahan();
+  inisialisasiPencarianResep();
 
   await loadDaftarBahan();
-  setTimeout(
-    () =>
-      tampilkanNotifikasi("Selamat datang di Koki AI Pribadi! 🍳", "sukses"),
-    1000
-  );
+  // Load initial recipe list if on recipe page
+  setTimeout(() => loadDaftarResep(), 0);
+
+  // Show welcome notification only when redirected after successful login
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcome") === "1") {
+      // show then remove param from URL to prevent re-showing on refresh
+      setTimeout(
+        () =>
+          tampilkanNotifikasi(
+            "Selamat datang di Koki AI Pribadi! 🍳",
+            "sukses"
+          ),
+        600
+      );
+      // Also show the 'Terhubung ke Koki AI' notification at the same time and mark it shown
+      setTimeout(() => {
+        try {
+          tampilkanNotifikasi("Terhubung ke Koki AI", "sukses");
+          sessionStorage.setItem("koki_connect_shown", "1");
+        } catch (e) {}
+      }, 620);
+      // Allow socket 'connect' to also show if it connects very shortly after login (fallback)
+      try {
+        sessionStorage.setItem("koki_show_connect_ts", String(Date.now()));
+      } catch (e) {}
+      // remove 'welcome' query param without reloading
+      params.delete("welcome");
+      const newUrl =
+        window.location.pathname +
+        (params.toString() ? `?${params.toString()}` : "");
+      window.history.replaceState({}, "", newUrl);
+    }
+  } catch (e) {
+    // ignore errors
+  }
 
   // Toggle password eye for auth pages (target the input inside the same .input-with-icon)
   document.querySelectorAll(".toggle-password").forEach((btn) => {
