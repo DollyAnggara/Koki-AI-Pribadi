@@ -35,7 +35,9 @@ const Pengguna = require("./models/Pengguna");
 const Bahan = require("./models/Bahan");
 
 const jalankanServer = async () => {
+  console.log("⏳ jalankanServer: mulai, mencoba menghubungkan database...");
   await hubungkanDatabase();
+  console.log("✅ jalankanServer: koneksi database berhasil");
 
   const aplikasi = express();
   const serverHttp = http.createServer(aplikasi);
@@ -194,6 +196,15 @@ const jalankanServer = async () => {
     serverHttp.listen(PORT, () => {
       console.log(`🚀 Server: http://localhost:${PORT}`);
       console.log("📡 Socket.io namespaces: /memasak, /notifikasi");
+
+      // Masked env summary for quick diagnostics
+      const mask = (v) => (v ? "[set]" : "[not set]");
+      console.log("🔐 Env summary:", {
+        MONGO_URI: mask(process.env.MONGO_URI),
+        DEEPSEEK_API_KEY: mask(process.env.DEEPSEEK_API_KEY),
+        SESSION_SECRET: mask(process.env.SESSION_SECRET),
+      });
+
       resolve();
     });
   });

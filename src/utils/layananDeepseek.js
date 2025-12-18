@@ -192,14 +192,22 @@ async function panggilDeepseek(
     return null;
   }
 
-  // primary request shape (merge any extra params)
+  // primary request shape: use chat/completions format for Deepseek
+  // (merge any extra params)
   const body = Object.assign(
     {
-      prompt,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Koki AI, an Indonesian cooking assistant. Answer concisely and helpfully. Do NOT repeat the user's prompt. Give concise step-by-step instructions if applicable.",
+        },
+        { role: "user", content: prompt },
+      ],
       max_tokens: maxTokens,
       temperature,
     },
-    model ? { model } : {},
+    model ? { model: model || "deepseek-chat" } : { model: "deepseek-chat" },
     extra || {}
   );
 
@@ -212,108 +220,6 @@ async function panggilDeepseek(
       ? primaryResp.result.json
       : primaryResp.result.rawText;
   let extracted = extractText(primary);
-
-  // If the API just echoed the prompt (common when using a mismatched endpoint), try fallbacks
-  const safeTrim = (s) => (typeof s === "string" ? s.trim() : s);
-  const isEcho =
-    (safeTrim(extracted) || "") === safeTrim(prompt) ||
-    (safeTrim(extracted) || "") === (safeTrim(extra && extra.prompt) || "");
-
-  if (isEcho) {
-    console.info(
-      "Deepseek response looked like an echo of prompt — attempting alternative request shapes"
-    );
-    // Try 'input' style
-    try {
-      const alt1 = Object.assign(
-        {
-          input: prompt,
-          max_tokens: maxTokens,
-          temperature,
-        },
-        model ? { model } : {},
-        extra || {}
-      );
-      const r1Resp = await tryEndpoints(alt1, timeoutMs);
-      const r1 =
-        r1Resp && r1Resp.result && r1Resp.result.json
-          ? r1Resp.result.json
-          : r1Resp.result.rawText;
-      const e1 = extractText(r1);
-      if (e1 && String(e1).trim() !== String(prompt).trim()) {
-        return includeRaw
-          ? { text: String(e1), raw: r1, url: r1Resp.url }
-          : String(e1);
-      }
-
-      // Try chat/messages style as a last attempt
-      const alt2 = Object.assign(
-        {
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are Koki AI, an Indonesian cooking assistant. Answer concisely and helpfully. Do NOT repeat the user's prompt. Give concise step-by-step instructions if applicable.",
-            },
-            { role: "user", content: prompt },
-          ],
-          max_tokens: maxTokens,
-          temperature,
-        },
-        model ? { model } : {},
-        extra || {}
-      );
-      const r2Resp = await tryEndpoints(alt2, timeoutMs);
-      const r2 =
-        r2Resp && r2Resp.result && r2Resp.result.json
-          ? r2Resp.result.json
-          : r2Resp.result.rawText;
-      const e2 = extractText(r2);
-      if (e2 && String(e2).trim() !== String(prompt).trim()) {
-        return includeRaw
-          ? { text: String(e2), raw: r2, url: r2Resp.url }
-          : String(e2);
-      }
-
-      // Final attempt: instruction prefix + stop sequences to avoid echo
-      try {
-        const instrPrompt = `Instruksi: Jangan ulangi pertanyaan. Jawab langsung dan singkat. Pengguna: ${prompt}`;
-        const alt3 = Object.assign(
-          {
-            prompt: instrPrompt,
-            max_tokens: maxTokens,
-            temperature: Math.max(0.2, Math.min(0.7, temperature)),
-            stop: ["Pengguna:", "Koki AI:", "\n\n"],
-          },
-          model ? { model } : {},
-          extra || {}
-        );
-        const r3Resp = await tryEndpoints(alt3, timeoutMs);
-        const r3 =
-          r3Resp && r3Resp.result && r3Resp.result.json
-            ? r3Resp.result.json
-            : r3Resp.result.rawText;
-        const e3 = extractText(r3);
-        if (e3 && String(e3).trim() !== String(prompt).trim()) {
-          return includeRaw
-            ? { text: String(e3), raw: r3, url: r3Resp.url }
-            : String(e3);
-        }
-        extracted = e3 || e2 || e1 || extracted;
-      } catch (err3) {
-        console.warn(
-          "Deepseek final instruction attempt failed:",
-          err3.message || err3
-        );
-      }
-
-      // If still echoing, fall through to return best available
-      extracted = extracted || e2 || e1 || extracted;
-    } catch (err) {
-      // ignore fallback failures; we'll return primary/extracted or throw if none
-      console.warn("Deepseek fallback attempt failed:", err.message || err);
-    }
-  }
 
   if (extracted) {
     return includeRaw

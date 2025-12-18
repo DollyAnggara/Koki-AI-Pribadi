@@ -12,65 +12,21 @@ const inisialisasiSoketTimer = (io) => {
       socket.emit("koki_mengetik", { status: true });
       try {
         const userMsg = data && data.pesan ? String(data.pesan) : "";
-        const prompt = `Anda adalah asisten memasak bernama Koki AI. Jawablah pertanyaan pengguna dengan jelas, ringkas, dan berfokus pada langkah praktis atau resep. Jika diperlukan, sertakan estimasi waktu dan bahan.\nPengguna: ${userMsg}\nKoki AI:`;
+        const prompt = `Anda adalah asisten memasak bernama Koki AI. Jawablah pertanyaan pengguna dengan jelas, ringkas, dan berfokus pada langkah praktis atau resep. Jika diperlukan, sertakan estimasi waktu dan bahan.\nPengguna: ${userMsg}`;
 
-        // First attempt (include raw to inspect structure)
-        const resp1 = await panggilDeepseek(prompt, {
+        // Call Deepseek API with proper chat/completions format
+        const result = await panggilDeepseek(prompt, {
           maxTokens: 512,
-          includeRaw: true,
+          temperature: 0.7,
         });
-        const textFromResp = (r) => {
-          if (!r) return "";
-          if (typeof r === "string") return r;
-          if (r.text) return r.text;
-          if (r.raw && typeof r.raw === "object") {
-            // try to extract common shapes
-            if (r.raw.output && Array.isArray(r.raw.output) && r.raw.output[0])
-              return r.raw.output[0].content || r.raw.output[0];
-            if (r.raw.choices && r.raw.choices[0])
-              return (
-                r.raw.choices[0].text ||
-                (r.raw.choices[0].message && r.raw.choices[0].message.content)
-              );
-            if (typeof r.raw.text === "string") return r.raw.text;
-          }
-          return JSON.stringify(r);
-        };
 
-        let text1 = String(textFromResp(resp1) || "").trim();
-        const isEcho = text1 === prompt.trim() || text1 === userMsg.trim();
-
-        if (isEcho) {
-          console.info(
-            "Deepseek returned an echo; attempting a retry with instruction prefix"
-          );
-          const instrPrompt = `Instruksi: Jangan ulangi pertanyaan. Jawab langsung dan singkat. Pengguna: ${userMsg}\nKoki AI:`;
-          const resp2 = await panggilDeepseek(instrPrompt, {
-            maxTokens: 512,
-            includeRaw: true,
-            temperature: 0.4,
-          });
-          let text2 = String(textFromResp(resp2) || "").trim();
-
-          if (text2 && text2 !== userMsg.trim() && text2 !== prompt.trim()) {
-            socket.emit("respons_koki", { pesan: text2 });
-          } else {
-            socket.emit("respons_koki", {
-              pesan:
-                "Maaf, Koki AI belum berhasil menjawab—coba lagi sebentar.",
-            });
-            console.warn(
-              "Deepseek still echoed prompt on retry. Raw responses and URLs:",
-              {
-                resp1,
-                resp2,
-                url1: resp1 && resp1.url,
-                url2: resp2 && resp2.url,
-              }
-            );
-          }
+        const text = String(result || "").trim();
+        if (text) {
+          socket.emit("respons_koki", { pesan: text });
         } else {
-          socket.emit("respons_koki", { pesan: text1 });
+          socket.emit("respons_koki", {
+            pesan: "Maaf, Koki AI belum berhasil menjawab—coba lagi sebentar.",
+          });
         }
       } catch (err) {
         console.error("Deepseek error:", err && err.stack ? err.stack : err);
