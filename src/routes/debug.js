@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { panggilDeepseek } = require("../utils/layananDeepseek");
+const Pengguna = require("../models/Pengguna");
+const Resep = require("../models/Resep");
+const Bahan = require("../models/Bahan");
 
 // POST /api/debug/deepseek { prompt }
 router.post("/deepseek", async (req, res) => {
@@ -43,6 +46,24 @@ router.post("/deepseek", async (req, res) => {
       }));
     if (err.suggestion) out.suggestion = err.suggestion;
     return res.status(500).json(out);
+  }
+});
+
+// GET /api/debug/db-stats - development helper to check counts
+router.get("/db-stats", async (req, res) => {
+  try {
+    const [penggunaCount, resepCount, bahanCount] = await Promise.all([
+      Pengguna.countDocuments(),
+      Resep.countDocuments(),
+      Bahan.countDocuments(),
+    ]);
+    return res.json({
+      sukses: true,
+      data: { pengguna: penggunaCount, resep: resepCount, bahan: bahanCount },
+    });
+  } catch (err) {
+    console.error("DB stats failed:", err);
+    return res.status(500).json({ sukses: false, pesan: "Gagal ambil stats" });
   }
 });
 

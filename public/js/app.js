@@ -200,21 +200,52 @@ function inisialisasiTambahBahan() {
     const kategori = document.getElementById("kategoriBahanBaru")
       ? document.getElementById("kategoriBahanBaru").value
       : "lainnya";
+    const lokasi = document.getElementById("lokasiPenyimpananBahanBaru")
+      ? document.getElementById("lokasiPenyimpananBahanBaru").value
+      : "rak_dapur";
+    const tanggalPembelian = document.getElementById(
+      "tanggalPembelianBahanBaru"
+    )
+      ? document.getElementById("tanggalPembelianBahanBaru").value
+      : null;
+    const tanggalKadaluarsa = document.getElementById(
+      "tanggalKadaluarsaBahanBaru"
+    )
+      ? document.getElementById("tanggalKadaluarsaBahanBaru").value
+      : null;
 
     if (!nama) {
       tampilkanNotifikasi("Masukkan nama bahan", "error");
       return;
     }
+
+    if (tanggalKadaluarsa) {
+      const tK = new Date(tanggalKadaluarsa);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      if (tK < now) {
+        tampilkanNotifikasi(
+          "Tanggal kadaluarsa tidak boleh di masa lalu",
+          "error"
+        );
+        return;
+      }
+    }
+
     btn.disabled = true;
     const payload = {
       namaBahan: nama,
       jumlahTersedia: jumlah,
       satuan,
       kategoriBahan: kategori,
+      lokasiPenyimpanan: lokasi,
+      tanggalPembelian: tanggalPembelian || undefined,
+      tanggalKadaluarsa: tanggalKadaluarsa || undefined,
     };
     try {
       const resp = await fetch("/api/bahan", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -228,8 +259,18 @@ function inisialisasiTambahBahan() {
         if (jumlahEl) jumlahEl.value = "";
         const satuanEl = document.getElementById("satuanBahanBaru");
         const kategoriEl = document.getElementById("kategoriBahanBaru");
+        const lokasiEl = document.getElementById("lokasiPenyimpananBahanBaru");
+        const tglPembelianEl = document.getElementById(
+          "tanggalPembelianBahanBaru"
+        );
+        const tglKadaluarsaEl = document.getElementById(
+          "tanggalKadaluarsaBahanBaru"
+        );
         if (satuanEl) satuanEl.value = "gram";
         if (kategoriEl) kategoriEl.value = "lainnya";
+        if (lokasiEl) lokasiEl.value = "rak_dapur";
+        if (tglPembelianEl) tglPembelianEl.value = "";
+        if (tglKadaluarsaEl) tglKadaluarsaEl.value = "";
       } else {
         tampilkanNotifikasi(
           (data && data.pesan) || "Gagal menambahkan bahan",
@@ -350,12 +391,32 @@ function playBunyi() {
 // Load bahan list and render (top-level so we can call it from multiple places)
 async function loadDaftarBahan() {
   try {
-    const resp = await fetch("/api/bahan");
-    const data = await resp.json();
+    const resp = await fetch("/api/bahan", { credentials: "same-origin" });
     const ul = document.getElementById("daftarBahanSaya");
     if (!ul) return;
     ul.innerHTML = "";
+
+    // Handle auth/forbidden responses
+    if (resp.status === 401) {
+      // Not logged in -> redirect to login
+      window.location.href = "/login";
+      return;
+    }
+    if (resp.status === 403) {
+      tampilkanNotifikasi(
+        "Akses ditolak: tidak bisa melihat bahan pengguna lain",
+        "error"
+      );
+      return;
+    }
+
+    const data = await resp.json();
     if (!data || !data.sukses) return;
+    if (!data.data || data.data.length === 0) {
+      ul.innerHTML =
+        '<li class="item-bahan kosong">Belum ada bahan — tambahkan sekarang</li>';
+      return;
+    }
     data.data.forEach((b) => {
       const li = document.createElement("li");
       li.className = "item-bahan";
@@ -366,6 +427,16 @@ async function loadDaftarBahan() {
         : null;
       const kategoriTag = b.kategoriBahan
         ? `<span class="tag">${b.kategoriBahan}</span>`
+        : "";
+      const tglPembelian = b.tanggalPembelian
+        ? `<div class="item-meta">Pembelian: ${formatTimestamp(
+            b.tanggalPembelian
+          )}</div>`
+        : "";
+      const tglKadaluarsa = b.tanggalKadaluarsa
+        ? `<div class="item-meta">Kadaluarsa: ${formatTimestamp(
+            b.tanggalKadaluarsa
+          )}</div>`
         : "";
       const added = b.createdAt
         ? `<div class="item-meta">Ditambahkan: ${formatTimestamp(
@@ -386,7 +457,7 @@ async function loadDaftarBahan() {
                 : ""
             }</span>`
           : ""
-      }</div>${added}`;
+      }</div>${tglPembelian}${tglKadaluarsa}${added}`;
       ul.appendChild(li);
     });
   } catch (err) {

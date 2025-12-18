@@ -6,6 +6,12 @@
 const Bahan = require("../models/Bahan");
 const layananVisi = require("../utils/layananVisi");
 
+// Helper to get logged-in user's id (supports session.user._id or session.user.id)
+const getSessionUserId = (req) => {
+  if (!req.session || !req.session.user) return null;
+  return req.session.user._id || req.session.user.id || null; // keep backward compat (session may store id or _id)
+};
+
 // Allowed options for satuan and kategori (server-side whitelist)
 const ALLOWED_SATUAN = ["gram", "kg", "liter", "ml", "butir", "potong"];
 const ALLOWED_KATEGORI = [
@@ -25,10 +31,26 @@ const dapatkanSemuaBahan = async (req, res) => {
   try {
     const { idPengguna } = req.query;
     const filter = {};
-    // If idPengguna not provided but user is logged in, return only their bahan
-    if (idPengguna) filter.pemilik = idPengguna;
-    else if (req.session && req.session.user && req.session.user._id)
-      filter.pemilik = req.session.user._id;
+
+    // Require authentication unless caller explicitly provides idPengguna and server-side code is allowed to query another user's data
+    if (idPengguna) {
+      // If a logged-in user is requesting another user's bahan, forbid
+      const sessId = getSessionUserId(req);
+      if (sessId && String(sessId) !== String(idPengguna))
+        return res.status(403).json({
+          sukses: false,
+          pesan: "Akses ditolak: tidak bisa melihat bahan pengguna lain",
+        });
+      filter.pemilik = idPengguna;
+    } else {
+      // No idPengguna provided -> require the session user
+      const sessId = getSessionUserId(req);
+      if (!sessId)
+        return res
+          .status(401)
+          .json({ sukses: false, pesan: "Autentikasi diperlukan" });
+      filter.pemilik = sessId;
+    }
 
     const daftar = await Bahan.find(filter).sort({ tanggalKadaluarsa: 1 });
     res.json({ sukses: true, data: daftar });
@@ -57,6 +79,24 @@ const tambahBahan = async (req, res) => {
       data.pemilik = req.session.user._id;
     }
 
+    // If pemilik explicitly provided, ensure it matches the logged-in user
+    const sessId = getSessionUserId(req);
+    if (data.pemilik && sessId && String(data.pemilik) !== String(sessId)) {
+      return res.status(403).json({
+        sukses: false,
+        pesan: "Akses ditolak: tidak bisa menambah bahan untuk pengguna lain",
+      });
+    }
+
+    // Require authentication
+    if (!data.pemilik && !sessId)
+      return res
+        .status(401)
+        .json({ sukses: false, pesan: "Autentikasi diperlukan" });
+
+    // ensure we set pemilik to session id if not provided
+    if (!data.pemilik && sessId) data.pemilik = sessId;
+
     if (
       data.tanggalKadaluarsa &&
       new Date(data.tanggalKadaluarsa) < new Date()
@@ -75,6 +115,9 @@ const tambahBahan = async (req, res) => {
           ? data.jumlahTersedia
           : data.jumlah || 0,
       satuan: data.satuan || "gram",
+      tanggalPembelian: data.tanggalPembelian
+        ? new Date(data.tanggalPembelian)
+        : new Date(),
       tanggalKadaluarsa: data.tanggalKadaluarsa
         ? new Date(data.tanggalKadaluarsa)
         : undefined,
@@ -82,6 +125,21 @@ const tambahBahan = async (req, res) => {
       kategoriBahan: data.kategoriBahan || "lainnya",
       pemilik: data.pemilik,
     };
+
+    // If both dates provided, ensure pembelian <= kadaluarsa
+    if (
+      payload.tanggalKadaluarsa &&
+      payload.tanggalPembelian &&
+      payload.tanggalPembelian > payload.tanggalKadaluarsa
+    ) {
+      return res
+        .status(400)
+        .json({
+          sukses: false,
+          pesan:
+            "Tanggal pembelian tidak boleh lebih besar dari tanggal kadaluarsa",
+        });
+    }
 
     // Normalize and validate satuan & kategori
     payload.satuan = String(payload.satuan || "gram").toLowerCase();
@@ -128,14 +186,22 @@ const tambahBahan = async (req, res) => {
  */
 const perbaruiBahan = async (req, res) => {
   try {
-    const bahan = await Bahan.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const bahan = await Bahan.findById(req.params.id);
     if (!bahan)
       return res
         .status(404)
         .json({ sukses: false, pesan: "Bahan tidak ditemukan" });
+
+    // Only owner can update
+    const sessId = getSessionUserId(req);
+    if (!sessId || String(bahan.pemilik) !== String(sessId))
+      return res.status(403).json({
+        sukses: false,
+        pesan: "Akses ditolak: tidak bisa memperbarui bahan ini",
+      });
+
+    Object.assign(bahan, req.body);
+    await bahan.save();
     res.json({ sukses: true, data: bahan });
   } catch (err) {
     console.error("❌ Gagal perbarui bahan:", err);
@@ -154,6 +220,15 @@ const kurangiJumlahBahan = async (req, res) => {
       return res
         .status(404)
         .json({ sukses: false, pesan: "Bahan tidak ditemukan" });
+
+    // Only owner can modify
+    const sessId = getSessionUserId(req);
+    if (!sessId || String(bahan.pemilik) !== String(sessId))
+      return res.status(403).json({
+        sukses: false,
+        pesan: "Akses ditolak: tidak bisa mengubah bahan ini",
+      });
+
     bahan.jumlahTersedia = Math.max(0, bahan.jumlahTersedia - jumlahDikurangi);
     if (bahan.jumlahTersedia === 0) bahan.statusAktif = false;
     await bahan.save();
@@ -171,11 +246,21 @@ const kurangiJumlahBahan = async (req, res) => {
  */
 const hapusBahan = async (req, res) => {
   try {
-    const hasil = await Bahan.findByIdAndDelete(req.params.id);
-    if (!hasil)
+    const bahan = await Bahan.findById(req.params.id);
+    if (!bahan)
       return res
         .status(404)
         .json({ sukses: false, pesan: "Bahan tidak ditemukan" });
+
+    // Only owner can delete
+    const sessId = getSessionUserId(req);
+    if (!sessId || String(bahan.pemilik) !== String(sessId))
+      return res.status(403).json({
+        sukses: false,
+        pesan: "Akses ditolak: tidak bisa menghapus bahan ini",
+      });
+
+    await bahan.remove();
     res.json({ sukses: true, pesan: "Bahan berhasil dihapus" });
   } catch (err) {
     console.error("❌ Gagal hapus bahan:", err);
@@ -189,6 +274,15 @@ const hapusBahan = async (req, res) => {
 const pantryChallenge = async (req, res) => {
   try {
     const { idPengguna } = req.params;
+
+    // Only allow requesting your own pantry challenge
+    const sessId = getSessionUserId(req);
+    if (!sessId || String(sessId) !== String(idPengguna))
+      return res.status(403).json({
+        sukses: false,
+        pesan: "Akses ditolak: tidak bisa melihat pantry pengguna lain",
+      });
+
     const bahanHampir = await Bahan.dapatkanHampirKadaluarsa(idPengguna, 3);
     res.json({ sukses: true, data: { bahanHampirKadaluarsa: bahanHampir } });
   } catch (err) {
@@ -235,7 +329,21 @@ const tambahBanyakBahan = async (req, res) => {
       return res
         .status(400)
         .json({ sukses: false, pesan: "Daftar bahan kosong" });
-    const untukSimpan = daftarBahan.map((b) => ({ ...b, pemilik: idPengguna }));
+
+    // Require authentication and ensure idPengguna matches logged-in user
+    const sessId = getSessionUserId(req);
+    if (!sessId)
+      return res
+        .status(401)
+        .json({ sukses: false, pesan: "Autentikasi diperlukan" });
+    const userId = String(sessId);
+    if (idPengguna && String(idPengguna) !== userId)
+      return res.status(403).json({
+        sukses: false,
+        pesan: "Akses ditolak: tidak bisa menambah bahan untuk pengguna lain",
+      });
+
+    const untukSimpan = daftarBahan.map((b) => ({ ...b, pemilik: userId }));
     const hasil = await Bahan.insertMany(untukSimpan, { ordered: false });
     res.status(201).json({ sukses: true, data: hasil });
   } catch (err) {
