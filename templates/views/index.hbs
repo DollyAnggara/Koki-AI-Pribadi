@@ -1,5 +1,3 @@
-<div class="kontainer-notifikasi" id="kontainerNotifikasi"></div>
-
 <main class="kontainer-utama">
   <section class="panel aktif" id="panelBeranda">
     <div class="kartu">
@@ -18,10 +16,10 @@
     <div class="kartu">
       <h3 class="kartu-judul">📊 Statistik Dapur Anda</h3>
       <div class="info-nutrisi">
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="totalBahan">0</div><div class="label-nutrisi">Total Bahan</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="bahanKadaluarsa">0</div><div class="label-nutrisi">Hampir Kadaluarsa</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="totalResep">0</div><div class="label-nutrisi">Resep Tersimpan</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi" id="resepFavorit">0</div><div class="label-nutrisi">Resep Favorit</div></div>
+        <div class="item-nutrisi"><div class="nilai-nutrisi" id="totalBahan">{{totalBahan}}</div><div class="label-nutrisi">Total Bahan</div></div>
+        <div class="item-nutrisi"><div class="nilai-nutrisi" id="bahanKadaluarsa">{{bahanKadaluarsa}}</div><div class="label-nutrisi">Hampir Kadaluarsa</div></div>
+        <div class="item-nutrisi"><div class="nilai-nutrisi" id="totalResep">{{totalResep}}</div><div class="label-nutrisi">Resep Tersimpan</div></div>
+        <div class="item-nutrisi"><div class="nilai-nutrisi" id="resepFavorit">{{resepFavorit}}</div><div class="label-nutrisi">Resep Favorit</div></div>
       </div>
     </div>
   </section>
@@ -162,7 +160,9 @@
       <div class="form-grup">
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <input type="text" class="form-input" id="namaTimerBaru" placeholder="Nama timer (misal: Rebus telur)" style="flex:1;">
+          <input type="number" class="form-input" id="jamTimerBaru" placeholder="Jam" style="width:80px;">
           <input type="number" class="form-input" id="menitTimerBaru" placeholder="Menit" style="width:100px;">
+          <input type="number" class="form-input" id="detikTimerBaru" placeholder="Detik" style="width:80px;">
           <button class="tombol-timer tombol-mulai" id="tombolBuatTimer">+ Buat Timer</button>
         </div>
       </div>

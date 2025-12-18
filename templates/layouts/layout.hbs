@@ -8,6 +8,12 @@
   </head>
   <body>
     {{> header}}
+
+    <!-- Toast notifications (top-right) -->
+    <div class="kontainer-toasts" id="kontainerToasts"></div>
+    <!-- Modal notifications (centered with backdrop) -->
+    <div class="kontainer-modal" id="kontainerModalNotifikasi" aria-hidden="true"></div>
+
     {{{body}}}
 
     <!-- Socket.io + frontend script -->

@@ -3,7 +3,7 @@ const crypto = require('crypto');
 
 const skemaPengguna = new mongoose.Schema({
   namaPengguna: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true, lowercase: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   kataSandi: { type: String, required: true },
   namaLengkap: String,
   preferensiDiet: Object,

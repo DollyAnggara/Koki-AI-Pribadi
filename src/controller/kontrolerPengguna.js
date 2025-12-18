@@ -7,27 +7,54 @@ const Pengguna = require('../models/Pengguna');
 
 const registrasiPengguna = async (req, res) => {
   try {
-    const { namaPengguna, email, kataSandi, namaLengkap } = req.body;
+    let { namaPengguna, email, kataSandi, namaLengkap } = req.body;
+    if (!email || !namaPengguna || !kataSandi) return res.status(400).json({ sukses: false, pesan: 'Nama pengguna, email, dan kata sandi wajib diisi' });
+    email = String(email).trim().toLowerCase();
+
+    // simple email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ sukses: false, pesan: 'Format email tidak valid' });
+
     const sudah = await Pengguna.findOne({ $or: [{ email }, { namaPengguna }] });
     if (sudah) return res.status(400).json({ sukses: false, pesan: 'Email atau username sudah terdaftar' });
+
     const pengguna = new Pengguna({ namaPengguna, email, kataSandi, namaLengkap });
     await pengguna.save();
     const out = pengguna.toObject(); delete out.kataSandi;
-    // If request is JSON (API), return JSON. If it is a normal form submit, redirect to login with a friendly message.
     if (req.is('application/json')) {
       return res.status(201).json({ sukses: true, data: out });
     }
 
-    // assume form POST (browser): redirect to /login with success flag
     return res.redirect('/login?success=1');
   } catch (err) {
     console.error('❌ Gagal registrasi:', err);
-    // If coming from a form, redirect back to register page with error message
+    // handle duplicate key error more clearly
+    if (err && err.code === 11000) {
+      const field = Object.keys(err.keyValue || {})[0] || 'field';
+      const pesan = `Nilai ${field} sudah terdaftar`;
+      if (!req.is('application/json')) return res.redirect(`/register?error=${encodeURIComponent(pesan)}`);
+      return res.status(400).json({ sukses: false, pesan });
+    }
+
     if (!req.is('application/json')) {
       const pesan = encodeURIComponent(err.message || 'Gagal registrasi');
       return res.redirect(`/register?error=${pesan}`);
     }
     res.status(400).json({ sukses: false, pesan: 'Gagal registrasi', kesalahan: err.message });
+  }
+};
+
+// New: check if email is available
+const cekEmail = async (req, res) => {
+  try {
+    const emailRaw = req.query.email;
+    if (!emailRaw) return res.status(400).json({ sukses: false, pesan: 'Parameter email diperlukan' });
+    const email = String(emailRaw).trim().toLowerCase();
+    const ada = await Pengguna.exists({ email });
+    res.json({ sukses: true, tersedia: !ada });
+  } catch (err) {
+    console.error('❌ Gagal cek email:', err);
+    res.status(500).json({ sukses: false, pesan: 'Gagal memeriksa email' });
   }
 };
 
@@ -148,6 +175,6 @@ const hapusResepFavorit = async (req, res) => {
 };
 
 module.exports = {
-  registrasiPengguna, loginPengguna, dapatkanProfil, perbaruiProfil,
+  registrasiPengguna, cekEmail, loginPengguna, dapatkanProfil, perbaruiProfil,
   perbaruiPreferensiDiet, perbaruiPengaturanNotifikasi, tambahResepFavorit, hapusResepFavorit
 };

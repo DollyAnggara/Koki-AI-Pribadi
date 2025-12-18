@@ -24,6 +24,7 @@ const layananEmail = require("./utils/emailService");
 
 // routes
 const ruteHome = require("./routes/home");
+const rutePages = require("./routes/pages");
 const ruteResep = require("./routes/resep");
 const ruteBahan = require("./routes/bahan");
 const rutePengguna = require("./routes/pengguna");
@@ -36,8 +37,16 @@ const Bahan = require("./models/Bahan");
 
 const jalankanServer = async () => {
   console.log("⏳ jalankanServer: mulai, mencoba menghubungkan database...");
-  await hubungkanDatabase();
-  console.log("✅ jalankanServer: koneksi database berhasil");
+  let dbConnected = false;
+  try {
+    await hubungkanDatabase();
+    dbConnected = true;
+    console.log("✅ jalankanServer: koneksi database berhasil");
+  } catch (err) {
+    console.warn(
+      "⚠️ Tidak dapat menghubungkan database. Aplikasi akan berjalan dalam mode terbatas (beberapa fitur mungkin tidak bekerja)."
+    );
+  }
 
   const aplikasi = express();
   const serverHttp = http.createServer(aplikasi);
@@ -90,8 +99,25 @@ const jalankanServer = async () => {
   aplikasi.set("view engine", "hbs");
   aplikasi.set("views", path.join(__dirname, "..", "templates", "views"));
 
+  // expose DB connection status to handlers & templates
+  aplikasi.use((req, res, next) => {
+    req.app.locals.dbConnected = typeof dbConnected !== "undefined" ? dbConnected : false;
+    res.locals.dbConnected = req.app.locals.dbConnected;
+    next();
+  });
+
+  // block API endpoints when DB is unavailable (allow /api/status)
+  aplikasi.use("/api", (req, res, next) => {
+    if (!req.app.locals.dbConnected && req.path !== "/status") {
+      return res.status(503).json({ sukses: false, pesan: "Layanan database tidak tersedia saat ini. Silakan coba lagi nanti." });
+    }
+    next();
+  });
+
   // mount routes
   aplikasi.use("/", ruteHome);
+  // Page routes: separate views per page
+  aplikasi.use("/", rutePages);
   aplikasi.use("/api/resep", ruteResep);
   aplikasi.use("/api/bahan", ruteBahan);
   aplikasi.use("/api/pengguna", rutePengguna);

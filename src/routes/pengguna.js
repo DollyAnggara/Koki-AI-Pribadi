@@ -7,6 +7,7 @@ const router = express.Router();
 const kontrolerPengguna = require('../controller/kontrolerPengguna');
 
 router.post('/registrasi', kontrolerPengguna.registrasiPengguna);
+router.get('/cek-email', kontrolerPengguna.cekEmail);
 router.post('/login', kontrolerPengguna.loginPengguna);
 router.post('/lupa', require('../controller/resetController').requestReset);
 router.post('/reset', require('../controller/resetController').performReset);

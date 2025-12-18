@@ -1,28 +1,72 @@
 <main class="kontainer-utama">
-  <section>
-    <div class="kartu">
-      <h2 class="kartu-judul">👋 Selamat Datang di Koki AI Pribadi!</h2>
-      <p>Aplikasi asisten memasak pintar yang akan membantu Anda:</p>
-      <ul style="margin:12px 0 0 20px;">
-        <li>🤖 Chat dengan Koki AI untuk panduan memasak step-by-step</li>
-        <li>📷 Identifikasi bahan makanan dari foto</li>
-        <li>🎯 Pantry Challenge - gunakan bahan yang hampir kadaluarsa</li>
-        <li>📊 Hitung kalori dan nutrisi resep</li>
-        <li>⏱️ Timer memasak real-time</li>
-        <li>📧 Terima email menu mingguan otomatis</li>
-      </ul>
-    </div>
 
-    <div class="kartu">
-      <h3 class="kartu-judul">📊 Statistik Dapur Anda</h3>
-      <div class="info-nutrisi">
-        <div class="item-nutrisi"><div class="nilai-nutrisi">{{totalBahan}}</div><div class="label-nutrisi">Total Bahan</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi">{{bahanKadaluarsa}}</div><div class="label-nutrisi">Hampir Kadaluarsa</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi">{{totalResep}}</div><div class="label-nutrisi">Resep Tersimpan</div></div>
-        <div class="item-nutrisi"><div class="nilai-nutrisi">{{resepFavorit}}</div><div class="label-nutrisi">Resep Favorit</div></div>
+  <section class="hero">
+    <div class="hero-left">
+      <h1 class="hero-title">Selamat Datang di <strong>Koki AI Pribadi</strong> 👋</h1>
+      <p class="hero-sub">Asisten memasak pintar: chat dengan Koki AI, identifikasi bahan dari foto, dan rencanakan menu mingguan dengan mudah.</p>
+      <div class="hero-ctas">
+        <a href="/chat" class="btn-cta">Chat Koki AI</a>
+        <a href="/resep" class="btn-cta secondary">Lihat Resep</a>
+      </div>
+      <div class="hero-features">
+        <span class="tag">🔎 Identifikasi Bahan</span>
+        <span class="tag">📦 Pantry Manager</span>
+        <span class="tag">⏱️ Timer</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-illustration" role="img" aria-label="Ilustrasi Koki">🍳</div>
+    </div>
+  </section>
+
+  <section class="kartu">
+    <h3 class="kartu-judul">📊 Statistik Dapur Anda</h3>
+    <div class="stats-row">
+      <div class="stat-box stat-total" role="group" aria-label="Total bahan">
+        <div class="stat-icon">🧾</div>
+        <div class="stat-content stat-body">
+          <div class="stat-value">{{totalBahan}}</div>
+          <div class="stat-label">Total Bahan</div>
+        </div>
+      </div>
+
+      <div class="stat-box stat-expiring" role="group" aria-label="Bahan hampir kadaluarsa">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-content stat-body">
+          <div class="stat-value">{{bahanKadaluarsa}}</div>
+          <div class="stat-label">Hampir Kadaluarsa</div>
+        </div>
+      </div>
+
+      <div class="stat-box stat-recipes" role="group" aria-label="Resep tersimpan">
+        <div class="stat-icon">📚</div>
+        <div class="stat-content stat-body">
+          <div class="stat-value">{{totalResep}}</div>
+          <div class="stat-label">Resep Tersimpan</div>
+        </div>
+      </div>
+
+      <div class="stat-box stat-fav" role="group" aria-label="Resep favorit">
+        <div class="stat-icon">❤️</div>
+        <div class="stat-content stat-body">
+          <div class="stat-value">{{resepFavorit}}</div>
+          <div class="stat-label">Resep Favorit</div>
+        </div>
       </div>
     </div>
   </section>
+
+  <section class="kartu">
+    <h3 class="kartu-judul">Fitur Unggulan</h3>
+    <ul class="feature-list">
+      <li>🤖 Chat interaktif dengan Koki AI untuk langkah memasak</li>
+      <li>📷 Unggah foto bahan dan dapatkan identifikasi cepat</li>
+      <li>🎯 Rekomendasi resep berdasarkan bahan yang tersedia</li>
+      <li>📧 Notifikasi email untuk menu mingguan dan pengingat kadaluarsa</li>
+    </ul>
+  </section>
 </main>
+
+
 
 {{> footer}}

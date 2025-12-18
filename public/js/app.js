@@ -7,6 +7,8 @@ let soketNotifikasi = null;
 let idSesiChat = "sesi_" + Date.now();
 let daftarTimerAktif = new Map();
 let idTimerCounter = 1;
+// Track IDs recently stopped locally to avoid re-creating cards when server emits update immediately after stop
+let suppressedTimerCreates = new Set();
 
 function inisialisasiSocket() {
   soketMemasak = io("http://localhost:3000/memasak");
@@ -50,15 +52,33 @@ function inisialisasiSocket() {
 function inisialisasiNavigasi() {
   const tombolNav = document.querySelectorAll(".tombol-nav");
   const panels = document.querySelectorAll(".panel");
+
+  // If navigation uses links (page-per-view), mark active link by pathname
   tombolNav.forEach((tombol) => {
-    tombol.addEventListener("click", () => {
-      tombolNav.forEach((t) => t.classList.remove("aktif"));
-      panels.forEach((p) => p.classList.remove("aktif"));
-      tombol.classList.add("aktif");
-      const panelId = "panel" + kapitalisasi(tombol.dataset.panel);
-      const el = document.getElementById(panelId);
-      if (el) el.classList.add("aktif");
-    });
+    if (tombol.tagName === 'A') {
+      // mark active
+      try {
+        const urlPath = new URL(tombol.href).pathname;
+        if (urlPath === location.pathname) tombol.classList.add('aktif');
+        else tombol.classList.remove('aktif');
+      } catch (e) {}
+
+      // on click add active class (visual feedback before navigation)
+      tombol.addEventListener('click', () => {
+        tombolNav.forEach((t) => t.classList.remove('aktif'));
+        tombol.classList.add('aktif');
+      });
+    } else {
+      // legacy behavior (buttons toggling client-side panels)
+      tombol.addEventListener("click", () => {
+        tombolNav.forEach((t) => t.classList.remove("aktif"));
+        panels.forEach((p) => p.classList.remove("aktif"));
+        tombol.classList.add("aktif");
+        const panelId = "panel" + kapitalisasi(tombol.dataset.panel);
+        const el = document.getElementById(panelId);
+        if (el) el.classList.add("aktif");
+      });
+    }
   });
 }
 
@@ -102,20 +122,24 @@ function inisialisasiTimer() {
   if (!tombolBuatTimer) return;
   tombolBuatTimer.addEventListener("click", (e) => {
     e.preventDefault();
-    const namaTimer = document.getElementById("namaTimerBaru").value.trim();
+      const namaTimer = document.getElementById("namaTimerBaru").value.trim();
+    const jam = parseInt(document.getElementById("jamTimerBaru") ? document.getElementById("jamTimerBaru").value : 0);
     const menit = parseInt(document.getElementById("menitTimerBaru").value);
-    if (namaTimer && menit > 0) {
-      buatTimerBaru(namaTimer, menit);
+    const detik = parseInt(document.getElementById("detikTimerBaru") ? document.getElementById("detikTimerBaru").value : 0);
+    const durasi = (isNaN(jam) ? 0 : jam * 3600) + (isNaN(menit) ? 0 : menit * 60) + (isNaN(detik) ? 0 : detik);
+    if (namaTimer && durasi > 0) {
+      buatTimerBaru(namaTimer, durasi);
       document.getElementById("namaTimerBaru").value = "";
+      if (document.getElementById("jamTimerBaru")) document.getElementById("jamTimerBaru").value = "";
       document.getElementById("menitTimerBaru").value = "";
+      if (document.getElementById("detikTimerBaru")) document.getElementById("detikTimerBaru").value = "";
     } else
       tampilkanNotifikasi("Masukkan nama timer dan durasi yang valid", "error");
   });
 }
 
-function buatTimerBaru(nama, menit) {
+function buatTimerBaru(nama, durasiDetik) {
   const idTimer = "timer_" + idTimerCounter++;
-  const durasiDetik = menit * 60;
   const kontainerTimer = document.getElementById("daftarTimer");
   if (!kontainerTimer) return;
   const kartuTimer = document.createElement("div");
@@ -127,7 +151,11 @@ function buatTimerBaru(nama, menit) {
     durasiDetik
   )}</div>
     <div class="progress-timer"><div class="progress-bar" id="progress_${idTimer}" style="width:0%"></div></div>
-    <div class="kontrol-timer"><button class="tombol-timer tombol-jeda" onclick="jedaTimer('${idTimer}')">⏸️ Jeda</button><button class="tombol-timer tombol-berhenti" onclick="hentikanTimer('${idTimer}')">⏹️ Stop</button></div>
+    <div class="kontrol-timer">
+      <button class="tombol-timer tombol-jeda" onclick="jedaTimer('${idTimer}')">⏸️ Jeda</button>
+      <button class="tombol-timer tombol-lanjut hidden" id="lanjut_${idTimer}" onclick="lanjutkanTimer('${idTimer}')">▶️ Lanjutkan</button>
+      <button class="tombol-timer tombol-berhenti" onclick="hentikanTimer('${idTimer}')">⏹️ Stop</button>
+    </div>
   `;
   kontainerTimer.appendChild(kartuTimer);
   daftarTimerAktif.set(idTimer, { nama, durasiTotal: durasiDetik });
@@ -136,19 +164,65 @@ function buatTimerBaru(nama, menit) {
   tampilkanNotifikasi(`Timer "${nama}" dimulai!`, "sukses");
 }
 
+function ensureTimerCardExists(idTimer, data) {
+  // If we just manually stopped this timer, don't recreate it when server emits an update
+  if (suppressedTimerCreates.has(idTimer)) return;
+  if (document.getElementById(`kartu_${idTimer}`)) return;
+  const kontainerTimer = document.getElementById("daftarTimer");
+  if (!kontainerTimer) return;
+  const kartuTimer = document.createElement("div");
+  kartuTimer.className = "kartu-timer";
+  kartuTimer.id = `kartu_${idTimer}`;
+  const nama = data && data.namaTimer ? data.namaTimer : "Timer";
+  const waktu = data && data.formatWaktu ? data.formatWaktu : "0:00:00";
+  kartuTimer.innerHTML = `
+    <h4>${nama}</h4>
+    <div class="tampilan-timer" id="tampilan_${idTimer}">${waktu}</div>
+    <div class="progress-timer"><div class="progress-bar" id="progress_${idTimer}" style="width:${data && typeof data.persentase !== 'undefined' ? data.persentase : 0}%"></div></div>
+    <div class="kontrol-timer">
+      <button class="tombol-timer tombol-jeda" onclick="jedaTimer('${idTimer}')">⏸️ Jeda</button>
+      <button class="tombol-timer tombol-lanjut hidden" id="lanjut_${idTimer}" onclick="lanjutkanTimer('${idTimer}')">▶️ Lanjutkan</button>
+      <button class="tombol-timer tombol-berhenti" onclick="hentikanTimer('${idTimer}')">⏹️ Stop</button>
+    </div>
+  `;
+  kontainerTimer.appendChild(kartuTimer);
+}
+
 function updateTampilanTimer(idTimer, data) {
+  // If card doesn't exist (e.g., after refresh), create it
+  ensureTimerCardExists(idTimer, data || {});
+
   const tampilan = document.getElementById(`tampilan_${idTimer}`);
   const progress = document.getElementById(`progress_${idTimer}`);
+  const tombolJeda = document.querySelector(`#kartu_${idTimer} .tombol-jeda`);
+  const tombolLanjut = document.getElementById(`lanjut_${idTimer}`);
   if (tampilan && data.formatWaktu) tampilan.textContent = data.formatWaktu;
   if (progress && typeof data.persentase !== "undefined")
     progress.style.width = `${data.persentase}%`;
+
+  // toggle controls based on paused state
+  if (data.paused) {
+    if (tombolJeda) tombolJeda.classList.add('hidden');
+    if (tombolLanjut) tombolLanjut.classList.remove('hidden');
+  } else {
+    if (tombolJeda) tombolJeda.classList.remove('hidden');
+    if (tombolLanjut) tombolLanjut.classList.add('hidden');
+  }
 }
 
 function jedaTimer(idTimer) {
   if (soketMemasak) soketMemasak.emit("jeda_timer", { idTimer });
   tampilkanNotifikasi("Timer dijeda", "info");
 }
+function lanjutkanTimer(idTimer) {
+  if (soketMemasak) soketMemasak.emit("lanjutkan_timer", { idTimer });
+  tampilkanNotifikasi("Timer dilanjutkan", "sukses");
+}
 function hentikanTimer(idTimer) {
+  // Prevent immediate recreation of this timer card if a server 'update_timer' arrives
+  suppressedTimerCreates.add(idTimer);
+  setTimeout(() => suppressedTimerCreates.delete(idTimer), 1200);
+
   if (soketMemasak) soketMemasak.emit("hentikan_timer", { idTimer });
   hapusTimerDariTampilan(idTimer);
   tampilkanNotifikasi("Timer dihentikan", "info");
@@ -351,40 +425,172 @@ function tampilkanHasilIdentifikasi(data) {
     hasilIdentifikasi.innerHTML = "<p>Tidak ada bahan yang teridentifikasi</p>";
 }
 
-function tampilkanNotifikasi(pesan, tipe = "info") {
-  const kontainer = document.getElementById("kontainerNotifikasi");
+function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
+  // For timer alerts or when options.modal === true, render centered modal
+  if (tipe === 'peringatan' || options.modal) {
+    const modalCont = document.getElementById('kontainerModalNotifikasi');
+    if (!modalCont) return;
+    modalCont.innerHTML = '';
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+
+    const card = document.createElement('div');
+    card.className = 'modal-card';
+
+    // Icon + title
+    const icon = document.createElement('div');
+    icon.className = 'modal-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '⏰';
+    card.appendChild(icon);
+
+    const title = document.createElement('h3');
+    title.className = 'modal-title';
+    title.textContent = options.title || 'Timer selesai!';
+    card.appendChild(title);
+
+    const pesanEl = document.createElement('p');
+    pesanEl.innerHTML = pesan;
+    card.appendChild(pesanEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+
+    const ok = document.createElement('button');
+    ok.className = 'notifikasi-oke';
+    ok.textContent = options.okLabel || 'OK';
+    ok.addEventListener('click', () => {
+      try { stopBunyi(); } catch (e) {}
+      modalCont.classList.remove('active');
+      modalCont.setAttribute('aria-hidden', 'true');
+      modalCont.innerHTML = '';
+    });
+    actions.appendChild(ok);
+
+    // optional secondary (dismiss quietly)
+    const close = document.createElement('button');
+    close.className = 'notifikasi-secondary';
+    close.textContent = 'Tutup';
+    close.addEventListener('click', () => {
+      try { stopBunyi(); } catch (e) {}
+      modalCont.classList.remove('active');
+      modalCont.setAttribute('aria-hidden', 'true');
+      modalCont.innerHTML = '';
+    });
+    actions.appendChild(close);
+
+    card.appendChild(actions);
+    modalCont.appendChild(backdrop);
+    modalCont.appendChild(card);
+    modalCont.classList.add('active');
+    modalCont.setAttribute('aria-hidden', 'false');
+
+    // If not persistent, auto-hide after timeout
+    if (!options.persistent) {
+      setTimeout(() => {
+        try { stopBunyi(); } catch (e) {}
+        modalCont.classList.remove('active');
+        modalCont.innerHTML = '';
+      }, options.timeout || 5000);
+    }
+
+    return;
+  }
+
+  // Otherwise, show as toast in top-right
+  const kontainer = document.getElementById("kontainerToasts");
   if (!kontainer) return;
   const notifikasi = document.createElement("div");
   notifikasi.className = `notifikasi ${tipe}`;
-  notifikasi.innerHTML = pesan;
+
+  const pesanEl = document.createElement('div');
+  pesanEl.className = 'notifikasi-pesan';
+  pesanEl.innerHTML = pesan;
+  notifikasi.appendChild(pesanEl);
+
+  // auto-remove after timeout
+  setTimeout(() => notifikasi.remove(), options.timeout || 5000);
+
   kontainer.appendChild(notifikasi);
-  setTimeout(() => notifikasi.remove(), 5000);
 }
 
 function formatWaktu(detik) {
-  const menit = Math.floor(detik / 60);
-  const sisaDetik = detik % 60;
-  return `${menit.toString().padStart(2, "0")}:${sisaDetik
-    .toString()
-    .padStart(2, "0")}`;
+  const total = Math.max(0, parseInt(detik, 10) || 0);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return `${h}:${mm}:${ss}`;
 }
 function kapitalisasi(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+let currentBunyi = null;
 function playBunyi() {
   try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.value = 800;
-    osc.type = "sine";
-    gain.gain.value = 0.3;
-    osc.start();
-    setTimeout(() => osc.stop(), 500);
+    if (currentBunyi) return; // already playing
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const audioCtx = new AudioCtx();
+
+    const beeper = { audioCtx, intervalId: null, oscillators: [] };
+
+    const beepMs = 500; // beep duration
+    const gapMs = 300; // gap between beeps
+
+    function playBeep() {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      // small frequency variation for more natural alarm sound
+      osc.frequency.value = 800 + Math.floor(Math.random() * 400);
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.6, now + 0.01);
+      osc.start(now);
+      // stop after beepMs
+      setTimeout(() => {
+        try { gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05); } catch (e) {}
+        try { osc.stop(audioCtx.currentTime + 0.06); } catch(e) {}
+      }, beepMs);
+      beeper.oscillators.push({ osc, gain });
+    }
+
+    // start immediately and then loop
+    playBeep();
+    beeper.intervalId = setInterval(playBeep, beepMs + gapMs);
+
+    // vibrate pattern if supported
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+    currentBunyi = beeper;
   } catch (e) {
     console.warn("Audio not supported", e);
+  }
+}
+
+function stopBunyi() {
+  try {
+    if (!currentBunyi) return;
+    const { audioCtx, intervalId, oscillators } = currentBunyi;
+    if (intervalId) clearInterval(intervalId);
+    // stop remaining oscillators gracefully
+    oscillators.forEach(({ osc, gain }) => {
+      try { gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05); } catch(e) {}
+      try { osc.stop(audioCtx.currentTime + 0.06); } catch(e) {}
+    });
+    setTimeout(() => {
+      try { audioCtx.close(); } catch (e) {}
+    }, 150);
+    currentBunyi = null;
+    if (navigator.vibrate) navigator.vibrate(0);
+  } catch (e) {
+    console.warn('stopBunyi error', e);
   }
 }
 
