@@ -11,4 +11,42 @@
   </section>
 </main>
 
+<script>
+  async function sendMessage() {
+    const input = document.getElementById('inputPesan').value;
+    const responseDiv = document.getElementById('areaPesan');
+    if (!input) {
+      responseDiv.innerHTML = 'Please enter a message.';
+      return;
+    }
+    responseDiv.innerHTML = 'Loading...';
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer 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',
+        'HTTP-Referer': 'https://koki-ai-pribadi.vercel.app/',
+        'X-Title': 'Koki AI Pribadi',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek/deepseek-r1:free',
+        messages: [
+        {
+        role: 'user',
+        content: input,
+        }
+        ],
+      }),
+      });
+      const data = await response.json();
+      console.log(data);
+      const markdownText = data.choices?.[0]?.message?.content || 'No response from AI.';
+      responseDiv.innerHTML = markdownText;
+    } catch (error) {
+    responseDiv.innerHTML = 'Error: ' + error.message;
+    }
+  }
+</script>
+
 {{> footer}}
