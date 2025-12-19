@@ -8,11 +8,18 @@ const router = express.Router();
 const Resep = require("../models/Resep");
 
 router.get("/", async (req, res) => {
-  // Redirect to login if user not authenticated. When auth is implemented, set `req.session.user` on login.
-  if (!req.session || !req.session.user) return res.redirect("/login");
+  // If user is not authenticated, show the public landing page (intro)
+  if (!req.session || !req.session.user) {
+    return res.render("landing", {
+      judul: "Selamat Datang - Koki AI Pribadi",
+      isLanding: true,
+    });
+  }
 
+  // Authenticated users see the beranda dashboard
   try {
-    const penggunaId = req.session.user && (req.session.user._id || req.session.user.id);
+    const penggunaId =
+      req.session.user && (req.session.user._id || req.session.user.id);
 
     // Fetch recent recipes for display
     const daftarResep = await Resep.find().limit(12);
@@ -22,14 +29,20 @@ router.get("/", async (req, res) => {
     const Pengguna = require("../models/Pengguna");
 
     // Compute dashboard stats (per-user where applicable)
-    const totalBahan = penggunaId ? await Bahan.countDocuments({ pemilik: penggunaId, statusAktif: true }) : 0;
-    const bahanHampir = penggunaId ? await Bahan.dapatkanHampirKadaluarsa(penggunaId, 3) : [];
+    const totalBahan = penggunaId
+      ? await Bahan.countDocuments({ pemilik: penggunaId, statusAktif: true })
+      : 0;
+    const bahanHampir = penggunaId
+      ? await Bahan.dapatkanHampirKadaluarsa(penggunaId, 3)
+      : [];
     const bahanKadaluarsa = Array.isArray(bahanHampir) ? bahanHampir.length : 0;
     const totalResep = await Resep.countDocuments();
 
     let resepFavorit = 0;
     if (penggunaId) {
-      const pengguna = await Pengguna.findById(penggunaId).select("resepFavorit");
+      const pengguna = await Pengguna.findById(penggunaId).select(
+        "resepFavorit"
+      );
       resepFavorit = pengguna ? (pengguna.resepFavorit || []).length : 0;
     }
 
@@ -56,13 +69,30 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Public informational pages
+router.get("/about", (req, res) => {
+  return res.render("about", {
+    judul: "Tentang - Koki AI Pribadi",
+    isLanding: true,
+  });
+});
+
+router.get("/contact", (req, res) => {
+  return res.render("contact", {
+    judul: "Kontak - Koki AI Pribadi",
+    isLanding: true,
+    success: req.query.success,
+    error: req.query.error,
+  });
+});
+
 // Keep /beranda route working explicitly
-router.get('/beranda', async (req, res) => {
+router.get("/beranda", async (req, res) => {
   // Redirect to root which contains same logic (root requires auth and renders beranda)
-  return res.redirect('/');
+  return res.redirect("/");
 });
 
 // Optional explicit route so links to /beranda work
-router.get('/beranda', (req, res) => res.redirect('/'));
+router.get("/beranda", (req, res) => res.redirect("/"));
 
 module.exports = router;

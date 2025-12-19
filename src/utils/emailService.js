@@ -165,10 +165,33 @@ const verifyTransport = async () => {
   return transporter.verify();
 };
 
+const kirimPesanKontak = async (pengirimEmail, pesan) => {
+  if (!ensureEmailConfig())
+    throw new Error(
+      "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
+    );
+  const transporter = buatTransporter();
+  const appName = process.env.APP_NAME || "Koki AI Pribadi";
+  const supportEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
+  const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+  const subject = `${appName} - Pesan Kontak`;
+  const text = `Pesan dari: ${pengirimEmail}\n\n${pesan}`;
+
+  return transporter.sendMail({
+    from: fromAddress,
+    to: supportEmail,
+    replyTo: pengirimEmail,
+    subject,
+    text,
+  });
+};
+
 module.exports = {
   kirimEmailMenuMingguan,
   kirimNotifikasiKadaluarsa,
   kirimOtpEmail,
   kirimResetEmail,
   verifyTransport,
+  kirimPesanKontak,
 };

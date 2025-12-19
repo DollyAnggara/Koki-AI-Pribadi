@@ -1,0 +1,27 @@
+<main class="kontainer-utama">
+  <section class="kartu">
+    <h1 class="kartu-judul">Kontak Kami</h1>
+    <p>Untuk pertanyaan, saran, atau bug, silakan kirim email ke <strong>dafinsurya111@gmail.com</strong> atau gunakan form sederhana di bawah.</p>
+
+    {{#if success}}
+      <p style="color:green;margin-top:10px;">Pesan berhasil dikirim. Terima kasih!</p>
+    {{/if}}
+    {{#if error}}
+      <p style="color:#b91c1c;margin-top:10px;">{{error}}</p>
+    {{/if}}
+
+    <form action="/api/kontak" method="post" style="margin-top:12px;">
+      <div class="form-grup">
+        <label for="emailKontak">Email Terdaftar</label>
+        <input id="emailKontak" name="email" type="email" class="form-input" placeholder="email@contoh.com" required value="{{#if user}}{{user.email}}{{/if}}">
+      </div>
+      <div class="form-grup" style="margin-top:8px;">
+        <label for="pesanKontak">Pesan</label>
+        <textarea id="pesanKontak" name="pesan" class="form-input" rows="4" placeholder="Tuliskan pesan..."></textarea>
+      </div>
+      <div style="margin-top:10px;"><button class="tombol-kirim" type="submit">Kirim Pesan</button></div>
+    </form>
+  </section>
+</main>
+
+{{> footer}}

@@ -31,6 +31,7 @@ const rutePengguna = require("./routes/pengguna");
 const ruteMenu = require("./routes/menu");
 const ruteOtp = require("./routes/otp");
 const ruteDebug = require("./routes/debug");
+const ruteKontak = require("./routes/kontak");
 
 const Pengguna = require("./models/Pengguna");
 const Bahan = require("./models/Bahan");
@@ -101,7 +102,8 @@ const jalankanServer = async () => {
 
   // expose DB connection status to handlers & templates
   aplikasi.use((req, res, next) => {
-    req.app.locals.dbConnected = typeof dbConnected !== "undefined" ? dbConnected : false;
+    req.app.locals.dbConnected =
+      typeof dbConnected !== "undefined" ? dbConnected : false;
     res.locals.dbConnected = req.app.locals.dbConnected;
     next();
   });
@@ -109,7 +111,13 @@ const jalankanServer = async () => {
   // block API endpoints when DB is unavailable (allow /api/status)
   aplikasi.use("/api", (req, res, next) => {
     if (!req.app.locals.dbConnected && req.path !== "/status") {
-      return res.status(503).json({ sukses: false, pesan: "Layanan database tidak tersedia saat ini. Silakan coba lagi nanti." });
+      return res
+        .status(503)
+        .json({
+          sukses: false,
+          pesan:
+            "Layanan database tidak tersedia saat ini. Silakan coba lagi nanti.",
+        });
     }
     next();
   });
@@ -125,6 +133,7 @@ const jalankanServer = async () => {
   aplikasi.use("/api/otp", ruteOtp);
   // Debug/test endpoints for development (deepseek test)
   aplikasi.use("/api/debug", ruteDebug);
+  aplikasi.use("/api/kontak", ruteKontak);
 
   aplikasi.get("/api/status", (req, res) => {
     res.json({

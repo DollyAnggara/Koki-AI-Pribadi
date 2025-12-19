@@ -6,20 +6,37 @@
     </div>
 
     {{#if user}}
-    <div class="header-actions">
-      <span class="user-name">Halo, {{{user.namaPengguna}}}</span>
-      <button class="btn-logout" id="btnLogout" data-logout-url="/api/pengguna/logout" title="Keluar">Keluar</button>
-    </div>
+      <div class="header-actions">
+        <span class="user-name">Halo, {{{user.namaPengguna}}}</span>
+        <button
+          class="btn-logout"
+          id="btnLogout"
+          data-logout-url="/api/pengguna/logout"
+          title="Keluar"
+        >Keluar</button>
+      </div>
     {{/if}}
   </div>
 </header>
 
-<nav class="navigasi-utama">
-  <a href="/beranda" class="tombol-nav">🏠 Beranda</a>
-  <a href="/resep" class="tombol-nav">📖 Resep</a>
-  <a href="/bahan" class="tombol-nav">🥗 Bahan Saya</a>
-  <a href="/pantry" class="tombol-nav">🎯 Pantry Challenge</a>
-  <a href="/chat" class="tombol-nav">💬 Chat Koki AI</a>
-  <a href="/timer" class="tombol-nav">⏱️ Timer</a>
-  <a href="/menu" class="tombol-nav">📅 Menu Mingguan</a>
-</nav>
+{{! Public navigation shown only when not authenticated }}
+{{#unless user}}
+  <nav class="navigasi-publik">
+    <a href="/" class="tombol-nav">🏠 Home</a>
+    <a href="/about" class="tombol-nav">ℹ️ About Us</a>
+    <a href="/contact" class="tombol-nav">✉️ Contact Us</a>
+  </nav>
+{{/unless}}
+
+{{! Hide main app nav on the public landing page (isLanding) }}
+{{#unless isLanding}}
+  <nav class="navigasi-utama">
+    <a href="/beranda" class="tombol-nav">🏠 Beranda</a>
+    <a href="/resep" class="tombol-nav">📖 Resep</a>
+    <a href="/bahan" class="tombol-nav">🥗 Bahan Saya</a>
+    <a href="/pantry" class="tombol-nav">🎯 Pantry Challenge</a>
+    <a href="/chat" class="tombol-nav">💬 Chat Koki AI</a>
+    <a href="/timer" class="tombol-nav">⏱️ Timer</a>
+    <a href="/menu" class="tombol-nav">📅 Menu Mingguan</a>
+  </nav>
+{{/unless}}
