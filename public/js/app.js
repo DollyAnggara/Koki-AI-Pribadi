@@ -1461,7 +1461,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>${escapeHtml(kecocokan)}</span>${presentCount !== null ? `<span style="margin-left:8px;">• <strong>${presentCount}/${totalBahan}</strong> bahan ada</span>` : ''}${entry.expMatches ? `<span style="margin-left:8px;color:var(--warna-utama);">• ${entry.expMatches} bahan hampir kadaluarsa cocok</span>` : ''}</div>
           ${entry.description ? `<div style="margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(entry.description)}</div>` : ''}
           <div style="margin-top:8px;">
-            ${idResep ? `<button class="tombol-kecil lihat-bahan" data-id="${idResep}">🔎 Lihat Detail</button> <button class="tombol-kecil" data-id="${idResep}" onclick="window.location.href='/resep/${idResep}'">Buka Halaman</button>` : ''}
+            ${idResep ? `<button class="tombol-kecil tombol-utama lihat-bahan" data-id="${idResep}">🔎 Lihat Detail</button>` : ''}
             ${kurang ? `<small style="display:block;margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(kurang)}</small>` : ''}
           </div>
           <div class="detail-resep" id="detail_${idResep}" style="display:none;margin-top:8px;"></div>
@@ -1498,9 +1498,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function inisialisasiPantryChallenge() {
     const btn = document.getElementById('tombolRefreshPantry');
-    const btnAI = document.getElementById('tombolSaranPantryAI');
     if (btn) btn.addEventListener('click', () => loadPantryChallenge());
-    if (btnAI) btnAI.addEventListener('click', () => loadAISaranForPantry());
     // Try load automatically when on pantry page
     const onPantry = document.getElementById('rekomendasiPantry') || document.getElementById('bahanHampirKadaluarsa');
     if (onPantry) setTimeout(() => loadPantryChallenge(), 100);
