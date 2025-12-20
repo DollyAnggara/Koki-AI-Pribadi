@@ -47,6 +47,80 @@ router.get('/resep/:id', requireAuth, async (req, res) => {
       return s;
     });
 
+    // If user logged in, compute which ingredients are missing from their pantry
+    let missingIngredients = [];
+    try {
+      if (req.session && req.session.user && (req.session.user._id || req.session.user.id)) {
+        const Bahan = require('../models/Bahan');
+        const userId = req.session.user._id || req.session.user.id;
+
+        const normalizeUnit = (u) => {
+          if (!u) return '';
+          const x = String(u).trim().toLowerCase();
+          if (x === 'g' || x === 'gram' || x === 'gramme') return 'gram';
+          if (x === 'kg' || x === 'kilogram') return 'kg';
+          if (x === 'ml' || x === 'milliliter') return 'ml';
+          if (x === 'l' || x === 'liter' || x === 'litre') return 'liter';
+          if (x === 'butir' || x === 'potong' || x === 'buah') return x;
+          return x;
+        };
+        const toCanonical = (jumlah, satuan) => {
+          const u = normalizeUnit(satuan);
+          if (u === 'kg') return { amount: (jumlah || 0) * 1000, unit: 'gram' };
+          if (u === 'gram') return { amount: (jumlah || 0) * 1, unit: 'gram' };
+          if (u === 'liter') return { amount: (jumlah || 0) * 1000, unit: 'ml' };
+          if (u === 'ml') return { amount: (jumlah || 0) * 1, unit: 'ml' };
+          return { amount: jumlah || 0, unit: u || '' };
+        };
+
+        // load user's active pantry items once
+        const pantry = await Bahan.find({ pemilik: userId, statusAktif: true });
+
+        for (const b of daftarRaw || []) {
+          const nama = typeof b === 'string' ? b : (b.namaBahan || b.nama || b.name || '');
+          const reqJumlahRaw = b && typeof b === 'object' ? (b.jumlah || b.qty || 0) : 0;
+          const reqSatuan = b && typeof b === 'object' ? (b.satuan || b.unit || '') : '';
+
+          // Find pantry matches by name contains (case-insensitive)
+          const rx = new RegExp((nama || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+          const matches = pantry.filter((p) => rx.test(p.namaBahan || ''));
+
+          if (!reqJumlahRaw || reqJumlahRaw === 0) {
+            // No quantity specified — just check presence
+            if (!matches.length) missingIngredients.push({ namaBahan: nama, alasan: 'Tidak ada di daftar Bahan' });
+            continue;
+          }
+
+          // Quantified: sum available canonical amount
+          const reqCanon = toCanonical(Number(reqJumlahRaw) || 0, reqSatuan);
+          let sumAvailable = 0;
+          for (const m of matches) {
+            const availableCanon = toCanonical(Number(m.jumlahTersedia || 0), m.satuan);
+            if (availableCanon.unit && reqCanon.unit && availableCanon.unit === reqCanon.unit) sumAvailable += availableCanon.amount;
+            // if units differ (e.g., pantry in kg and request in gram) toCanonical handles it
+          }
+          if (sumAvailable < (reqCanon.amount || 0)) {
+            const needed = (reqCanon.amount || 0) - sumAvailable;
+            // convert needed back to request unit for display
+            let displayAmount = needed;
+            let displayUnit = reqCanon.unit;
+            if (displayUnit === 'gram' && displayAmount >= 1000) {
+              displayAmount = Math.round((displayAmount / 1000) * 100) / 100;
+              displayUnit = 'kg';
+            } else if (displayUnit === 'ml' && displayAmount >= 1000) {
+              displayAmount = Math.round((displayAmount / 1000) * 100) / 100;
+              displayUnit = 'liter';
+            } else {
+              displayAmount = Math.round(displayAmount * 100) / 100;
+            }
+            missingIngredients.push({ namaBahan: nama, jumlah: displayAmount, satuan: displayUnit });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal hitung bahan hilang untuk resep:', err);
+    }
+
     res.render('resep_detail', {
       judul: r.namaResep,
       resep: {
@@ -59,7 +133,8 @@ router.get('/resep/:id', requireAuth, async (req, res) => {
         langkah: langkahRaw,
         // formatted arrays for clean rendering
         daftarBahanDisplay,
-        langkahDisplay
+        langkahDisplay,
+        missingIngredients
       }
     });
   } catch (err) {

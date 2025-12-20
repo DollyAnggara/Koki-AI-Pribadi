@@ -3,15 +3,32 @@
     <div class="kartu">
       <h2 class="kartu-judul">📅 Rencana Menu Mingguan</h2>
       <p>Rencanakan menu Anda dan dapatkan daftar belanja otomatis!</p>
-      <button class="tombol-kirim" style="margin-top:15px;" id="tombolGenerateMenu">🤖 Generate Menu dengan AI</button>
+      <div class="form-grup" style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <label for="pilihanDiet" style="margin:0; font-weight:600;">Preferensi / Diet:</label>
+        <select id="pilihanDiet" class="form-control" style="max-width:260px;">
+          <option value="">(Tidak ada)</option>
+          <option value="kalori_1500">Target kalori harian: 1500 kcal</option>
+          <option value="kalori_1800">Target kalori harian: 1800 kcal</option>
+          <option value="kalori_2000">Target kalori harian: 2000 kcal</option>
+          <option value="vegetarian">Vegetarian</option>
+        </select>
+        <button class="tombol-kirim" id="tombolGenerateMenu">🤖 Generate Menu dengan AI</button>
+      </div>
       <div id="menuMingguanContainer" style="margin-top:12px;"></div>
+      <div id="kaloriInfo" style="margin-top:8px;color:var(--warna-teks-sekunder);"></div>
       <button class="tombol-kirim" style="margin-top:12px; display:none;" id="tombolSimpanRencana">💾 Simpan Rencana Mingguan</button>
     </div>
 
     <div class="kartu">
       <h3 class="kartu-judul">📝 Daftar Belanja Otomatis</h3>
       <ul class="daftar-bahan-kadaluarsa" id="daftarBelanja"></ul>
-      <button class="tombol-kirim" style="margin-top:15px; display:none;" id="tombolKirimEmail">📧 Kirim ke Email</button>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="tombol-kirim" style="display:none;" id="tombolKirimEmail">✉️ Kirim ke Email</button>
+          <button class="tombol-kirim" style="display:none;" id="tombolKonfirmasi">✅ Konfirmasi</button>
+        </div>
+        <span style="margin-left:auto;color:var(--warna-teks-sekunder);font-size:0.95rem;">Centang item yang sudah dibeli lalu tekan <strong>Konfirmasi</strong> untuk menambahkan bahan.</span>
+      </div>
     </div>
   </section>
 </main>

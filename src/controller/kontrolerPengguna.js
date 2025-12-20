@@ -106,6 +106,7 @@ const loginPengguna = async (req, res) => {
     // Attach to session for browser form submissions
     if (!req.is("application/json")) {
       req.session.user = {
+        _id: pengguna._id,
         id: pengguna._id,
         namaPengguna: pengguna.namaPengguna,
         email: pengguna.email,

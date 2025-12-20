@@ -938,7 +938,37 @@ body {
 }
 .daftar-bahan-resep { margin: 8px 0 12px 18px; }
 .daftar-bahan-resep li { margin-bottom: 6px; }
-.daftar-langkah-resep { margin: 8px 0 0 18px; }
+
+/* Shopping list / pantry list layout (fixed columns to avoid jumping) */
+.daftar-bahan-kadaluarsa li.item-bahan {
+  display: grid;
+  grid-template-columns: 1fr 160px 220px 48px; /* name | storage | expiry | checkbox */
+  column-gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fafafa;
+  margin-bottom: 8px;
+}
+.daftar-bahan-kadaluarsa li.item-bahan span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.daftar-bahan-kadaluarsa li.item-bahan .select-penyimpanan { width: 140px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); background:#fff; }
+.daftar-bahan-kadaluarsa li.item-bahan input[type=checkbox] { width: 18px; height: 18px; margin-left: 8px; }
+
+/* expiry note column styling */
+.daftar-bahan-kadaluarsa li.item-bahan small.expiry-note { justify-self: end; color: var(--warna-teks-sekunder); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* storage label & suggestion removed (no visible helper text) */
+/* kept styles removed to avoid leftover UI elements */
+
+@media (max-width: 700px) {
+  .daftar-bahan-kadaluarsa li.item-bahan { grid-template-columns: 1fr 140px 1fr; }
+  .daftar-bahan-kadaluarsa li.item-bahan small.expiry-note { justify-self: start; }
+}
+
+daftar-langkah-resep { margin: 8px 0 0 18px; }
+
+/* ensure checkbox wrapper aligns right in its column */
+.daftar-bahan-kadaluarsa li.item-bahan .checkbox-wrap { justify-self: center; }
 .daftar-langkah-resep li { margin-bottom: 10px; }
 .tip { margin-top:6px; font-size:0.92rem; color: var(--warna-teks-sekunder); }
 
@@ -1128,37 +1158,57 @@ a.tombol-kirim, a.tombol-kirim:link, a.tombol-kirim:visited {
 .daftar-bahan-kadaluarsa {
   list-style: none;
 }
-.item-bahan {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+#daftarBahanSaya li.item-bahan {
+  display: grid;
+  /* make metadata more readable: larger mid/right columns and allow short wrap (up to 2 lines) */
+  grid-template-columns: 1fr minmax(260px, 420px) minmax(180px, 260px); /* name | pembelian+ditambahkan | kadaluarsa */
+  gap: 16px;
+  align-items: start;
   padding: 12px;
   background: var(--warna-latar);
   border-radius: var(--radius);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.item-bahan.segera {
-  background: #ffe6e6;
-  border-left: 4px solid var(--warna-primer);
+#daftarBahanSaya li.item-bahan .bahan-left { display:flex; flex-direction:column; gap:6px; }
+.bahan-name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bahan-name .bahan-satuan { font-weight:700; margin-left:8px; color:var(--warna-teks-sekunder); font-size:0.95rem; white-space:nowrap; }
+.bahan-badges { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.tag { background:#f1f5f9; padding:4px 8px; border-radius:12px; font-size:0.78rem; color:var(--warna-teks-sekunder); }
+.item-bahan.segera { background: #fff5f5; border-left: 4px solid var(--warna-primer); }
+.item-bahan.perhatian { background: #fffef6; border-left: 4px solid var(--warna-peringatan); }
+.badge-kadaluarsa { padding: 6px 10px; border-radius: 16px; font-weight:700; font-size:0.78rem; }
+.badge-kadaluarsa.segera { background: var(--warna-primer); color: #fff; }
+.badge-kadaluarsa.perhatian { background: var(--warna-peringatan); color: #fff; }
+
+.bahan-mid { display:flex; gap:16px; align-items:center; }
+.meta-col { min-width:160px; display:flex; flex-direction:column; gap:4px; }
+.meta-label { font-size:0.82rem; color:var(--warna-teks-sekunder); line-height:1.1; }
+.meta-val {
+  font-size:0.9rem; color:var(--warna-teks); line-height:1.2;
+  /* allow up to 2 lines so full timestamps remain readable without creating 3-line rows */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden; text-overflow: ellipsis; white-space: normal;
 }
-.item-bahan.perhatian {
-  background: #fff8e6;
-  border-left: 4px solid var(--warna-peringatan);
+
+/* ensure consistent spacing across mid/right columns */
+.bahan-mid .meta-col, .bahan-right .meta-col-right { min-width:160px; }
+.bahan-mid, .bahan-right { display:flex; gap:16px; align-items:center; }
+
+.bahan-right { justify-self: end; min-width:180px; }
+.bahan-right .meta-col-right { text-align: left; min-width: 160px; }
+.bahan-right .meta-label { display:block; font-size:0.78rem; color:var(--warna-teks-sekunder); margin-bottom:4px; }
+.bahan-right .meta-val {
+  display:block; font-size:0.95rem; font-weight:400; color:var(--warna-teks);
+  text-align: right;
+  /* allow brief wrapping (max 2 lines) so Kadaluarsa remains readable */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: ellipsis; white-space: normal;
 }
-.badge-kadaluarsa {
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 0.75rem;
+
+@media (max-width: 900px) {
+  #daftarBahanSaya li.item-bahan { grid-template-columns: 1fr 1fr; grid-auto-rows: auto; gap:12px; }
+  .bahan-right { justify-self: start; text-align: left; }
 }
-.badge-kadaluarsa.segera {
-  background: var(--warna-primer);
-  color: #fff;
-}
-.badge-kadaluarsa.perhatian {
-  background: var(--warna-peringatan);
-  color: #fff;
-}
+
 
 /* Upload area */
 .area-upload {

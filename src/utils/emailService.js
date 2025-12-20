@@ -52,12 +52,102 @@ const kirimEmailMenuMingguan = async (penerima, rencana) => {
       "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
     );
   const transporter = buatTransporter();
-  // Implement sending logic here
+  // Determine recipient email
+  const to = (penerima && penerima.email) ? penerima.email : String(penerima || '');
+
+  // Build readable menu HTML/text
+  const appName = process.env.APP_NAME || 'Koki AI Pribadi';
+  let menuHtml = '';
+  const namaResepOrText = (val) => {
+    if (!val) return '-';
+    if (typeof val === 'string') return val;
+    if (val.namaResep) return val.namaResep;
+    if (val.name) return val.name;
+    if (val._id) return String(val._id);
+    return '-';
+  };
+
+  if (rencana && Array.isArray(rencana.menuMingguan)) {
+    menuHtml += '<h3>Rencana Menu Mingguan</h3><ul>';
+    for (const h of rencana.menuMingguan) {
+      const s = h._populated && h._populated.sarapan ? h._populated.sarapan.namaResep : (h.menu && h.menu.sarapan ? namaResepOrText(h.menu.sarapan) : '-');
+      const siang = h._populated && h._populated.makanSiang ? h._populated.makanSiang.namaResep : (h.menu && h.menu.makanSiang ? namaResepOrText(h.menu.makanSiang) : '-');
+      const malam = h._populated && h._populated.makanMalam ? h._populated.makanMalam.namaResep : (h.menu && h.menu.makanMalam ? namaResepOrText(h.menu.makanMalam) : '-');
+      menuHtml += `<li><strong>${h.hari || 'Hari'}</strong>: Sarapan: ${s} | Makan siang: ${siang} | Makan malam: ${malam}</li>`;
+    }
+    menuHtml += '</ul>';
+  }
+
+  let daftarHtml = '';
+  const rekomendasiLokasi = (nama, given) => {
+    if (given) return given;
+    if (!nama) return 'Rak Dapur';
+    const s = String(nama).toLowerCase();
+    if (/daging|ayam|sapi|kambing|ikan|seafood|udang|salmon/.test(s)) return 'Kulkas';
+    if (/es|beku|frozen/.test(s)) return 'Freezer';
+    if (/sayur|sayuran|bayam|wortel|selada/.test(s)) return 'Kulkas';
+    if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) return 'Rak Dapur';
+    if (/telur/.test(s)) return 'Kulkas';
+    if (/roti|tawar/.test(s)) return 'Rak Dapur';
+    if (/minyak|oil|olive|butter|mentega/.test(s)) return 'Rak Dapur';
+    if (/susu|yoghurt|keju|cream/.test(s)) return 'Kulkas';
+    return 'Rak Dapur';
+  };
+
+  if (rencana && Array.isArray(rencana.daftarBelanja)) {
+    // build a clear two-column style: name left, amount right (no truncation or '...')
+    daftarHtml += '<h3>Daftar Belanja</h3><ul style="padding:0;list-style:none;margin:0;">';
+    for (const it of rencana.daftarBelanja) {
+      const jumlahText = (it.jumlah || '') ? `<strong style="float:right;">${it.jumlah} ${it.satuan || ''}</strong>` : '';
+      daftarHtml += `<li style="padding:8px 0;border-bottom:1px solid #eef2f6;overflow:visible;">` +
+                   `<span style="display:inline-block;max-width:70%;">${it.namaBahan}</span>` +
+                   `${jumlahText}` +
+                   `</li>`;
+    }
+    daftarHtml += '</ul>';
+  }
+
+  const html = `<!doctype html><html><body style="font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;padding:20px;color:#222;background:#f6f9fc;"><div style="max-width:640px;margin:0 auto;background:#fff;padding:20px;border-radius:8px;border:1px solid #eee;"><h2 style="margin-top:0;">${appName} - Rencana Menu Mingguan</h2>${menuHtml}${daftarHtml}<p style="color:#6b7280;">Setelah Anda membeli bahan, kembali ke halaman Rencana Menu dan centang item yang dibeli lalu tekan tombol "Okie" untuk menambahkannya ke bahan.</p></div></body></html>`;
+
+  const textParts = [];
+  if (rencana && rencana.menuMingguan) {
+    textParts.push('Rencana Menu Mingguan:');
+    rencana.menuMingguan.forEach((h) => {
+      const s = h._populated && h._populated.sarapan ? h._populated.sarapan.namaResep : (h.menu && h.menu.sarapan ? h.menu.sarapan : '-');
+      const siang = h._populated && h._populated.makanSiang ? h._populated.makanSiang.namaResep : (h.menu && h.menu.makanSiang ? h.menu.makanSiang : '-');
+      const malam = h._populated && h._populated.makanMalam ? h._populated.makanMalam.namaResep : (h.menu && h.menu.makanMalam ? h.menu.makanMalam : '-');
+      textParts.push(`${h.hari || 'Hari'}: Sarapan: ${s} | Siang: ${siang} | Malam: ${malam}`);
+    });
+  }
+  if (rencana && rencana.daftarBelanja) {
+    textParts.push('\nDaftar Belanja:');
+    const rekomendasiLokasiText = (nama, given) => {
+      if (given) return given;
+      if (!nama) return 'Rak Dapur';
+      const s = String(nama).toLowerCase();
+      if (/daging|ayam|sapi|kambing|ikan|seafood|udang|salmon/.test(s)) return 'Kulkas';
+      if (/es|beku|frozen/.test(s)) return 'Freezer';
+      if (/sayur|sayuran|bayam|wortel|selada/.test(s)) return 'Kulkas';
+      if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) return 'Rak Dapur';
+      if (/telur/.test(s)) return 'Kulkas';
+      if (/roti|tawar/.test(s)) return 'Rak Dapur';
+      if (/minyak|oil|olive|butter|mentega/.test(s)) return 'Rak Dapur';
+      if (/susu|yoghurt|keju|cream/.test(s)) return 'Kulkas';
+      return 'Rak Dapur';
+    };
+    rencana.daftarBelanja.forEach((it) => {
+      // plain-text: show full name and amount on one line (no truncation)
+      textParts.push(`${it.namaBahan} - ${it.jumlah || ''} ${it.satuan || ''}`);
+    });
+  }
+  textParts.push('\nSetelah membeli bahan, centang item yang dibeli di halaman Rencana Menu lalu tekan "Okie" untuk menambahkannya ke bahan.');
+
   return transporter.sendMail({
     from: process.env.EMAIL_USER,
-    to: penerima,
-    subject: "Menu Mingguan",
-    text: "Isi menu...",
+    to,
+    subject: ` ${appName} - Rencana Menu Mingguan`,
+    text: textParts.join('\n'),
+    html
   });
 };
 

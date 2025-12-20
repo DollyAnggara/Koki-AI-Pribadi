@@ -343,9 +343,115 @@ const tambahBanyakBahan = async (req, res) => {
         pesan: "Akses ditolak: tidak bisa menambah bahan untuk pengguna lain",
       });
 
-    const untukSimpan = daftarBahan.map((b) => ({ ...b, pemilik: userId }));
-    const hasil = await Bahan.insertMany(untukSimpan, { ordered: false });
-    res.status(201).json({ sukses: true, data: hasil });
+    // helper: recommend default location and expiry days based on name
+    const rekomendasiLokasi = (nama) => {
+      if (!nama) return 'rak_dapur';
+      const s = String(nama).toLowerCase();
+      if (/daging|ayam|sapi|kambing|ikan|seafood|udang|salmon/.test(s)) return 'kulkas';
+      if (/es|beku|frozen/.test(s)) return 'freezer';
+      if (/sayur|sayuran|bayam|wortel|selada/.test(s)) return 'kulkas';
+      if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) return 'rak_dapur';
+      if (/telur/.test(s)) return 'kulkas';
+      if (/roti|tawar/.test(s)) return 'rak_dapur';
+      if (/minyak|oil|olive|butter|mentega/.test(s)) return 'rak_dapur';
+      if (/susu|yoghurt|keju|cream/.test(s)) return 'kulkas';
+      return 'rak_dapur';
+    };
+    const rekomendasiDays = (nama, lokasi) => {
+      const s = String(nama || '').toLowerCase();
+      // default long shelf
+      let days = 30;
+      // meat & similar: prefer 2 days at room, 14 days in fridge
+      if (/daging|sapi|kambing/.test(s)) {
+        if (lokasi === 'kulkas') days = 14;
+        else if (lokasi === 'lemari' || lokasi === 'rak_dapur') days = 2;
+        else days = 3; // fallback
+      } else if (/ayam|ikan|seafood|udang|salmon/.test(s)) {
+        if (lokasi === 'kulkas') days = 14;
+        else days = 2;
+      } else if (/sayur|sayuran|bayam|wortel|selada/.test(s)) days = 5;
+      else if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) days = 7;
+      else if (/telur/.test(s)) days = 21;
+      else if (/roti/.test(s)) days = 3;
+      else if (/minyak|oil|olive|butter|mentega/.test(s)) days = 365;
+      else if (/susu|yoghurt/.test(s)) days = 7;
+      // cap at 14 days if storing in fridge or freezer per request for non-meat items
+      if ((lokasi === 'kulkas' || lokasi === 'freezer') && days > 14) return 14;
+      return days;
+    };
+
+    // Normalize and prepare items, then perform merge/upsert to avoid duplicates
+    const escapeRegex = (s) => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const convertToBase = (jumlah, satuan) => {
+      const u = String(satuan || '').trim().toLowerCase();
+      if (u === 'kg') return { amount: Number(jumlah) * 1000, unit: 'gram' };
+      if (u === 'g' || u === 'gram') return { amount: Number(jumlah), unit: 'gram' };
+      if (u === 'l' || u === 'liter' || u === 'litre') return { amount: Number(jumlah) * 1000, unit: 'ml' };
+      if (u === 'ml' || u === 'milliliter') return { amount: Number(jumlah), unit: 'ml' };
+      return { amount: Number(jumlah) || 0, unit: u || '' };
+    };
+    const fromBaseToUnit = (amountBase, targetUnit) => {
+      const u = String(targetUnit || '').trim().toLowerCase();
+      if (u === 'kg') return { amount: amountBase / 1000, unit: 'kg' };
+      if (u === 'g' || u === 'gram') return { amount: amountBase, unit: 'gram' };
+      if (u === 'liter' || u === 'l' || u === 'litre') return { amount: amountBase / 1000, unit: 'liter' };
+      if (u === 'ml' || u === 'milliliter') return { amount: amountBase, unit: 'ml' };
+      return { amount: amountBase, unit: u || '' };
+    };
+
+    const results = [];
+    for (const b of daftarBahan) {
+      const item = { ...b, pemilik: userId };
+      item.tanggalPembelian = item.tanggalPembelian ? new Date(item.tanggalPembelian) : new Date();
+      item.lokasiPenyimpanan = item.lokasiPenyimpanan || rekomendasiLokasi(item.namaBahan || item.nama || '');
+      // compute suggested days and cap at 14 if stored in fridge/freezer
+      let days = rekomendasiDays(item.namaBahan || item.nama || '', item.lokasiPenyimpanan);
+      if (['kulkas', 'freezer'].includes(item.lokasiPenyimpanan)) days = Math.min(days, 14);
+      const t = new Date(item.tanggalPembelian);
+      t.setDate(t.getDate() + (Number.isFinite(days) ? days : 0));
+      item.tanggalKadaluarsa = item.tanggalKadaluarsa ? new Date(item.tanggalKadaluarsa) : t;
+
+      // Try to merge with existing bahan (case-insensitive exact name match)
+      const nama = item.namaBahan || item.nama || '';
+      const regex = new RegExp(`^${escapeRegex(nama)}$`, 'i');
+      let existing = await Bahan.findOne({ pemilik: userId, namaBahan: regex, statusAktif: true });
+      // fallback: try stripping parenthetical qualifiers (e.g., "Bumbu rendang (halus)" -> "Bumbu rendang")
+      if (!existing) {
+        const stripped = String(nama || '').replace(/\s*\(.+\)\s*/g, '').trim();
+        if (stripped && stripped !== nama) {
+          const regex2 = new RegExp(`^${escapeRegex(stripped)}$`, 'i');
+          existing = await Bahan.findOne({ pemilik: userId, namaBahan: regex2, statusAktif: true });
+        }
+      }
+      if (!existing) {
+        const created = await Bahan.create(item);
+        console.log(`➕ Bahan baru dibuat: ${created.namaBahan} pemilik=${userId} jumlah=${created.jumlahTersedia} ${created.satuan}`);
+        results.push(created);
+      } else {
+        // attempt to combine amounts if units compatible
+        const existingBase = convertToBase(existing.jumlahTersedia || 0, existing.satuan || '');
+        const newBase = convertToBase(item.jumlahTersedia || item.jumlah || 0, item.satuan || '');
+        if (existingBase.unit && newBase.unit && existingBase.unit === newBase.unit) {
+          const sumBase = (existingBase.amount || 0) + (newBase.amount || 0);
+          // convert back to existing unit
+          const back = fromBaseToUnit(sumBase, existing.satuan || existingBase.unit);
+          existing.jumlahTersedia = back.amount;
+          // update tanggalKadaluarsa conservatively to the later date
+          if (!existing.tanggalKadaluarsa || existing.tanggalKadaluarsa < item.tanggalKadaluarsa) existing.tanggalKadaluarsa = item.tanggalKadaluarsa;
+          existing.lokasiPenyimpanan = item.lokasiPenyimpanan || existing.lokasiPenyimpanan;
+          await existing.save();
+          console.log(`🔁 Bahan diperbarui (merge): ${existing.namaBahan} pemilik=${userId} jumlah=${existing.jumlahTersedia} ${existing.satuan}`);
+          results.push(existing);
+        } else {
+          // can't merge due to unit mismatch — create separate entry
+          const created = await Bahan.create(item);
+          console.log(`➕ Bahan baru dibuat (unit mismatch): ${created.namaBahan} pemilik=${userId} jumlah=${created.jumlahTersedia} ${created.satuan}`);
+          results.push(created);
+        }
+      }
+    }
+
+    res.status(201).json({ sukses: true, data: results });
   } catch (err) {
     console.error("❌ Gagal tambah banyak bahan:", err);
     res.status(400).json({

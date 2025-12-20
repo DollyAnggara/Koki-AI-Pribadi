@@ -871,38 +871,34 @@ async function loadDaftarBahan() {
           )
         : null;
       const kategoriTag = b.kategoriBahan
-        ? `<span class="tag">${b.kategoriBahan}</span>`
+        ? `<span class="tag">${escapeHtml(String(b.kategoriBahan || ''))}</span>`
         : "";
+      const sisaBadge = sisaHari !== null
+        ? `<span class="badge-kadaluarsa ${sisaHari <= 1 ? 'segera' : sisaHari <= 3 ? 'perhatian' : ''}">${sisaHari <= 1 ? 'SEGERA GUNAKAN!' : sisaHari <= 3 ? sisaHari + ' hari lagi' : ''}</span>`
+        : '';
       const tglPembelian = b.tanggalPembelian
-        ? `<div class="item-meta">Pembelian: ${formatTimestamp(
+        ? `<div class="meta-col"><div class="meta-label">Pembelian</div><div class="meta-val">${formatTimestamp(
             b.tanggalPembelian
-          )}</div>`
+          )}</div></div>`
         : "";
       const tglKadaluarsa = b.tanggalKadaluarsa
-        ? `<div class="item-meta">Kadaluarsa: ${formatTimestamp(
+        ? `<div class="meta-col"><div class="meta-label">Kadaluarsa</div><div class="meta-val">${formatTimestamp(
             b.tanggalKadaluarsa
-          )}</div>`
+          )}</div></div>`
         : "";
       const added = b.createdAt
-        ? `<div class="item-meta">Ditambahkan: ${formatTimestamp(
+        ? `<div class="meta-col"><div class="meta-label">Ditambahkan</div><div class="meta-val">${formatTimestamp(
             b.createdAt
-          )}</div>`
+          )}</div></div>`
         : "";
-      li.innerHTML = `<div><span>${b.namaBahan} - ${b.jumlahTersedia || 0}${
-        b.satuan ? " " + b.satuan : ""
-      }${kategoriTag}</span>${
-        sisaHari !== null
-          ? `<span class="badge-kadaluarsa ${
-              sisaHari <= 1 ? "segera" : sisaHari <= 3 ? "perhatian" : ""
-            }">${
-              sisaHari <= 1
-                ? "SEGERA GUNAKAN!"
-                : sisaHari <= 3
-                ? sisaHari + " hari lagi"
-                : ""
-            }</span>`
-          : ""
-      }</div>${tglPembelian}${tglKadaluarsa}${added}`;
+
+      li.innerHTML = `
+        <div class="bahan-left">
+          <div class="bahan-name">${escapeHtml(b.namaBahan)} <span class="bahan-satuan">${b.jumlahTersedia || 0} ${b.satuan || ''}</span></div>
+          <div class="bahan-badges">${kategoriTag} ${sisaBadge}</div>
+        </div>
+        <div class="bahan-mid">${tglPembelian}${added}${tglKadaluarsa}</div>
+      `;
       ul.appendChild(li);
     });
   } catch (err) {
@@ -947,11 +943,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    const namaResepOrText = (val) => {
+      if (!val) return '-';
+      if (typeof val === 'string') return val;
+      if (val.namaResep) return val.namaResep;
+      if (val.name) return val.name;
+      if (val._id) return String(val._id);
+      return '-';
+    };
+
     let html = '<div class="daftar-hari">';
     currentMenuMingguan.forEach((h, idx) => {
-      const s = h._populated && h._populated.sarapan ? h._populated.sarapan.namaResep : (h.menu && h.menu.sarapan ? h.menu.sarapan : '-');
-      const siang = h._populated && h._populated.makanSiang ? h._populated.makanSiang.namaResep : (h.menu && h.menu.makanSiang ? h.menu.makanSiang : '-');
-      const malam = h._populated && h._populated.makanMalam ? h._populated.makanMalam.namaResep : (h.menu && h.menu.makanMalam ? h.menu.makanMalam : '-');
+      const s = h._populated && h._populated.sarapan ? h._populated.sarapan.namaResep : (h.menu && h.menu.sarapan ? namaResepOrText(h.menu.sarapan) : '-');
+      const siang = h._populated && h._populated.makanSiang ? h._populated.makanSiang.namaResep : (h.menu && h.menu.makanSiang ? namaResepOrText(h.menu.makanSiang) : '-');
+      const malam = h._populated && h._populated.makanMalam ? h._populated.makanMalam.namaResep : (h.menu && h.menu.makanMalam ? namaResepOrText(h.menu.makanMalam) : '-');
       html += `<div class="kartu-mini"><strong>${escapeHtml(h.hari || 'Hari')}</strong><div>Sarapan: ${escapeHtml(s)}</div><div>Makan siang: ${escapeHtml(siang)}</div><div>Makan malam: ${escapeHtml(malam)}</div></div>`;
     });
     html += '</div>';
@@ -984,9 +989,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal simpan rencana', 'error');
       currentRencanaId = data.data._id;
       tampilkanNotifikasi('Rencana tersimpan', 'sukses');
+      // show saved calory summary if available
+      if (data.data && data.data.totalKaloriMingguan) {
+        renderKaloriInfo({ perHari: [], totalMingguan: data.data.totalKaloriMingguan }, null);
+      }
       // load daftar belanja
       await loadDaftarBelanjaRencana(currentRencanaId);
-      document.getElementById('tombolKirimEmail').style.display = 'inline-block';
+      // show both buttons (Konfirmasi visible even before any checkbox is ticked)
+      const btnKonf = document.getElementById('tombolKonfirmasi');
+      if (btnKonf) btnKonf.style.display = 'inline-block';
+      // show 'Kirim ke Email' button so user can send the saved rencana
+      const btnKirim = document.getElementById('tombolKirimEmail');
+      if (btnKirim) btnKirim.style.display = 'inline-block';
     } catch (err) {
       console.error('Gagal simpan rencana', err);
       tampilkanNotifikasi('Gagal simpan rencana', 'error');
@@ -998,7 +1012,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       const res = await fetch(`${API_URL}/menu/${id}/daftar-belanja`);
       const data = await res.json();
       if (!data.sukses) return;
-      renderDaftarBelanja(data.data || []);
+      const daftar = data.data || [];
+      if (!daftar.length) {
+        // No shopping items remain — show empty message and hide action buttons
+        const ul = document.getElementById('daftarBelanja');
+        if (ul) ul.innerHTML = '<p style="color:var(--warna-teks-sekunder);padding:8px 12px;margin:0;">Tidak ada daftar belanja.</p>';
+        const btnKonf = document.getElementById('tombolKonfirmasi');
+        if (btnKonf) btnKonf.style.display = 'none';
+        const btnKirim = document.getElementById('tombolKirimEmail');
+        if (btnKirim) btnKirim.style.display = 'none';
+        return;
+      }
+
+      renderDaftarBelanja(daftar);
+
+      // show kirim + konfirmasi buttons when a rencana exists (Konfirmasi stays visible even if nothing is checked)
+      const btnKirim = document.getElementById('tombolKirimEmail');
+      if (btnKirim) btnKirim.style.display = currentRencanaId ? 'inline-block' : 'none';
+      const btnKonf = document.getElementById('tombolKonfirmasi');
+      if (btnKonf) btnKonf.style.display = currentRencanaId ? 'inline-block' : 'none';
     } catch (err) {
       console.error('Gagal load daftar belanja', err);
     }
@@ -1008,14 +1040,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     const ul = document.getElementById('daftarBelanja');
     if (!ul) return;
     ul.innerHTML = '';
+    const fmt = (n) => {
+      if (typeof n === 'undefined' || n === null) return '';
+      const num = Number(n);
+      if (Number.isInteger(num)) return String(num);
+      // show up to 2 decimals, trim trailing zeros
+      let s = (Math.round(num * 100) / 100).toFixed(2);
+      s = s.replace(/\.00$/, '');
+      s = s.replace(/\.(\d)0$/, '.$1');
+      return s;
+    };
+
     items.forEach((it, idx) => {
       const li = document.createElement('li');
       li.className = 'item-bahan';
+      li.dataset.index = idx;
+      li.dataset.namaBahan = it.namaBahan || '';
+      li.dataset.jumlah = typeof it.jumlah !== 'undefined' ? String(it.jumlah) : '';
+      li.dataset.satuan = it.satuan || '';
+
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.checked = !!it.sudahDibeli;
-      checkbox.addEventListener('change', async () => {
-        if (!currentRencanaId) return;
+
+      // storage select
+      const storageSelect = document.createElement('select');
+      storageSelect.className = 'select-penyimpanan';
+      const options = [
+        { v: 'rak_dapur', t: 'Rak Dapur' },
+        { v: 'lemari', t: 'Lemari' },
+        { v: 'kulkas', t: 'Kulkas' },
+        { v: 'freezer', t: 'Freezer' }
+      ];
+      options.forEach((o) => {
+        const opt = document.createElement('option');
+        opt.value = o.v; opt.textContent = o.t; storageSelect.appendChild(opt);
+      });
+      // set selected option based on item suggestion if available
+      storageSelect.value = it.lokasiPenyimpanan || 'rak_dapur';
+
+      const onCheckChange = async () => {
+        // (Konfirmasi button is always visible when a rencana exists; no show/hide on checkbox change)
+
+        if (!currentRencanaId) return; // only update server if rencana exists
         try {
           const res = await fetch(`${API_URL}/menu/${currentRencanaId}/daftar-belanja/${idx}`, {
             method: 'PATCH', headers: {'Content-Type':'application/json'},
@@ -1029,11 +1096,159 @@ document.addEventListener("DOMContentLoaded", async () => {
           tampilkanNotifikasi('Gagal update status', 'error');
           checkbox.checked = !checkbox.checked; // revert
         }
-      });
-      li.innerHTML = `<span>${escapeHtml(it.namaBahan)} - ${it.jumlah} ${it.satuan || ''}</span>`;
-      li.appendChild(checkbox);
+      };
+
+      checkbox.addEventListener('change', onCheckChange);
+
+      const jumlahText = fmt(it.jumlah);
+      li.innerHTML = `<span style="display:inline-block;margin-right:8px;">${escapeHtml(it.namaBahan)}${jumlahText ? ' - ' + escapeHtml(jumlahText) + ' ' + escapeHtml(it.satuan || '') : ''}</span>`;
+      // append storage select and checkbox
+      const container = document.createElement('span');
+      container.style.display = 'inline-flex';
+      container.style.alignItems = 'center';
+      container.style.gap = '8px';
+      const label = document.createElement('label'); label.style.display='inline-flex'; label.style.alignItems='center'; label.style.gap='6px';
+      // determine default storage based on name/category heuristic and pre-select it (no visible suggestion text)
+      const recommend = (name) => {
+        const s = String(name || '').toLowerCase();
+        if (/daging|ayam|sapi|kambing|ikan|seafood|udang|salmon/.test(s)) return 'kulkas';
+        if (/es|beku|frozen/.test(s)) return 'freezer';
+        if (/sayur|sayuran|bayam|wortel|selada/.test(s)) return 'kulkas';
+        if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) return 'rak_dapur';
+        if (/telur/.test(s)) return 'kulkas';
+        if (/roti|tawar/.test(s)) return 'rak_dapur';
+        if (/minyak|oil|olive|butter|mentega/.test(s)) return 'rak_dapur';
+        if (/susu|yoghurt|keju|cream/.test(s)) return 'kulkas';
+        return 'rak_dapur';
+      };
+      // pre-select storage (use provided lokasiPenyimpanan if available, otherwise choose from heuristic)
+      storageSelect.value = it.lokasiPenyimpanan || recommend(it.namaBahan || it.nama || '');
+      label.appendChild(storageSelect);
+      // NOTE: move the checkbox to its own column on the right so rows stay aligned
+      const checkboxWrapper = document.createElement('div');
+      checkboxWrapper.className = 'checkbox-wrap';
+      checkboxWrapper.style.display = 'inline-flex';
+      checkboxWrapper.style.alignItems = 'center';
+      checkboxWrapper.style.justifyContent = 'center';
+      checkboxWrapper.appendChild(checkbox);
+
+      // expiry display for chosen storage (note: expiry is a separate column so it doesn't affect layout)
+      const expirySpan = document.createElement('small');
+      expirySpan.className = 'expiry-note';
+      const updateExpiry = () => {
+        const lokasi = storageSelect.value;
+        const name = it.namaBahan || it.nama || '';
+        const days = (function(nama, lok) {
+          const s = String(nama || '').toLowerCase();
+          let d = 30;
+          if (/daging|sapi|kambing/.test(s)) { if (lok === 'lemari' || lok === 'rak_dapur') d = 2; else d = 3; }
+          else if (/ayam|ikan|seafood|udang|salmon/.test(s)) { d = 2; }
+          else if (/sayur|sayuran|bayam|wortel|selada/.test(s)) d = 5;
+          else if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) d = 7;
+          else if (/telur/.test(s)) d = 21;
+          else if (/roti/.test(s)) d = 3;
+          else if (/minyak|oil|olive|butter|mentega/.test(s)) d = 365;
+          else if (/susu|yoghurt/.test(s)) d = 7;
+          // if stored in fridge/freezer get additional 2 weeks
+          if (lok === 'kulkas' || lok === 'freezer') d = d + 14;
+          return d;
+        })(name, lokasi);
+        if (!isFinite(days) || days <= 0) { expirySpan.textContent = ''; return; }
+        const d = new Date(); d.setDate(d.getDate() + days);
+        expirySpan.textContent = `Kadaluarsa: ${formatTimestamp(d)}`;
+      };
+      storageSelect.addEventListener('change', updateExpiry);
+      updateExpiry();
+
+      // append label (select) and expiry as siblings; checkbox sits in its own column at the end
+      container.appendChild(label);
+      li.appendChild(container);
+      li.appendChild(expirySpan);
+      li.appendChild(checkboxWrapper);
       ul.appendChild(li);
     });
+  }
+
+  async function okieTambahKePantry() {
+    if (!currentRencanaId) return tampilkanNotifikasi('Tidak ada rencana yang dipilih', 'error');
+    const ul = document.getElementById('daftarBelanja');
+    if (!ul) return;
+    const checked = Array.from(ul.querySelectorAll('li.item-bahan')).filter((li) => li.querySelector('input[type=checkbox]')?.checked);
+    if (!checked.length) return tampilkanNotifikasi('Tidak ada item yang dicentang', 'error');
+    // build daftar untuk ditambahkan
+    const daftarBahan = checked.map((li) => {
+      const nama = li.dataset.namaBahan || li.textContent.split(' - ')[0].trim();
+      const jumlah = parseFloat(li.dataset.jumlah || '0') || 0;
+      const satuan = li.dataset.satuan || 'gram';
+      const select = li.querySelector('.select-penyimpanan');
+      const lokasi = select ? select.value : 'rak_dapur';
+      // infer if meat/fish/ayam based on name keyword
+      const meatRegex = /\b(daging|ayam|sapi|ikan|udang|seafood|dori|tuna|salmon)\b/i;
+      const isMeat = meatRegex.test(nama);
+      // compute tanggal kadaluarsa suggestion if not provided
+      let tanggalKadaluarsa = undefined;
+      if (isMeat) {
+        const now = new Date();
+        if (lokasi === 'lemari' || lokasi === 'rak_dapur') {
+          now.setDate(now.getDate() + 2);
+        } else if (lokasi === 'kulkas') {
+          // base 2 days + 14 days extra
+          now.setDate(now.getDate() + 2 + 14);
+        } else if (lokasi === 'freezer') {
+          // freezer keeps longer + 2 weeks extra
+          now.setDate(now.getDate() + 90 + 14);
+        }
+        tanggalKadaluarsa = now.toISOString();
+      }
+      // normalize name by removing parenthetical qualifiers to improve merge chances on server
+      const namaNormalized = (nama || '').replace(/\s*\(.+\)\s*/g, '').trim() || nama;
+      return ({
+        namaBahan: namaNormalized,
+        jumlahTersedia: jumlah,
+        satuan: satuan,
+        lokasiPenyimpanan: lokasi,
+        tanggalPembelian: new Date(),
+        tanggalKadaluarsa
+      });
+    });
+
+    try {
+      // bulk add to pantry
+      const main = document.querySelector('main.kontainer-utama');
+      const idPengguna = main ? main.dataset.userId : null;
+      const res = await fetch(`${API_URL}/bahan/tambah-banyak`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan, idPengguna }) });
+      const data = await res.json();
+      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal menambahkan bahan', 'error');
+      // Option: mark items as sudahDibeli (not strictly necessary) - we will clear the whole daftar after adding
+      try {
+        await fetch(`${API_URL}/menu/${currentRencanaId}/hapus-semua`, { method: 'POST' });
+      } catch (err) { console.warn('Gagal hapus semua daftar', err); }
+
+      tampilkanNotifikasi('Bahan berhasil ditambahkan; daftar belanja dikosongkan', 'sukses');
+      await loadDaftarBelanjaRencana(currentRencanaId);
+      await loadDaftarBahan();
+    } catch (err) {
+      console.error('Gagal menambahkan ke bahan', err);
+      tampilkanNotifikasi('Gagal menambahkan ke bahan', 'error');
+    }
+  }
+
+  function renderKaloriInfo(kaloriSummary, targetKaloriHarian) {
+    const el = document.getElementById('kaloriInfo');
+    if (!el) return;
+    if (!kaloriSummary || !kaloriSummary.perHari) {
+      el.textContent = '';
+      return;
+    }
+    const hariStr = kaloriSummary.perHari.map((p) => `${p.hari}: ${p.totalHari} kkal`).join(' • ');
+    let txt = `Kalori: ${hariStr} — Total minggu: ${kaloriSummary.totalMingguan} kkal`;
+    if (targetKaloriHarian) {
+      // indicate whether average per-day meets target
+      const avgPerDay = Math.round(kaloriSummary.totalMingguan / (kaloriSummary.perHari.length || 7));
+      const ok = Math.abs(avgPerDay - targetKaloriHarian) <= Math.round(targetKaloriHarian * 0.15); // within 15%
+      txt += ` • Target harian: ${targetKaloriHarian} kkal (${ok ? 'OK' : 'Tidak sesuai'})`;
+    }
+    el.textContent = txt;
   }
 
   async function kirimEmailRencana() {
@@ -1052,20 +1267,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  async function loadCurrentRencana() {
+    const main = document.querySelector('main.kontainer-utama');
+    const idPengguna = main ? main.dataset.userId : null;
+    if (!idPengguna) return;
+    const { mingguKe, tahun } = getISOWeekAndYear();
+    try {
+      const res = await fetch(`${API_URL}/menu/${idPengguna}/${tahun}/${mingguKe}`);
+      const data = await res.json();
+      if (data && data.sukses && data.data) {
+        // set current rencana id and render menu + daftar belanja
+        currentRencanaId = data.data._id;
+        renderMenuMingguan(data.data.menuMingguan || []);
+        await loadDaftarBelanjaRencana(currentRencanaId);
+      }
+    } catch (err) {
+      console.warn('Gagal load rencana sekarang', err);
+    }
+  }
+
   function inisialisasiMenu() {
     const btnGen = document.getElementById('tombolGenerateMenu');
     const btnSimpan = document.getElementById('tombolSimpanRencana');
+    const btnKonf = document.getElementById('tombolKonfirmasi');
     const btnKirim = document.getElementById('tombolKirimEmail');
+
+    // If it's Monday, clear old rencana before loading
+    const main = document.querySelector('main.kontainer-utama');
+    const idPengguna = main ? main.dataset.userId : null;
+    const today = new Date();
+    if (today.getDay() === 1 && idPengguna) {
+      fetch(`${API_URL}/menu/clear-old/${idPengguna}`, { method: 'POST' }).catch((e) => console.warn('Gagal bersihkan rencana lama', e));
+    }
+
+    // Load current rencana if present
+    loadCurrentRencana();
+
     if (btnGen) btnGen.addEventListener('click', async () => {
       try {
         btnGen.disabled = true;
         btnGen.textContent = '🔄 Meng-generate...';
-        const main = document.querySelector('main.kontainer-utama');
-        const idPengguna = main ? main.dataset.userId : null;
-        const res = await fetch(`${API_URL}/menu/generate-saran`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ idPengguna }) });
+        const pilihanDietEl = document.getElementById('pilihanDiet');
+        const pilihanDiet = pilihanDietEl ? pilihanDietEl.value : '';
+        // map simple presets to target calories
+        let targetKaloriHarian = null;
+        if (pilihanDiet === 'kalori_1500') targetKaloriHarian = 1500;
+        if (pilihanDiet === 'kalori_1800') targetKaloriHarian = 1800;
+        if (pilihanDiet === 'kalori_2000') targetKaloriHarian = 2000;
+        const res = await fetch(`${API_URL}/menu/generate-saran`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ idPengguna, pilihanDiet, targetKaloriHarian }) });
         const data = await res.json();
         if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal generate menu', 'error');
         renderMenuMingguan(data.data.menuMingguan);
+        // show calorie info if server sent it
+        if (data.data && data.data.kaloriSummary) renderKaloriInfo(data.data.kaloriSummary, targetKaloriHarian);
+        // Perubahan: tidak melakukan preview daftar belanja otomatis — daftar akan dikirim ke email saja setelah menyimpan rencana.
       } catch (err) {
         console.error('Gagal generate menu', err);
         tampilkanNotifikasi('Gagal generate menu', 'error');
@@ -1075,6 +1330,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
     if (btnSimpan) btnSimpan.addEventListener('click', simpanRencana);
+    if (btnKonf) btnKonf.addEventListener('click', okieTambahKePantry);
     if (btnKirim) btnKirim.addEventListener('click', kirimEmailRencana);
   }
 
