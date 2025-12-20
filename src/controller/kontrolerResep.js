@@ -148,32 +148,63 @@ const cariResepDenganBahan = async (req, res) => {
         .status(400)
         .json({ sukses: false, pesan: "Daftar bahan harus diisi" });
 
+    // helper: normalize names (lowercase, remove punctuation/diacritics)
+    const normalizeName = (s) =>
+      String(s || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const searchTerms = daftarBahan
+      .map((d) => normalizeName(d))
+      .filter((x) => x && x.length >= 2);
+
     const semua = await Resep.find();
     const hasil = semua
       .map((r) => {
-        const bahanResep = (r.daftarBahan || []).map((b) =>
-          b.namaBahan.toLowerCase()
-        );
+        const daftarNama = (r.daftarBahan || []).map((b) => normalizeName(b.namaBahan || ''));
+        // combine into single string for regex whole-word matching
+        const combined = daftarNama.join(' ');
+
         let cocok = 0;
-        for (const b of daftarBahan.map((x) => x.toLowerCase())) {
-          if (bahanResep.some((br) => br.includes(b) || b.includes(br)))
-            cocok++;
+        for (const term of searchTerms) {
+          const re = new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+          if (re.test(combined)) cocok++;
         }
-        const persen = Math.round((cocok / (bahanResep.length || 1)) * 100);
-        const bahanKurang = (r.daftarBahan || []).filter(
-          (b) =>
-            !daftarBahan
-              .map((x) => x.toLowerCase())
-              .some((d) => b.namaBahan.toLowerCase().includes(d))
-        );
+
+        const persen = Math.round((cocok / (daftarNama.length || 1)) * 100);
+
+        const bahanKurang = (r.daftarBahan || []).filter((b) => {
+          const nm = normalizeName(b.namaBahan || '');
+          // consider as present if any search term matches whole word in nm
+          return !searchTerms.some((term) => {
+            const re = new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+            return re.test(nm);
+          });
+        });
+
         return {
           resep: r,
           persentaseKecocokan: persen,
           bahanKurang: bahanKurang.map((x) => x.namaBahan),
         };
       })
+      .map((x) => {
+        // optionally augment with debug info about matches
+        if (req.query.debug === '1') {
+          const daftarNama = (x.resep.daftarBahan || []).map((b) => normalizeName(b.namaBahan || ''));
+          const matched = searchTerms.filter((term) => daftarNama.some((d) => new RegExp('\\b' + term.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&') + '\\b').test(d)));
+          return Object.assign({}, x, { matchedTerms: matched });
+        }
+        return x;
+      })
       .filter((x) => x.persentaseKecocokan >= minimumKecocokan)
       .sort((a, b) => b.persentaseKecocokan - a.persentaseKecocokan);
+
+    if (req.query.debug === '1') console.log('[DEBUG] cariResepDenganBahan - searchTerms=', searchTerms, 'resultsCount=', hasil.length);
 
     res.json({ sukses: true, data: hasil });
   } catch (err) {
@@ -188,9 +219,9 @@ const cariResepDenganBahan = async (req, res) => {
 const dapatkanSaranResepAI = async (req, res) => {
   try {
     const { daftarBahan = [], preferensi = {} } = req.body;
-    // Gunakan layananChatBot atau layananAI nyata untuk hasil lebih baik
-    const saran = `Saran (placeholder) berdasarkan: ${daftarBahan.join(", ")}`;
-    res.json({ sukses: true, data: { saran } });
+    const hasil = await layananChatBot.saranResep(daftarBahan, preferensi);
+    if (!hasil.sukses) return res.status(500).json({ sukses: false, pesan: hasil.pesan || 'AI gagal menghasilkan saran' });
+    res.json({ sukses: true, data: hasil.data });
   } catch (err) {
     console.error("❌ Gagal saran AI:", err);
     res

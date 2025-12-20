@@ -18,6 +18,7 @@ router.delete('/:id', kontrolerBahan.hapusBahan);
 
 router.post('/identifikasi-gambar', upload.single('gambar'), kontrolerBahan.identifikasiBahanDariGambar);
 router.get('/pantry-challenge/:idPengguna', kontrolerBahan.pantryChallenge);
+router.get('/kadaluarsa', kontrolerBahan.dapatkanBahanKadaluarsa);
 router.get('/statistik/:idPengguna', kontrolerBahan.dapatkanStatistikBahan);
 router.post('/tambah-banyak', kontrolerBahan.tambahBanyakBahan);
 

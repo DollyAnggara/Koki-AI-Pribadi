@@ -67,4 +67,29 @@ router.get("/db-stats", async (req, res) => {
   }
 });
 
+// GET /api/debug/session - returns current session user info (for debugging)
+router.get('/session', (req, res) => {
+  try {
+    if (!req.session || !req.session.user) return res.status(401).json({ sukses: false, pesan: 'Tidak ada sesi login' });
+    const user = req.session.user;
+    return res.json({ sukses: true, data: { id: user._id || user.id, user } });
+  } catch (err) {
+    console.error('Session debug failed:', err);
+    return res.status(500).json({ sukses: false, pesan: 'Gagal ambil session' });
+  }
+});
+
+// GET /api/debug/bahan - returns all bahan for current session user (for debugging)
+router.get('/bahan', async (req, res) => {
+  try {
+    if (!req.session || !req.session.user) return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
+    const userId = req.session.user._id || req.session.user.id;
+    const semua = await Bahan.find({ pemilik: userId }).sort({ tanggalKadaluarsa: 1 });
+    return res.json({ sukses: true, data: semua });
+  } catch (err) {
+    console.error('Debug bahan failed:', err);
+    return res.status(500).json({ sukses: false, pesan: 'Gagal ambil bahan' });
+  }
+});
+
 module.exports = router;

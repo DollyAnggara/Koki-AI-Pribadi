@@ -273,17 +273,17 @@ const hapusBahan = async (req, res) => {
  */
 const pantryChallenge = async (req, res) => {
   try {
-    const { idPengguna } = req.params;
-
-    // Only allow requesting your own pantry challenge
+    // Use session user id to avoid client-side mismatch; simpler & safer
     const sessId = getSessionUserId(req);
-    if (!sessId || String(sessId) !== String(idPengguna))
-      return res.status(403).json({
-        sukses: false,
-        pesan: "Akses ditolak: tidak bisa melihat pantry pengguna lain",
-      });
+    if (!sessId)
+      return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
 
-    const bahanHampir = await Bahan.dapatkanHampirKadaluarsa(idPengguna, 3);
+    const bahanHampir = await Bahan.dapatkanHampirKadaluarsa(sessId, 3);
+    console.log(`[PANTRY-DEBUG] sessId=${sessId} requested pantry-challenge`);
+    console.log(`[PANTRY-DEBUG] found ${bahanHampir ? bahanHampir.length : 0} items`);
+    if (bahanHampir && bahanHampir.length) {
+      bahanHampir.forEach((b) => console.log(`[PANTRY-DEBUG] id=${b._id} nama=${b.namaBahan} tanggalKadaluarsa=${b.tanggalKadaluarsa}`));
+    }
     res.json({ sukses: true, data: { bahanHampirKadaluarsa: bahanHampir } });
   } catch (err) {
     console.error("❌ Gagal pantry challenge:", err);
@@ -383,6 +383,35 @@ const dapatkanStatistikBahan = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/bahan/kadaluarsa
+ * Returns all bahan for current session user where tanggalKadaluarsa is today or earlier
+ */
+const dapatkanBahanKadaluarsa = async (req, res) => {
+  try {
+      const sessId = getSessionUserId(req);
+    if (!sessId) return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
+
+    // days parameter controls how many days into the future to consider (inclusive)
+    const days = Math.max(0, parseInt(req.query.days || '3', 10));
+
+    const batas = new Date();
+    batas.setHours(23, 59, 59, 999);
+    batas.setDate(batas.getDate() + days);
+
+    // find items that have tanggalKadaluarsa <= end of target day
+    const items = await Bahan.find({ pemilik: sessId, statusAktif: true, tanggalKadaluarsa: { $exists: true, $lte: batas } }).sort({ tanggalKadaluarsa: 1 });
+
+    console.log(`[PANTRY-DEBUG] sessId=${sessId} days=${days} targetDate=${batas.toISOString()} foundExpired=${items.length}`);
+    items.forEach((b) => console.log(`[PANTRY-DEBUG] expired id=${b._id} nama=${b.namaBahan} tanggalKadaluarsa=${b.tanggalKadaluarsa}`));
+
+    res.json({ sukses: true, data: { kadaluarsa: items } });
+  } catch (err) {
+    console.error('❌ Gagal dapatkan bahan kadaluarsa:', err);
+    res.status(500).json({ sukses: false, pesan: 'Gagal mengambil bahan kadaluarsa' });
+  }
+};
+
 module.exports = {
   dapatkanSemuaBahan,
   tambahBahan,
@@ -393,4 +422,5 @@ module.exports = {
   identifikasiBahanDariGambar,
   tambahBanyakBahan,
   dapatkanStatistikBahan,
+  dapatkanBahanKadaluarsa,
 };

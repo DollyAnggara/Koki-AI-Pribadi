@@ -30,12 +30,15 @@ skemaBahan.statics.dapatkanHampirKadaluarsa = function (
   idPengguna,
   hariMendatang = 3
 ) {
+  // Include items that are already expired or will expire within `hariMendatang` days.
+  // Using end-of-day cutoff ensures items expiring today (even earlier than now) are included.
   const tanggalBatas = new Date();
+  tanggalBatas.setHours(23, 59, 59, 999);
   tanggalBatas.setDate(tanggalBatas.getDate() + hariMendatang);
   return this.find({
     pemilik: idPengguna,
     statusAktif: true,
-    tanggalKadaluarsa: { $gte: new Date(), $lte: tanggalBatas },
+    tanggalKadaluarsa: { $exists: true, $lte: tanggalBatas },
   }).sort({ tanggalKadaluarsa: 1 });
 };
 

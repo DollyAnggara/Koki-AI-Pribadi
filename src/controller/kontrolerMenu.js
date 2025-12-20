@@ -85,8 +85,41 @@ const kirimEmailMenu = async (req, res) => {
 
 const generateSaranMenu = async (req, res) => {
   try {
-    // Placeholder: integrasikan LLM untuk rekomendasi
-    res.json({ sukses: true, data: { saran: 'Generate menu AI belum diaktifkan' } });
+    // Simple heuristic generator: ambil sampel resep dari database untuk 7 hari x 3 sajian
+    const jumlahDibutuhkan = 7 * 3; // sarapan, makanSiang, makanMalam per hari
+    const totalResep = await Resep.countDocuments();
+    if (totalResep === 0) return res.json({ sukses: false, pesan: 'Tidak ada resep di database', data: { menuMingguan: [] } });
+
+    // gunakan aggregation $sample untuk ambil acak
+    const sampel = await Resep.aggregate([{ $sample: { size: Math.min(jumlahDibutuhkan, totalResep) } }]);
+    // jika jumlah resep kurang dari yang dibutuhkan, isi ulang dengan pengulangan sederhana
+    while (sampel.length < jumlahDibutuhkan) sampel.push(sampel[sampel.length % sampel.length]);
+
+    const hariNames = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+    const menuMingguan = [];
+    let idx = 0;
+    for (let i = 0; i < 7; i++) {
+      const sarapan = sampel[idx];
+      const makanSiang = sampel[idx+1];
+      const makanMalam = sampel[idx+2];
+      menuMingguan.push({
+        hari: hariNames[i],
+        menu: {
+          sarapan: sarapan ? sarapan._id : null,
+          makanSiang: makanSiang ? makanSiang._id : null,
+          makanMalam: makanMalam ? makanMalam._id : null,
+        },
+        // include readable names for convenience on client
+        _populated: {
+          sarapan: sarapan ? { _id: sarapan._id, namaResep: sarapan.namaResep } : null,
+          makanSiang: makanSiang ? { _id: makanSiang._id, namaResep: makanSiang.namaResep } : null,
+          makanMalam: makanMalam ? { _id: makanMalam._id, namaResep: makanMalam.namaResep } : null,
+        }
+      });
+      idx += 3;
+    }
+
+    res.json({ sukses: true, data: { menuMingguan } });
   } catch (err) {
     console.error('❌ Gagal generate saran menu:', err);
     res.status(500).json({ sukses: false, pesan: 'Gagal generate saran menu' });

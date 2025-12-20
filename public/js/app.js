@@ -911,6 +911,516 @@ document.addEventListener("DOMContentLoaded", async () => {
   inisialisasiUploadGambar();
   inisialisasiTambahBahan();
   inisialisasiPencarianResep();
+  inisialisasiMenu();
+  inisialisasiPantryChallenge();
+
+  // Menu minggu
+
+  let currentRencanaId = null;
+  let currentMenuMingguan = null;
+
+  function getISOWeekAndYear(d = new Date()) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+    const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1)/7);
+    return { mingguKe: weekNo, tahun: date.getUTCFullYear() };
+  }
+
+  function renderMenuMingguan(menuMingguan) {
+    const kont = document.getElementById('menuMingguanContainer');
+    if (!kont) return;
+    currentMenuMingguan = menuMingguan || [];
+    kont.innerHTML = '';
+    if (!currentMenuMingguan || currentMenuMingguan.length === 0) {
+      kont.innerHTML = '<p>Tidak ada saran menu. Klik "Generate Menu dengan AI" untuk membuat saran.</p>';
+      document.getElementById('tombolSimpanRencana').style.display = 'none';
+      return;
+    }
+
+    let html = '<div class="daftar-hari">';
+    currentMenuMingguan.forEach((h, idx) => {
+      const s = h._populated && h._populated.sarapan ? h._populated.sarapan.namaResep : (h.menu && h.menu.sarapan ? h.menu.sarapan : '-');
+      const siang = h._populated && h._populated.makanSiang ? h._populated.makanSiang.namaResep : (h.menu && h.menu.makanSiang ? h.menu.makanSiang : '-');
+      const malam = h._populated && h._populated.makanMalam ? h._populated.makanMalam.namaResep : (h.menu && h.menu.makanMalam ? h.menu.makanMalam : '-');
+      html += `<div class="kartu-mini"><strong>${escapeHtml(h.hari || 'Hari')}</strong><div>Sarapan: ${escapeHtml(s)}</div><div>Makan siang: ${escapeHtml(siang)}</div><div>Makan malam: ${escapeHtml(malam)}</div></div>`;
+    });
+    html += '</div>';
+    kont.innerHTML = html;
+    document.getElementById('tombolSimpanRencana').style.display = 'inline-block';
+  }
+
+  async function simpanRencana() {
+    const main = document.querySelector('main.kontainer-utama');
+    const idPengguna = main ? main.dataset.userId : null;
+    if (!idPengguna) return tampilkanNotifikasi('Silakan login untuk menyimpan rencana', 'error');
+    if (!currentMenuMingguan || currentMenuMingguan.length === 0) return tampilkanNotifikasi('Tidak ada menu untuk disimpan', 'error');
+    const { mingguKe, tahun } = getISOWeekAndYear();
+
+    const menuUntukKirim = currentMenuMingguan.map((h) => ({
+      hari: h.hari,
+      menu: {
+        sarapan: h._populated?.sarapan?._id || h.menu.sarapan || null,
+        makanSiang: h._populated?.makanSiang?._id || h.menu.makanSiang || null,
+        makanMalam: h._populated?.makanMalam?._id || h.menu.makanMalam || null,
+      }
+    }));
+
+    try {
+      const res = await fetch(`${API_URL}/menu`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ idPengguna, mingguKe, tahun, menuMingguan: menuUntukKirim })
+      });
+      const data = await res.json();
+      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal simpan rencana', 'error');
+      currentRencanaId = data.data._id;
+      tampilkanNotifikasi('Rencana tersimpan', 'sukses');
+      // load daftar belanja
+      await loadDaftarBelanjaRencana(currentRencanaId);
+      document.getElementById('tombolKirimEmail').style.display = 'inline-block';
+    } catch (err) {
+      console.error('Gagal simpan rencana', err);
+      tampilkanNotifikasi('Gagal simpan rencana', 'error');
+    }
+  }
+
+  async function loadDaftarBelanjaRencana(id) {
+    try {
+      const res = await fetch(`${API_URL}/menu/${id}/daftar-belanja`);
+      const data = await res.json();
+      if (!data.sukses) return;
+      renderDaftarBelanja(data.data || []);
+    } catch (err) {
+      console.error('Gagal load daftar belanja', err);
+    }
+  }
+
+  function renderDaftarBelanja(items) {
+    const ul = document.getElementById('daftarBelanja');
+    if (!ul) return;
+    ul.innerHTML = '';
+    items.forEach((it, idx) => {
+      const li = document.createElement('li');
+      li.className = 'item-bahan';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = !!it.sudahDibeli;
+      checkbox.addEventListener('change', async () => {
+        if (!currentRencanaId) return;
+        try {
+          const res = await fetch(`${API_URL}/menu/${currentRencanaId}/daftar-belanja/${idx}`, {
+            method: 'PATCH', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ sudahDibeli: checkbox.checked })
+          });
+          const d = await res.json();
+          if (!d.sukses) throw new Error(d.pesan || 'Gagal update');
+          tampilkanNotifikasi('Status item diperbarui', 'sukses');
+        } catch (err) {
+          console.error('Gagal update status', err);
+          tampilkanNotifikasi('Gagal update status', 'error');
+          checkbox.checked = !checkbox.checked; // revert
+        }
+      });
+      li.innerHTML = `<span>${escapeHtml(it.namaBahan)} - ${it.jumlah} ${it.satuan || ''}</span>`;
+      li.appendChild(checkbox);
+      ul.appendChild(li);
+    });
+  }
+
+  async function kirimEmailRencana() {
+    if (!currentRencanaId) return tampilkanNotifikasi('Tidak ada rencana yang dipilih', 'error');
+    try {
+      const res = await fetch(`${API_URL}/menu/${currentRencanaId}/kirim-email`, { method: 'POST' });
+      const data = await res.json();
+      if (data.sukses) {
+        tampilkanNotifikasi('Email rencana dikirim', 'sukses');
+      } else {
+        tampilkanNotifikasi(data.pesan || 'Gagal mengirim email', 'error');
+      }
+    } catch (err) {
+      console.error('Gagal kirim email', err);
+      tampilkanNotifikasi('Gagal kirim email', 'error');
+    }
+  }
+
+  function inisialisasiMenu() {
+    const btnGen = document.getElementById('tombolGenerateMenu');
+    const btnSimpan = document.getElementById('tombolSimpanRencana');
+    const btnKirim = document.getElementById('tombolKirimEmail');
+    if (btnGen) btnGen.addEventListener('click', async () => {
+      try {
+        btnGen.disabled = true;
+        btnGen.textContent = '🔄 Meng-generate...';
+        const main = document.querySelector('main.kontainer-utama');
+        const idPengguna = main ? main.dataset.userId : null;
+        const res = await fetch(`${API_URL}/menu/generate-saran`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ idPengguna }) });
+        const data = await res.json();
+        if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal generate menu', 'error');
+        renderMenuMingguan(data.data.menuMingguan);
+      } catch (err) {
+        console.error('Gagal generate menu', err);
+        tampilkanNotifikasi('Gagal generate menu', 'error');
+      } finally {
+        btnGen.disabled = false;
+        btnGen.textContent = '🤖 Generate Menu dengan AI';
+      }
+    });
+    if (btnSimpan) btnSimpan.addEventListener('click', simpanRencana);
+    if (btnKirim) btnKirim.addEventListener('click', kirimEmailRencana);
+  }
+
+  // --- Pantry Challenge ---
+  // current recommendation source: 'kadaluarsa' (we intentionally restrict to expiring items only)
+  let currentRecommendationSource = 'kadaluarsa';
+
+  async function loadPantryChallenge() {
+    // default: use server-side default (3 days)
+    // ensure pantry cache is loaded so we can mark matches when showing recipes
+    await loadPantryItems();
+
+    // clear previous recommendations to avoid stale display
+    const kont = document.getElementById('rekomendasiPantry');
+    if (kont) kont.innerHTML = '';
+    const titleEl = document.getElementById('rekomendasiTitle');
+    if (titleEl) titleEl.textContent = '';
+    const msgEl = document.getElementById('rekomendasiMessage');
+    if (msgEl) msgEl.textContent = '';
+
+    try {
+      const res = await fetch(`${API_URL}/bahan/kadaluarsa`, { credentials: 'include' });
+      if (!res.ok) {
+        if (res.status === 401) return tampilkanNotifikasi('Silakan login untuk melihat Pantry Challenge', 'error');
+        console.warn('Kadaluarsa request failed', res.status);
+        return;
+      }
+      const data = await res.json();
+      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Tidak ada data kadaluarsa', 'info');
+      const bahan = data.data.kadaluarsa || [];
+      // store last kadaluarsa items globally for strict client-side checks
+      window.__lastKadaluarsaItems = bahan;
+      renderBahanHampir(bahan);
+
+      // Primary: recommend based on expiring items only
+      const daftarNamaKadaluarsa = bahan.map((b) => b.namaBahan).filter(Boolean).slice(0, 12);
+      const msgEl = document.getElementById('rekomendasiMessage');
+      if (daftarNamaKadaluarsa.length) {
+        currentRecommendationSource = 'kadaluarsa';
+        document.getElementById('rekomendasiTitle').textContent = 'Rekomendasi berdasarkan bahan hampir kadaluarsa';
+        if (msgEl) msgEl.textContent = '';
+        const ada = await cariResepBerdasarkanBahanKadaluarsa(daftarNamaKadaluarsa);
+        if (ada) return; // done (we had matches based on expiring items)
+        // no matches found
+        if (msgEl) msgEl.textContent = 'Tidak ditemukan resep yang cocok dengan bahan hampir kadaluarsa.';
+        return;
+      }
+
+      // If no expiring ingredients at all, show message and stop (no pantry fallback)
+      currentRecommendationSource = 'kadaluarsa';
+      if (msgEl) msgEl.textContent = 'Tidak ada bahan hampir kadaluarsa.';
+      return;
+    } catch (err) {
+      console.error('Gagal load kadaluarsa', err);
+      tampilkanNotifikasi('Gagal memuat bahan kadaluarsa', 'error');
+    }
+  }
+
+  function renderBahanHampir(items) {
+    const ul = document.getElementById('bahanHampirKadaluarsa');
+    if (!ul) return;
+    ul.innerHTML = '';
+    items.forEach((b) => {
+      const li = document.createElement('li');
+      const sisa = b.sisaHariKadaluarsa;
+      const kelas = sisa === null ? '' : sisa <= 1 ? 'segera' : sisa <= 3 ? 'perhatian' : '';
+      li.className = 'item-bahan ' + kelas;
+      const badge = sisa === null ? '' : `<span class="badge-kadaluarsa ${kelas}">${sisa <= 1 ? 'SEGERA GUNAKAN!' : sisa + ' hari lagi'}</span>`;
+      li.innerHTML = `<span>🍽️ ${escapeHtml(b.namaBahan)} - ${b.jumlahTersedia || 0} ${b.satuan || ''}</span>${badge}`;
+      ul.appendChild(li);
+    });
+  }
+
+  async function cariResepDenganBahan(daftarNama, minKecocokan = 30) {
+    try {
+      const res = await fetch(`${API_URL}/resep/cari-dengan-bahan`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan: daftarNama, minimumKecocokan: minKecocokan }) });
+      const data = await res.json();
+      if (!data.sukses) return renderRekomendasi([]);
+      renderRekomendasi(data.data || []);
+    } catch (err) {
+      console.error('Gagal cari resep pantry', err);
+      renderRekomendasi([]);
+    }
+  }
+
+  // Try to find recipes that specifically match expiring ingredients
+  async function cariResepBerdasarkanBahanKadaluarsa(daftarNamaKadaluarsa) {
+    try {
+      const res = await fetch(`${API_URL}/resep/cari-dengan-bahan`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan: daftarNamaKadaluarsa, minimumKecocokan: 10 }) });
+      const data = await res.json();
+      if (!data.sukses || !Array.isArray(data.data) || data.data.length === 0) return false;
+      // Filter results to only those that include at least one of the expiring ingredients
+      const expLower = daftarNamaKadaluarsa.map(x => String(x).toLowerCase());
+      // stricter matching: use normalized whole-word/token matching to avoid substrings (eg 'bayam' vs 'ayam')
+      const filtered = data.data.filter((entry) => {
+        const r = entry.resep || entry;
+        const daftar = (r.daftarBahan || []).map(b => normalizeName(b.namaBahan || ''));
+        return daftar.some(d => expLower.some(e => {
+          const term = normalizeName(e);
+          if (!term) return false;
+          const re = new RegExp('\\b' + escapeRegExp(term) + '\\b');
+          if (re.test(d)) return true;
+          const dtoks = d.split(' ').filter(Boolean);
+          // token intersection for tokens length >= 3
+          if (term.length >= 3 && dtoks.includes(term)) return true;
+          return false;
+        }));
+      });
+      if (!filtered.length) return false;
+      // Enhance each with count of expiring ingredient matches
+      const enhanced = filtered.map((entry) => {
+        const r = entry.resep || entry;
+        const daftar = (r.daftarBahan || []).map(b => normalizeName(b.namaBahan || ''));
+        const expMatches = expLower.reduce((acc, e) => {
+          const term = normalizeName(e);
+          if (!term) return acc;
+          const re = new RegExp('\\b' + escapeRegExp(term) + '\\b');
+          const found = daftar.some(d => re.test(d) || (term.length >= 3 && d.split(' ').includes(term)));
+          return acc + (found ? 1 : 0);
+        }, 0);
+        return Object.assign({}, entry, { expMatches });
+      });
+      // Sort by expMatches desc, then by estimatedMatch/persen
+      enhanced.sort((a,b) => (b.expMatches - a.expMatches) || ((b.estimatedMatch || b.persentaseKecocokan || 0) - (a.estimatedMatch || a.persentaseKecocokan || 0)));
+      // Render but annotate name with expiring match count inside renderRekomendasi we will use presentCount; for now pass entries as-is
+      renderRekomendasi(enhanced);
+      // add small note
+      const titleEl = document.getElementById('rekomendasiTitle');
+      if (titleEl) titleEl.textContent = `Rekomendasi berdasarkan bahan hampir kadaluarsa (menyesuaikan yang paling cocok)`;
+      return true;
+    } catch (err) {
+      console.error('Gagal cari resep berdasarkan kadaluarsa', err);
+      return false;
+    }
+  }
+
+
+  // Pantry cache of ingredient names (lowercase)
+  let pantryIngredientNames = new Set();
+
+  async function loadPantryItems() {
+    try {
+      const res = await fetch(`${API_URL}/bahan`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.sukses) return;
+      pantryIngredientNames = new Set((data.data || []).map((b) => (b.namaBahan || '').toLowerCase()));
+    } catch (err) {
+      console.error('Gagal load pantry items', err);
+    }
+  }
+
+  function escapeRegExp(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function normalizeName(s) {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+      .replace(/[^a-z0-9\s]/g, ' ') // keep letters/numbers/spaces
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function ingredientMatchesPantry(name) {
+    if (!name) return false;
+    const n = normalizeName(name);
+    if (!n) return false;
+
+    // prefer token / whole-word matches to avoid substring false positives (e.g., 'bayam' vs 'ayam')
+    const nTokens = n.split(' ').filter(Boolean);
+
+    for (const rawP of pantryIngredientNames) {
+      if (!rawP) continue;
+      const p = normalizeName(rawP);
+      if (!p) continue;
+
+      // exact whole-word match either way
+      const reN = new RegExp("\\b" + escapeRegExp(n) + "\\b");
+      const reP = new RegExp("\\b" + escapeRegExp(p) + "\\b");
+      if (reP.test(n) || reN.test(p)) return true;
+
+      // token intersection: require tokens of length >= 3 to avoid tiny-word matches
+      const pTokens = p.split(' ').filter(Boolean);
+      for (const t of nTokens) {
+        if (t.length < 3) continue;
+        if (pTokens.includes(t)) return true;
+      }
+    }
+    return false;
+  }
+
+  async function lihatBahanResep(id, holder) {
+    if (!id || !holder) return;
+    const target = holder.querySelector(`#bahan_${id}`);
+    if (!target) return;
+    if (target.dataset.loaded === '1') {
+      target.style.display = target.style.display === 'none' ? 'block' : 'none';
+      return;
+    }
+    try {
+      target.innerHTML = '<p>Memuat bahan…</p>';
+      const res = await fetch(`${API_URL}/resep/${id}`);
+      const data = await res.json();
+      if (!data.sukses) {
+        target.innerHTML = '<p>Gagal memuat bahan resep</p>';
+        return;
+      }
+      const daftar = data.data.daftarBahan || [];
+      let html = '<ul class="daftar-bahan-resep">';
+      daftar.forEach((it) => {
+        const nama = it.namaBahan || it.nama || '';
+        const jumlah = it.jumlah || '';
+        const satuan = it.satuan || '';
+        const inPantry = ingredientMatchesPantry(nama);
+        html += `<li>${escapeHtml(nama)} ${jumlah ? '- ' + escapeHtml(String(jumlah)) + ' ' + escapeHtml(satuan) : ''} ${inPantry ? '<span class="badge-kadaluarsa segera">Ada di pantry</span>' : ''}</li>`;
+      });
+      html += '</ul>';
+      target.innerHTML = html;
+      target.dataset.loaded = '1';
+    } catch (err) {
+      console.error('Gagal load bahan resep', err);
+      target.innerHTML = '<p>Gagal memuat bahan resep</p>';
+    }
+  }
+
+  function renderRekomendasi(list) {
+    const kont = document.getElementById('rekomendasiPantry');
+    if (!kont) return;
+    kont.innerHTML = '';
+    if (!list || list.length === 0) {
+      kont.innerHTML = '<div class="kartu"><p>Tidak ada rekomendasi saat ini. Tambahkan bahan ke pantry atau refresh.</p></div>';
+      return;
+    }
+
+    // If recommending specifically for kadaluarsa, show only recipes that explicitly contain at least one expiring ingredient
+    if (currentRecommendationSource === 'kadaluarsa') {
+      // build normalized expiring tokens from the global last kadaluarsa fetch
+      const expItems = (window.__lastKadaluarsaItems || []).map((b) => normalizeName(b.namaBahan || '')).filter(Boolean);
+      const expSet = new Set(expItems);
+
+      list = (list || []).filter((e) => {
+        if (!e) return false;
+        // prefer server-supplied expMatches if available
+        if (e.expMatches && e.expMatches > 0) return true;
+        const r = e.resep || e;
+        const daftarTokens = (r.daftarBahan || []).map((b) => normalizeName(b.namaBahan || '')).filter(Boolean);
+        // require at least one token to match exactly
+        return daftarTokens.some((tok) => expSet.has(tok));
+      });
+
+      if (!list.length) {
+        kont.innerHTML = '<div class="kartu"><p>Tidak ditemukan resep yang cocok dengan bahan hampir kadaluarsa.</p></div>';
+        return;
+      }
+    }
+
+    // Enrich list with presentCount/totalBahan and sort by presentCount desc, then estimatedMatch
+    const enriched = list.map((entry) => {
+      const r = entry.resep || entry;
+      let totalBahan = null;
+      let missingCount = null;
+      if (r && r.daftarBahan && Array.isArray(r.daftarBahan)) {
+        totalBahan = r.daftarBahan.length;
+        let miss = 0;
+        r.daftarBahan.forEach((b) => {
+          const name = (b.namaBahan || '').toLowerCase();
+          if (!ingredientMatchesPantry(name)) miss++;
+        });
+        missingCount = miss;
+      } else if (entry.bahanKurang && Array.isArray(entry.bahanKurang)) {
+        missingCount = entry.bahanKurang.length;
+      } else if (entry.missingIngredients && Array.isArray(entry.missingIngredients)) {
+        missingCount = entry.missingIngredients.length;
+      }
+      const presentCount = (totalBahan !== null && missingCount !== null) ? (totalBahan - missingCount) : null;
+      const estimated = entry.estimatedMatch || entry.persentaseKecocokan || 0;
+      const score = presentCount !== null ? presentCount : estimated;
+      return { entry, r, presentCount, totalBahan, score };
+    });
+
+    enriched.sort((a, b) => {
+      if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+      return (b.entry.estimatedMatch || b.entry.persentaseKecocokan || 0) - (a.entry.estimatedMatch || a.entry.persentaseKecocokan || 0);
+    });
+
+    enriched.slice(0,12).forEach(({ entry, r, presentCount, totalBahan }) => {
+      const sourceLabel = currentRecommendationSource === 'kadaluarsa' ? ' (dari bahan hampir kadaluarsa)' : '';
+      const nama = r.namaResep || r.name || r.nama || 'Resep';
+      const waktu = (r.waktuPersiapanMenit || 0) + (r.waktuMemasakMenit || 0);
+      const kecocokan = entry.persentaseKecocokan ? `${entry.persentaseKecocokan}% cocok` : (entry.estimatedMatch ? `${entry.estimatedMatch}% cocok` : '');
+      const kurang = entry.bahanKurang && entry.bahanKurang.length ? ` - butuh: ${entry.bahanKurang.join(', ')}` : (entry.missingIngredients && entry.missingIngredients.length ? ` - butuh: ${entry.missingIngredients.join(', ')}` : '');
+      const idResep = (r._id || r.recipeId || '');
+      const div = document.createElement('div');
+      div.className = 'kartu-resep';
+      div.innerHTML = `
+        <div class="gambar-resep">🍲</div>
+        <div class="info-resep">
+          <div class="nama-resep">${escapeHtml(nama)}${sourceLabel}</div>
+          <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>${escapeHtml(kecocokan)}</span>${presentCount !== null ? `<span style="margin-left:8px;">• <strong>${presentCount}/${totalBahan}</strong> bahan ada</span>` : ''}${entry.expMatches ? `<span style="margin-left:8px;color:var(--warna-utama);">• ${entry.expMatches} bahan hampir kadaluarsa cocok</span>` : ''}</div>
+          ${entry.description ? `<div style="margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(entry.description)}</div>` : ''}
+          <div style="margin-top:8px;">
+            ${idResep ? `<button class="tombol-kecil lihat-bahan" data-id="${idResep}">🔎 Lihat Bahan</button> <button class="tombol-kecil" data-id="${idResep}" onclick="window.location.href='/resep/${idResep}'">Lihat Resep</button>` : ''}
+            ${kurang ? `<small style="display:block;margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(kurang)}</small>` : ''}
+          </div>
+          <div id="bahan_${idResep}" style="display:none;margin-top:8px;"></div>
+        </div>`;
+      kont.appendChild(div);
+
+      // attach click handler for lihat bahan
+      const lihatBtn = div.querySelector('.lihat-bahan');
+      if (lihatBtn) lihatBtn.addEventListener('click', (e) => {
+        const id = lihatBtn.dataset.id;
+        const holder = div;
+        const target = holder.querySelector(`#bahan_${id}`);
+        if (target.style.display === 'block') target.style.display = 'none';
+        else {
+          // ensure pantry items loaded
+          loadPantryItems().then(() => lihatBahanResep(id, holder));
+          target.style.display = 'block';
+        }
+      });
+    });
+  }
+
+  async function loadAISaranForPantry() {
+    const ul = document.getElementById('bahanHampirKadaluarsa');
+    if (!ul) return;
+    const items = Array.from(ul.querySelectorAll('.item-bahan')).map((li) => li.querySelector('span')?.textContent || '').filter(Boolean);
+    // extract only names (format: '🍽️ Name - qty')
+    const names = items.map((t) => t.replace(/^[^a-zA-Z0-9]*/,'').split(' - ')[0].trim());
+    if (!names.length) return tampilkanNotifikasi('Tidak ada bahan untuk dianalisis', 'error');
+    try {
+      const res = await fetch(`${API_URL}/resep/saran-ai`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan: names }) });
+      const data = await res.json();
+      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal dapatkan saran AI', 'error');
+      renderRekomendasi(data.data.map((x) => ({ name: x.name || x.nama, description: x.description, estimatedMatch: x.estimatedMatch, missingIngredients: x.missingIngredients, recipeId: x.recipeId })));
+    } catch (err) {
+      console.error('Gagal saran AI pantry', err);
+      tampilkanNotifikasi('Gagal dapatkan saran AI', 'error');
+    }
+  }
+
+  function inisialisasiPantryChallenge() {
+    const btn = document.getElementById('tombolRefreshPantry');
+    const btnAI = document.getElementById('tombolSaranPantryAI');
+    if (btn) btn.addEventListener('click', () => loadPantryChallenge());
+    if (btnAI) btnAI.addEventListener('click', () => loadAISaranForPantry());
+    // Try load automatically when on pantry page
+    const onPantry = document.getElementById('rekomendasiPantry') || document.getElementById('bahanHampirKadaluarsa');
+    if (onPantry) setTimeout(() => loadPantryChallenge(), 100);
+  }
 
   await loadDaftarBahan();
   // Load initial recipe list if on recipe page
