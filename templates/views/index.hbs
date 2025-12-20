@@ -31,11 +31,12 @@
     </div>
     <div class="grid-resep" id="daftarResep">
       {{#each resep}}
-      <div class="kartu-resep">
+      <div class="kartu-resep" data-id="{{this._id}}">
         <div class="gambar-resep">🍲</div>
         <div class="info-resep">
           <div class="nama-resep">{{this.nama}}</div>
           <div class="meta-resep"><span>⏱️ {{this.waktu}} menit</span><span>🔥 {{this.kalori}} kkal</span></div>
+          <div class="detail-resep" id="detail_{{this._id}}" style="display:none;margin-top:8px;"></div>
         </div>
       </div>
       {{/each}}

@@ -556,11 +556,19 @@ function renderResepList(items) {
         : null;
     const kalori = kaloriVal ? Math.round(kaloriVal) : "-";
     const nama = r.namaResep || r.nama || "Resep";
+    const idResep = r._id || r.recipeId || '';
     const div = document.createElement("div");
     div.className = "kartu-resep";
-    div.innerHTML = `\n      <div class="gambar-resep">🍲</div>\n      <div class="info-resep">\n        <div class="nama-resep">${escapeHtml(
-      nama
-    )}</div>\n        <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>🔥 ${kalori} kkal</span></div>\n      </div>`;
+    if (idResep) div.dataset.id = idResep;
+    div.innerHTML = `\n      <div class="gambar-resep">🍲</div>\n      <div class="info-resep">\n        <div class="nama-resep">${escapeHtml(nama)}</div>\n        <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>🔥 ${kalori} kkal</span></div>\n      </div>\n      <div class="detail-resep" id="detail_${idResep}" style="display:none;margin-top:8px;"></div>`;
+
+    // clicking the card (except on internal buttons) navigates to the recipe detail page
+    div.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.tagName === 'A') return; // ignore button/link clicks
+      if (!idResep) return;
+      window.location.href = `/resep/${idResep}`;
+    });
+
     kontainer.appendChild(div);
   });
 }
@@ -1263,36 +1271,117 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function lihatBahanResep(id, holder) {
     if (!id || !holder) return;
-    const target = holder.querySelector(`#bahan_${id}`);
+    const target = holder.querySelector(`#bahan_${id}`) || holder.querySelector(`#detail_${id}`);
     if (!target) return;
     if (target.dataset.loaded === '1') {
       target.style.display = target.style.display === 'none' ? 'block' : 'none';
       return;
     }
     try {
-      target.innerHTML = '<p>Memuat bahan…</p>';
+      target.innerHTML = '<p>Memuat detail…</p>';
       const res = await fetch(`${API_URL}/resep/${id}`);
       const data = await res.json();
       if (!data.sukses) {
-        target.innerHTML = '<p>Gagal memuat bahan resep</p>';
+        target.innerHTML = '<p>Gagal memuat detail resep</p>';
         return;
       }
-      const daftar = data.data.daftarBahan || [];
-      let html = '<ul class="daftar-bahan-resep">';
-      daftar.forEach((it) => {
-        const nama = it.namaBahan || it.nama || '';
-        const jumlah = it.jumlah || '';
-        const satuan = it.satuan || '';
-        const inPantry = ingredientMatchesPantry(nama);
-        html += `<li>${escapeHtml(nama)} ${jumlah ? '- ' + escapeHtml(String(jumlah)) + ' ' + escapeHtml(satuan) : ''} ${inPantry ? '<span class="badge-kadaluarsa segera">Ada di pantry</span>' : ''}</li>`;
-      });
-      html += '</ul>';
-      target.innerHTML = html;
+      muatDetailResepToElement(target, data.data);
       target.dataset.loaded = '1';
     } catch (err) {
-      console.error('Gagal load bahan resep', err);
-      target.innerHTML = '<p>Gagal memuat bahan resep</p>';
+      console.error('Gagal load detail resep', err);
+      target.innerHTML = '<p>Gagal memuat detail resep</p>';
     }
+  }
+
+  // helper: populate a detail container with bahan + langkah for a recipe object
+  function muatDetailResepToElement(el, resep) {
+    if (!el || !resep) return;
+    let html = '';
+    // ingredients can be objects or strings; support alternative keys
+    const daftar = resep.daftarBahan || resep.bahan || resep.ingredients || [];
+    html += '<h4>Bahan</h4>';
+    if (!daftar.length) html += '<p><em>Tidak ada informasi bahan.</em></p>';
+    else {
+      html += '<ul class="daftar-bahan-resep">';
+      daftar.forEach((it) => {
+        let nama = '';
+        let jumlah = '';
+        let satuan = '';
+        if (!it) {
+          nama = '';
+        } else if (typeof it === 'string') {
+          nama = it;
+        } else {
+          nama = it.namaBahan || it.nama || it.name || it.item || '';
+          jumlah = it.jumlah || it.qty || it.jumlahTersedia || '';
+          satuan = it.satuan || it.unit || '';
+        }
+        html += `<li>${escapeHtml(nama)} ${jumlah ? '- ' + escapeHtml(String(jumlah)) + ' ' + escapeHtml(satuan) : ''}</li>`;
+      });
+      html += '</ul>';
+    }
+
+    // steps can be objects or strings; support alternative keys
+    const langkah = resep.langkah || resep.steps || resep.instruksi || [];
+    html += '<h4>Langkah</h4>';
+    if (!langkah.length && resep.deskripsi) {
+      html += `<p>${escapeHtml(resep.deskripsi)}</p>`;
+    } else if (!langkah.length) {
+      html += '<p><em>Tidak ada instruksi langkah.</em></p>';
+    } else {
+      html += '<ol class="daftar-langkah-resep">';
+      langkah.forEach((lk) => {
+        let desc = '';
+        let dur = '';
+        let tips = '';
+        if (!lk) {
+          desc = '';
+        } else if (typeof lk === 'string') {
+          desc = lk;
+        } else {
+          desc = lk.deskripsi || lk.text || lk.instruksi || lk.step || lk.title || '';
+          dur = lk.durasiMenit || lk.duration || '';
+          tips = lk.tips || lk.catatan || '';
+        }
+        html += `<li>${escapeHtml(desc)}${dur ? ` <em>(${escapeHtml(String(dur))} menit)</em>` : ''}${tips ? `<div class="tip">💡 ${escapeHtml(tips)}</div>` : ''}</li>`;
+      });
+      html += '</ol>';
+    }
+
+    el.innerHTML = html;
+  }
+
+  // Toggle detail (fetch first time, then show/hide)
+  async function toggleResepDetail(id, holder, card) {
+    if (!id || !holder) return;
+    // if already visible, hide
+    if (holder.style.display === 'block') {
+      holder.style.display = 'none';
+      if (card) card.classList.remove('expanded');
+      return;
+    }
+    // if not loaded yet, fetch
+    if (holder.dataset.loaded !== '1') {
+      holder.innerHTML = '<p>🔄 Memuat detail resep...</p>';
+      try {
+        const res = await fetch(`${API_URL}/resep/${id}`);
+        const data = await res.json();
+        if (!data.sukses) {
+          holder.innerHTML = `<p>❌ ${data.pesan || 'Gagal memuat detail'}</p>`;
+          return;
+        }
+        muatDetailResepToElement(holder, data.data);
+        holder.dataset.loaded = '1';
+      } catch (err) {
+        console.error('Gagal memuat detail resep', err);
+        holder.innerHTML = '<p>❌ Gagal memuat detail resep</p>';
+        return;
+      }
+    }
+
+    // show
+    holder.style.display = 'block';
+    if (card) card.classList.add('expanded');
   }
 
   function renderRekomendasi(list) {
@@ -1364,6 +1453,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const idResep = (r._id || r.recipeId || '');
       const div = document.createElement('div');
       div.className = 'kartu-resep';
+      if (idResep) div.dataset.id = idResep;
       div.innerHTML = `
         <div class="gambar-resep">🍲</div>
         <div class="info-resep">
@@ -1371,25 +1461,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>${escapeHtml(kecocokan)}</span>${presentCount !== null ? `<span style="margin-left:8px;">• <strong>${presentCount}/${totalBahan}</strong> bahan ada</span>` : ''}${entry.expMatches ? `<span style="margin-left:8px;color:var(--warna-utama);">• ${entry.expMatches} bahan hampir kadaluarsa cocok</span>` : ''}</div>
           ${entry.description ? `<div style="margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(entry.description)}</div>` : ''}
           <div style="margin-top:8px;">
-            ${idResep ? `<button class="tombol-kecil lihat-bahan" data-id="${idResep}">🔎 Lihat Bahan</button> <button class="tombol-kecil" data-id="${idResep}" onclick="window.location.href='/resep/${idResep}'">Lihat Resep</button>` : ''}
+            ${idResep ? `<button class="tombol-kecil lihat-bahan" data-id="${idResep}">🔎 Lihat Detail</button> <button class="tombol-kecil" data-id="${idResep}" onclick="window.location.href='/resep/${idResep}'">Buka Halaman</button>` : ''}
             ${kurang ? `<small style="display:block;margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(kurang)}</small>` : ''}
           </div>
-          <div id="bahan_${idResep}" style="display:none;margin-top:8px;"></div>
+          <div class="detail-resep" id="detail_${idResep}" style="display:none;margin-top:8px;"></div>
         </div>`;
       kont.appendChild(div);
 
-      // attach click handler for lihat bahan
+      // attach click handler for lihat detail (navigate to detail page)
       const lihatBtn = div.querySelector('.lihat-bahan');
       if (lihatBtn) lihatBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const id = lihatBtn.dataset.id;
-        const holder = div;
-        const target = holder.querySelector(`#bahan_${id}`);
-        if (target.style.display === 'block') target.style.display = 'none';
-        else {
-          // ensure pantry items loaded
-          loadPantryItems().then(() => lihatBahanResep(id, holder));
-          target.style.display = 'block';
-        }
+        if (id) window.location.href = `/resep/${id}`;
       });
     });
   }
@@ -1425,6 +1509,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadDaftarBahan();
   // Load initial recipe list if on recipe page
   setTimeout(() => loadDaftarResep(), 0);
+
+  // Delegate clicks for server-rendered recipe cards (if any) so clicking card navigates to detail page
+  const daftarResepEl = document.getElementById('daftarResep');
+  if (daftarResepEl) {
+    daftarResepEl.addEventListener('click', (e) => {
+      const card = e.target.closest('.kartu-resep');
+      if (!card) return;
+      if (e.target.closest('button') || e.target.tagName === 'A') return;
+      const id = card.dataset.id;
+      if (!id) return;
+      window.location.href = `/resep/${id}`;
+    });
+  }
 
   // Show welcome notification only when redirected after successful login
   try {

@@ -12,6 +12,62 @@ function requireAuth(req, res, next) {
   next();
 }
 
+router.get('/resep/:id', requireAuth, async (req, res) => {
+  try {
+    const r = await Resep.findById(req.params.id);
+    if (!r) return res.status(404).render('resep_detail', { judul: 'Resep Tidak Ditemukan', error: 'Resep tidak ditemukan' });
+    const waktu = (r.waktuPersiapanMenit || 0) + (r.waktuMemasakMenit || 0);
+    const kalori = r.nutrisiPerPorsi && (r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal) ? r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal : null;
+    // Build human-friendly displays to avoid dumping raw objects in templates
+    const daftarRaw = r.daftarBahan || r.bahan || r.ingredients || [];
+    const langkahRaw = r.langkah || r.steps || r.instruksi || [];
+
+    const daftarBahanDisplay = (daftarRaw || []).map((it) => {
+      if (!it) return '';
+      if (typeof it === 'string') return it;
+      // object-like
+      const nama = it.namaBahan || it.nama || it.name || it.item || '';
+      const jumlah = it.jumlah || it.qty || it.jumlahTersedia || '';
+      const satuan = it.satuan || it.unit || '';
+      const parts = [];
+      if (nama) parts.push(String(nama));
+      if (jumlah !== undefined && jumlah !== '') parts.push(`${jumlah}${satuan ? ' ' + satuan : ''}`);
+      return parts.join(' - ');
+    });
+
+    const langkahDisplay = (langkahRaw || []).map((lk, idx) => {
+      if (!lk) return '';
+      if (typeof lk === 'string') return lk;
+      const desc = lk.deskripsi || lk.text || lk.instruksi || lk.step || lk.title || '';
+      const dur = lk.durasiMenit || lk.duration || '';
+      const tips = lk.tips || lk.catatan || '';
+      let s = `${desc}`;
+      if (dur) s += ` (${dur} menit)`;
+      if (tips) s += ` — Tips: ${tips}`;
+      return s;
+    });
+
+    res.render('resep_detail', {
+      judul: r.namaResep,
+      resep: {
+        _id: r._id,
+        nama: r.namaResep,
+        deskripsi: r.deskripsi,
+        waktu,
+        kalori: kalori ? Math.round(kalori) : '-',
+        daftarBahan: daftarRaw,
+        langkah: langkahRaw,
+        // formatted arrays for clean rendering
+        daftarBahanDisplay,
+        langkahDisplay
+      }
+    });
+  } catch (err) {
+    console.error('Gagal render detail resep:', err);
+    res.status(500).render('resep_detail', { judul: 'Resep', resep: null, error: 'Gagal memuat resep' });
+  }
+});
+
 router.get("/resep", requireAuth, async (req, res) => {
   try {
     const daftarResep = await Resep.find().limit(50);

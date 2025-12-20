@@ -1,0 +1,66 @@
+<main class="kontainer-utama">
+  <section>
+    <div class="kartu">
+      {{#if resep}}
+      <h2 class="kartu-judul">📖 {{resep.nama}}</h2>
+      <div style="color:var(--warna-teks-sekunder);margin-bottom:8px;">⏱️ {{resep.waktu}} menit • 🔥 {{resep.kalori}} kkal</div>
+      {{#if resep.deskripsi}}<p style="color:var(--warna-teks-sekunder);">{{resep.deskripsi}}</p>{{/if}}
+
+      <hr style="margin:12px 0;" />
+
+      <h3 class="kartu-judul" style="font-size:1rem;margin-top:8px;">🧾 Bahan</h3>
+      {{#if resep.daftarBahanDisplay.length}}
+        <ul class="daftar-bahan-resep">
+          {{#each resep.daftarBahanDisplay}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      {{else if resep.daftarBahan.length}}
+        <ul class="daftar-bahan-resep">
+          {{#each resep.daftarBahan}}
+            <li>
+              {{#if this.namaBahan}}{{this.namaBahan}}{{else if this.nama}}{{this.nama}}{{else if this.name}}{{this.name}}{{else}}{{this}}{{/if}}
+              {{#if this.jumlah}} - {{this.jumlah}} {{this.satuan}}{{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <p><em>Tidak ada informasi bahan.</em></p>
+      {{/if}}
+
+      <h3 class="kartu-judul" style="font-size:1rem;margin-top:12px;">🔪 Langkah</h3>
+      {{#if resep.langkahDisplay.length}}
+        <ol class="daftar-langkah-resep">
+          {{#each resep.langkahDisplay}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ol>
+      {{else if resep.langkah.length}}
+        <ol class="daftar-langkah-resep">
+          {{#each resep.langkah}}
+            <li>
+              {{#if this.deskripsi}}{{this.deskripsi}}{{else if this.text}}{{this.text}}{{else if this.instruksi}}{{this.instruksi}}{{else}}{{this}}{{/if}}
+              {{#if this.durasiMenit}} <em>({{this.durasiMenit}} menit)</em>{{/if}}
+              {{#if this.tips}}<div class="tip">💡 {{this.tips}}</div>{{/if}}
+            </li>
+          {{/each}}
+        </ol>
+      {{else}}
+        {{#if resep.deskripsi}}
+          <p>{{resep.deskripsi}}</p>
+        {{else}}
+          <p><em>Tidak ada instruksi langkah.</em></p>
+        {{/if}}
+      {{/if}}
+
+      <div style="margin-top:12px;"><a href="/resep" class="tombol-kirim">← Kembali ke Daftar Resep</a></div>
+      {{else}}
+        <h2 class="kartu-judul">Resep tidak ditemukan</h2>
+        <p>{{error}}</p>
+        <div style="margin-top:12px;"><a href="/resep" class="tombol-kirim">← Kembali ke Daftar Resep</a></div>
+      {{/if}}
+    </div>
+  </section>
+</main>
+
+{{> footer}}

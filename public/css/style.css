@@ -903,6 +903,24 @@ body {
   color: var(--warna-teks-sekunder);
 }
 
+/* Recipe detail expanded area */
+.detail-resep {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+  border-top: 1px solid rgba(0,0,0,0.04);
+  border-radius: 0 0 var(--radius) var(--radius);
+  font-size: 0.95rem;
+}
+.kartu-resep.expanded {
+  transform: none;
+  box-shadow: 0 22px 48px rgba(44,62,80,0.14);
+}
+.daftar-bahan-resep { margin: 8px 0 12px 18px; }
+.daftar-bahan-resep li { margin-bottom: 6px; }
+.daftar-langkah-resep { margin: 8px 0 0 18px; }
+.daftar-langkah-resep li { margin-bottom: 10px; }
+.tip { margin-top:6px; font-size:0.92rem; color: var(--warna-teks-sekunder); }
+
 /* Chat */
 .kontainer-chat {
   height: 500px;
@@ -980,6 +998,12 @@ body {
   border: none;
   border-radius: 25px;
   cursor: pointer;
+}
+
+/* Ensure anchor buttons keep white text and no underline */
+a.tombol-kirim, a.tombol-kirim:link, a.tombol-kirim:visited {
+  color: #fff;
+  text-decoration: none;
 }
 
 /* Timer */
