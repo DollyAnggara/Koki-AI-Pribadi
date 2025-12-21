@@ -42,6 +42,7 @@ const ruteMenu = require("./routes/menu");
 const ruteOtp = require("./routes/otp");
 const ruteDebug = require("./routes/debug");
 const ruteKontak = require("./routes/kontak");
+const ruteSessionChat = require("./routes/session-chat");
 
 const Pengguna = require("./models/Pengguna");
 const Bahan = require("./models/Bahan");
@@ -91,21 +92,27 @@ const jalankanServer = async () => {
     try {
       if (req.session && req.session.user) {
         try {
-          const u = await Pengguna.findById(req.session.user._id).select('role').lean();
+          const u = await Pengguna.findById(req.session.user._id)
+            .select("role")
+            .lean();
           if (u && u.role && u.role !== req.session.user.role) {
             req.session.user.role = u.role;
           }
         } catch (err) {
           // non-fatal: continue without blocking the request
-          console.warn('Could not refresh user role from DB:', err && err.message ? err.message : err);
+          console.warn(
+            "Could not refresh user role from DB:",
+            err && err.message ? err.message : err
+          );
         }
       }
     } catch (e) {
-      console.error('Error in session middleware:', e);
+      console.error("Error in session middleware:", e);
     }
 
     res.locals.user = req.session ? req.session.user : null;
-    res.locals.isAdmin = req.session && req.session.user && req.session.user.role === 'admin';
+    res.locals.isAdmin =
+      req.session && req.session.user && req.session.user.role === "admin";
     next();
   });
 
@@ -160,10 +167,12 @@ const jalankanServer = async () => {
   // Debug/test endpoints for development (deepseek test)
   aplikasi.use("/api/debug", ruteDebug);
   aplikasi.use("/api/kontak", ruteKontak);
+  // Session chat endpoints
+  aplikasi.use("/api/session-chat", ruteSessionChat);
 
   // admin routes (UI + actions)
-  const ruteAdmin = require('./routes/admin');
-  aplikasi.use('/admin', ruteAdmin);
+  const ruteAdmin = require("./routes/admin");
+  aplikasi.use("/admin", ruteAdmin);
 
   aplikasi.get("/api/status", (req, res) => {
     res.json({

@@ -16,12 +16,22 @@
         {{#if error}}<div class="alert alert-error">{{error}}</div>{{/if}}
 
         <form action="/api/pengguna/lupa" method="post" class="forgot-form">
-          <p>Masukkan alamat email yang terdaftar. Kami akan mengirimkan tautan untuk mereset password Anda.</p>
-          <input name="email" type="email" placeholder="Email" required class="form-control" />
+          <p>Masukkan alamat email yang terdaftar. Kami akan mengirimkan tautan
+            untuk mereset password Anda.</p>
+          <input
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+            class="form-control"
+          />
           <button class="btn-primary" type="submit">Kirim tautan reset</button>
         </form>
 
-        <div class="signup-note-center"><a href="/login" class="link-red">Kembali ke Login</a></div>
+        <div class="signup-note-center"><a
+            href="/login"
+            class="link-red"
+          >Kembali ke Login</a></div>
       </div>
       <div class="auth-footer"><div class="login-footer">© 2025 Koki AI</div></div>
     </div>

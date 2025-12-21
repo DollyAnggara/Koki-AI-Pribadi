@@ -1,37 +1,97 @@
-<section class="bagian admin-dashboard">
-  <div class="kartu">
-    <div class="admin-top">
-      <div>
-        <h2 class="kartu-judul">Admin Dashboard</h2>
-        <p class="muted">Ringkasan cepat dan akses cepat ke fungsi admin.</p>
-      </div>
-      <div class="admin-top-actions">
-        <a href="/admin/resep/new" class="tombol-kirim tombol-primer">Tambah Resep</a>
-        <a href="/admin/resep/pending" class="tombol-kecil tombol-bahaya">Resep Pending</a>
+<div class="admin-page">
+  <div class="admin-container">
+    <!-- Header -->
+    <div class="admin-header">
+      <div class="admin-header-content">
+        <div class="admin-header-info">
+          <h1>Dashboard Admin</h1>
+          <p>Selamat datang! Kelola resep dan konten situs Anda.</p>
+        </div>
+        <div class="admin-header-actions">
+          <a href="/admin/resep/new" class="admin-btn admin-btn-primary">
+            <span>➕</span>
+            Tambah Resep
+          </a>
+          <a href="/admin/resep/pending" class="admin-btn admin-btn-warning">
+            <span>⏳</span>
+            Resep Pending
+          </a>
+        </div>
       </div>
     </div>
 
-    <div class="admin-cards">
-      <a href="/admin/resep" class="kartu-mini">
-        <div class="kartu-mini-judul">Kelola Resep</div>
-        <div class="kartu-mini-detail">Lihat dan edit semua resep</div>
-      </a>
-
-      <a href="/admin/resep/new" class="kartu-mini kartu-mini-primary">
-        <div class="kartu-mini-judul">+ Tambah Resep</div>
-        <div class="kartu-mini-detail">Buat resep baru</div>
-      </a>
-
-      <a href="/admin/resep/pending" class="kartu-mini kartu-mini-warn">
-        <div class="kartu-mini-judul">Resep Pending</div>
-        <div class="kartu-mini-detail">Tinjau resep yang dikirim pengguna</div>
-      </a>
-    </div>
-
+    <!-- Statistics -->
     <div class="admin-stats">
-      <div class="stat">Total Resep: <strong>{{stats.totalResep}}</strong></div>
-      <div class="stat">Pending: <strong>{{stats.pendingCount}}</strong></div>
-      <div class="stat">Approved: <strong>{{stats.approvedCount}}</strong></div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-icon accent">📚</div>
+        <div class="admin-stat-content">
+          <h3>Total Resep</h3>
+          <p class="admin-stat-value">{{stats.totalResep}}</p>
+        </div>
+      </div>
+
+      <div class="admin-stat-card">
+        <div class="admin-stat-icon warning">⏳</div>
+        <div class="admin-stat-content">
+          <h3>Menunggu Persetujuan</h3>
+          <p class="admin-stat-value">{{stats.pendingCount}}</p>
+        </div>
+      </div>
+
+      <div class="admin-stat-card">
+        <div class="admin-stat-icon success">✓</div>
+        <div class="admin-stat-content">
+          <h3>Disetujui</h3>
+          <p class="admin-stat-value">{{stats.approvedCount}}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <div>
+          <h2 class="admin-card-title">Akses Cepat</h2>
+          <p class="admin-card-subtitle">Jalan pintas ke fungsi utama admin</p>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <a href="/admin/resep" class="admin-grid-item">
+          <div class="admin-grid-item-icon">📋</div>
+          <h3 class="admin-grid-item-title">Kelola Resep</h3>
+          <p class="admin-grid-item-description">Lihat, edit, dan kelola semua
+            resep</p>
+        </a>
+
+        <a href="/admin/resep/new" class="admin-grid-item">
+          <div class="admin-grid-item-icon">✏️</div>
+          <h3 class="admin-grid-item-title">Buat Resep Baru</h3>
+          <p class="admin-grid-item-description">Tambahkan resep baru ke situs</p>
+        </a>
+
+        <a href="/admin/resep/pending" class="admin-grid-item">
+          <div class="admin-grid-item-icon">📨</div>
+          <h3 class="admin-grid-item-title">Tinjau Pengajuan</h3>
+          <p class="admin-grid-item-description">Persetujui atau tolak resep
+            dari pengguna</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Info -->
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">Panduan Cepat</h2>
+      </div>
+      <div style="color: var(--admin-text-light); line-height: 1.8;">
+        <p><strong>✓ Tips:</strong></p>
+        <ul style="margin: 12px 0 0 20px; color: inherit;">
+          <li>Gunakan "Kelola Resep" untuk mengedit resep yang sudah ada</li>
+          <li>Kunjungi "Resep Pending" untuk meninjau pengajuan dari pengguna</li>
+          <li>Klik "Buat Resep Baru" untuk menambahkan resep langsung dari admin</li>
+        </ul>
+      </div>
     </div>
   </div>
-</section>
+</div>

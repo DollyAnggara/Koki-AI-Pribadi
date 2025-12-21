@@ -1,45 +1,115 @@
-<section class="bagian admin-resep-pending">
-  <div class="kartu">
-    <div class="admin-top">
-      <div>
-        <h2 class="kartu-judul">Resep Pending</h2>
-        <p class="muted">Tinjau resep yang dikirim pengguna. Tindakan tidak dapat dibatalkan.</p>
-      </div>
-      <div class="admin-top-actions">
-        <a href="/admin/dashboard" class="tombol-kecil">Dashboard</a>
-        <a href="/admin/resep" class="tombol-kecil">Kelola Resep</a>
+<div class="admin-page">
+  <div class="admin-container">
+    <!-- Header -->
+    <div class="admin-header">
+      <div class="admin-header-content">
+        <div class="admin-header-info">
+          <h1>Tinjau Resep Pending</h1>
+          <p>Persetujui atau tolak resep yang dikirim pengguna. Tindakan tidak
+            dapat dibatalkan.</p>
+        </div>
+        <div class="admin-header-actions">
+          <a href="/admin/dashboard" class="admin-btn admin-btn-secondary">
+            <span>←</span>
+            Kembali
+          </a>
+        </div>
       </div>
     </div>
 
+    <!-- Pending Recipes -->
     {{#if resep.length}}
-      <div class="pending-grid">
-        {{#each resep}}
-          <article class="pending-card">
-            <div class="card-head">
-              <h3 class="card-judul">{{this.namaResep}}</h3>
-              <div class="card-meta">
-                <span class="badge kategori">{{this.kategoriLabel}}</span>
-                <span class="muted small">{{this.submittedAt}}</span>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h2 class="admin-card-title">⏳ Resep Menunggu Persetujuan</h2>
+            <p class="admin-card-subtitle">{{resep.length}}
+              resep menunggu tindakan Anda</p>
+          </div>
+        </div>
+
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;"
+        >
+          {{#each resep}}
+            <div
+              style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 20px; border-radius: 12px; border: 1px solid var(--admin-border); display: flex; flex-direction: column; gap: 16px;"
+            >
+              <!-- Recipe Info -->
+              <div>
+                <h3
+                  style="margin: 0 0 8px 0; color: var(--admin-text); font-size: 1.1rem; font-weight: 700;"
+                >
+                  {{this.namaResep}}
+                </h3>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                  <span
+                    class="admin-badge admin-badge-info"
+                  >{{this.kategoriLabel}}</span>
+                  <span
+                    style="font-size: 0.85rem; color: var(--admin-text-light);"
+                  >{{this.submittedAt}}</span>
+                </div>
+
+                {{#if this.deskripsi}}
+                  <p
+                    style="margin: 0; color: var(--admin-text-light); font-size: 0.95rem; line-height: 1.5;"
+                  >
+                    {{this.deskripsi}}
+                  </p>
+                {{/if}}
+              </div>
+
+              <!-- Submitter Info -->
+              <div
+                style="padding-top: 12px; border-top: 1px solid var(--admin-border); color: var(--admin-text-light); font-size: 0.9rem;"
+              >
+                <strong style="color: var(--admin-text);">Dikirim oleh:</strong>
+                {{#if this.submittedBy}}
+                  {{#if this.submittedBy.namaPengguna}}
+                    {{this.submittedBy.namaPengguna}}
+                  {{else}}
+                    {{this.submittedBy}}
+                  {{/if}}
+                {{else}}
+                  Pengguna Anonim
+                {{/if}}
+              </div>
+
+              <!-- Actions -->
+              <div style="display: flex; gap: 10px; margin-top: auto;">
+                <button
+                  class="admin-btn admin-btn-success"
+                  data-approve-id="{{this._id}}"
+                  style="flex: 1; justify-content: center;"
+                >
+                  ✓ Setujui
+                </button>
+                <button
+                  class="admin-btn admin-btn-danger"
+                  data-reject-id="{{this._id}}"
+                  style="flex: 1; justify-content: center;"
+                >
+                  ✗ Tolak
+                </button>
               </div>
             </div>
-
-            {{#if this.deskripsi}}
-              <div class="card-body muted">{{this.deskripsi}}</div>
-            {{/if}}
-
-            <div class="card-sub">Pengirim: {{#if this.submittedBy}}{{#if this.submittedBy.namaPengguna}}{{this.submittedBy.namaPengguna}}{{else}}{{this.submittedBy}}{{/if}}{{else}}-{{/if}}</div>
-
-            <div class="card-actions">
-              <button class="tombol-kirim tombol-approve" data-approve-id="{{this._id}}">Setujui</button>
-              <button class="tombol-kecil tombol-bahaya" data-reject-id="{{this._id}}">Tolak</button>
-            </div>
-          </article>
-        {{/each}}
+          {{/each}}
+        </div>
       </div>
     {{else}}
-      <div class="admin-empty">Tidak ada resep pending saat ini. Bagus!</div>
+      <div class="admin-card">
+        <div class="admin-empty">
+          <div class="admin-empty-icon">📭</div>
+          <h3>Tidak Ada Resep Pending</h3>
+          <p>Semua resep sudah ditinjau. Pekerjaan Anda sudah selesai!</p>
+          <a href="/admin/dashboard" class="admin-btn admin-btn-primary">
+            Kembali ke Dashboard
+          </a>
+        </div>
+      </div>
     {{/if}}
   </div>
-</section>
+</div>
 
 <script src="/js/admin.js"></script>

@@ -1,17 +1,64 @@
 <main class="kontainer-utama">
-  <section>
-    <div class="kartu kontainer-chat">
-      <h2 class="kartu-judul">💬 Chat dengan Koki AI</h2>
-      <div class="area-pesan" id="areaPesan" role="log" aria-live="polite" aria-atomic="false">
-        <!-- Messages will be restored from sessionStorage and rendered by JS -->
+  <div class="container-chat-dengan-sidebar">
+    <!-- Sidebar Session -->
+    <aside class="sidebar-session" id="sidebarSession">
+      <div class="sidebar-header">
+        <span class="sidebar-title">💬 Sesi Chat</span>
+        <button class="btn-session-baru" id="btnSessionBaru" title="Buat sesi baru">
+          <span>+</span>
+          <span>Baru</span>
+        </button>
       </div>
-      <div id="indikatorMengetik" class="indikator-mengetik" style="display:none;"><span></span><span></span><span></span></div>
-      <form class="form-chat" id="formChat" aria-label="Kirim pesan ke Koki AI">
-        <input type="text" class="input-chat" id="inputPesan" placeholder="Ketik pesan Anda... (Enter untuk kirim)" aria-label="Teks pesan">
-        <button type="submit" class="tombol-kirim" aria-label="Kirim pesan">Kirim</button>
+      <div class="daftar-session" id="daftarSession">
+        <!-- Sessions akan di-load oleh JavaScript -->
+      </div>
+    </aside>
+
+    <!-- Main Chat Content -->
+    <section class="konten-chat">
+      <div class="header-chat-session" id="headerChatSession">
+        <div class="info-session-aktif">
+          <span class="nama-session-aktif" id="namaSessionAktif">Sesi Baru</span>
+          <span class="tanggal-session" id="tanggalSessionAktif">Baru dibuat</span>
+        </div>
+        <button class="btn-edit-nama" id="btnEditNamaSession" title="Edit nama sesi">
+          ✏️ Edit
+        </button>
+      </div>
+
+      <div class="kartu kontainer-chat">
+        <div class="area-pesan" id="areaPesan" role="log" aria-live="polite" aria-atomic="false">
+          <!-- Messages will be restored from database and rendered by JS -->
+        </div>
+        <div id="indikatorMengetik" class="indikator-mengetik" style="display:none;"><span></span><span></span><span></span></div>
+        <form class="form-chat" id="formChat" aria-label="Kirim pesan ke Koki AI">
+          <input type="text" class="input-chat" id="inputPesan" placeholder="Ketik pesan Anda... (Enter untuk kirim)" aria-label="Teks pesan">
+          <button type="submit" class="tombol-kirim" aria-label="Kirim pesan">Kirim</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal Edit Nama Session -->
+  <div class="modal-edit-nama" id="modalEditNama">
+    <div class="konten-modal">
+      <div class="modal-judul">Ubah Nama Sesi</div>
+      <form id="formEditNama">
+        <div class="form-group-modal">
+          <label for="inputNamaSession">Nama Sesi Baru</label>
+          <input type="text" id="inputNamaSession" placeholder="Masukkan nama sesi..." required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal btn-modal-batal" id="btnBatalEditNama">
+            Batal
+          </button>
+          <button type="submit" class="btn-modal btn-modal-simpan">
+            Simpan
+          </button>
+        </div>
       </form>
     </div>
-  </section>
+  </div>
 </main>
 
 <script>
@@ -30,7 +77,7 @@
 
     // Minor UX: show placeholder guidance
     const placeholder = input?.getAttribute('placeholder') || '';
-    input?.setAttribute('placeholder', placeholder + ' (Tekan Enter untuk kirim, Ctrl+Enter untuk kirim cepat)');
+    input?.setAttribute('placeholder', placeholder);
   });
 </script>
 

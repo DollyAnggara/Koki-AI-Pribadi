@@ -6,10 +6,10 @@ let soketMemasak = null;
 let soketNotifikasi = null;
 
 // Per-tab stable session id: keep in sessionStorage so reloads keep history until tab is closed
-let idSesiChat = sessionStorage.getItem('koki_chat_session_id');
+let idSesiChat = sessionStorage.getItem("koki_chat_session_id");
 if (!idSesiChat) {
   idSesiChat = "sesi_" + Date.now();
-  sessionStorage.setItem('koki_chat_session_id', idSesiChat);
+  sessionStorage.setItem("koki_chat_session_id", idSesiChat);
 }
 
 // Chat history for current tab (kept in sessionStorage under key koki_chat_<session>)
@@ -72,7 +72,10 @@ function inisialisasiSocket() {
   );
   soketMemasak.on("timer_selesai", (data) => {
     // Use explicit modal for timer completion so it appears centered with proper title
-    tampilkanNotifikasi(`⏰ ${data.namaTimer} sudah selesai!`, "peringatan", { modal: true, title: `Timer selesai!` });
+    tampilkanNotifikasi(`⏰ ${data.namaTimer} sudah selesai!`, "peringatan", {
+      modal: true,
+      title: `Timer selesai!`,
+    });
     playBunyi();
     hapusTimerDariTampilan(data.idTimer);
   });
@@ -233,12 +236,16 @@ function inisialisasiChat() {
     if (hist && hist.length) {
       hist.forEach((m) => {
         // render without saving again
-        tambahPesanChat(m.pesan, m.tipe, { save: false, timestamp: m.timestamp });
+        tambahPesanChat(m.pesan, m.tipe, {
+          save: false,
+          timestamp: m.timestamp,
+        });
       });
     } else {
       // No history: show initial welcome message and save it
-      const welcome = 'Halo! 👋 Saya Koki AI, asisten memasak virtual Anda. Apa yang ingin Anda masak hari ini?';
-      tambahPesanChat(welcome, 'koki', { save: true });
+      const welcome =
+        "Halo! 👋 Saya Koki AI, asisten memasak virtual Anda. Apa yang ingin Anda masak hari ini?";
+      tambahPesanChat(welcome, "koki", { save: true });
     }
   }
 
@@ -248,7 +255,14 @@ function inisialisasiChat() {
     if (pesan) {
       tambahPesanChat(pesan, "pengguna");
       inputPesan.value = "";
-      soketMemasak.emit("pesan_chat", { pesan });
+
+      // Kirim pesan dengan session ID jika ada
+      const msgData = { pesan };
+      if (typeof idSessionAktif !== "undefined" && idSessionAktif) {
+        msgData.idSession = idSessionAktif;
+        msgData.idPengguna = document.body.dataset.userId;
+      }
+      soketMemasak.emit("pesan_chat", msgData);
     }
   });
 }
@@ -399,7 +413,7 @@ function saveChatHistory() {
     const toSave = chatHistory.slice(-300);
     sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
-    console.warn('Gagal menyimpan riwayat chat', e);
+    console.warn("Gagal menyimpan riwayat chat", e);
   }
 }
 
@@ -412,7 +426,7 @@ function loadChatHistory() {
     chatHistory = parsed;
     return parsed;
   } catch (e) {
-    console.warn('Gagal memuat riwayat chat', e);
+    console.warn("Gagal memuat riwayat chat", e);
     return [];
   }
 }
@@ -420,8 +434,8 @@ function loadChatHistory() {
 function clearChatHistory() {
   chatHistory = [];
   saveChatHistory();
-  const area = document.getElementById('areaPesan');
-  if (area) area.innerHTML = '';
+  const area = document.getElementById("areaPesan");
+  if (area) area.innerHTML = "";
 }
 
 function tambahPesanChat(pesan, tipe, opts = { save: true, timestamp: null }) {
@@ -433,7 +447,7 @@ function tambahPesanChat(pesan, tipe, opts = { save: true, timestamp: null }) {
 
   const avatar = document.createElement("div");
   avatar.className = "pesan-avatar";
-  avatar.setAttribute('aria-hidden', 'true');
+  avatar.setAttribute("aria-hidden", "true");
   avatar.textContent = tipe === "pengguna" ? "U" : "K";
 
   const msg = document.createElement("div");
@@ -445,8 +459,11 @@ function tambahPesanChat(pesan, tipe, opts = { save: true, timestamp: null }) {
   meta.className = "pesan-meta";
   try {
     const now = opts.timestamp ? new Date(opts.timestamp) : new Date();
-    meta.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    meta.setAttribute('title', now.toLocaleString());
+    meta.textContent = now.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    meta.setAttribute("title", now.toLocaleString());
     meta.dataset.iso = now.toISOString();
   } catch (e) {
     meta.textContent = "";
@@ -465,12 +482,16 @@ function tambahPesanChat(pesan, tipe, opts = { save: true, timestamp: null }) {
   areaPesan.appendChild(wrapper);
 
   if (opts.save) {
-    chatHistory.push({ tipe, pesan, timestamp: opts.timestamp || new Date().toISOString() });
+    chatHistory.push({
+      tipe,
+      pesan,
+      timestamp: opts.timestamp || new Date().toISOString(),
+    });
     saveChatHistory();
   }
 
-  areaPesan.scrollTo({ top: areaPesan.scrollHeight, behavior: 'smooth' });
-  document.getElementById('inputPesan')?.focus();
+  areaPesan.scrollTo({ top: areaPesan.scrollHeight, behavior: "smooth" });
+  document.getElementById("inputPesan")?.focus();
 }
 
 function tampilkanIndikatorMengetik() {
@@ -941,8 +962,11 @@ function inisialisasiTambahResep() {
       }
       // If the recipe was created as pending, notify the user it's awaiting admin review
       const created = data.data || {};
-      if (created.status === 'pending') {
-        tampilkanNotifikasi("Resep berhasil dikirim. Akan ditinjau oleh admin sebelum dipublikasikan.", "sukses");
+      if (created.status === "pending") {
+        tampilkanNotifikasi(
+          "Resep berhasil dikirim. Akan ditinjau oleh admin sebelum dipublikasikan.",
+          "sukses"
+        );
       } else {
         tampilkanNotifikasi("Resep berhasil disimpan", "sukses");
       }
@@ -1225,118 +1249,261 @@ function stopBunyi() {
 }
 
 // Global delegated handler for .tombol-mulai to reliably open the Masak confirmation modal
-(function(){
+(function () {
   // Ensure handler only attached once
-  if (window.__masakDelegateAttached) return; window.__masakDelegateAttached = true;
+  if (window.__masakDelegateAttached) return;
+  window.__masakDelegateAttached = true;
 
-  async function openMasakModalGlobal({ resepId, daftarBahan = [], basePorsi = 1 }) {
+  async function openMasakModalGlobal({
+    resepId,
+    daftarBahan = [],
+    basePorsi = 1,
+  }) {
     try {
-      const modalCont = document.getElementById('kontainerModalNotifikasi');
-      if (!modalCont) return console.warn('kontainerModalNotifikasi not found');
-      modalCont.innerHTML = '';
+      const modalCont = document.getElementById("kontainerModalNotifikasi");
+      if (!modalCont) return console.warn("kontainerModalNotifikasi not found");
+      modalCont.innerHTML = "";
 
-      const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
-      const card = document.createElement('div'); card.className = 'modal-card modal-card--panjang';
+      const backdrop = document.createElement("div");
+      backdrop.className = "modal-backdrop";
+      const card = document.createElement("div");
+      card.className = "modal-card modal-card--panjang";
 
-      const icon = document.createElement('div'); icon.className = 'modal-icon'; icon.textContent = '🍳';
-      const title = document.createElement('h3'); title.className = 'modal-title'; title.textContent = 'Konfirmasi Masak';
-      const konten = document.createElement('div'); konten.className = 'modal-konten';
+      const icon = document.createElement("div");
+      icon.className = "modal-icon";
+      icon.textContent = "🍳";
+      const title = document.createElement("h3");
+      title.className = "modal-title";
+      title.textContent = "Konfirmasi Masak";
+      const konten = document.createElement("div");
+      konten.className = "modal-konten";
 
       // Use page-level porsi (read from #inputPorsi) and show missing items area at top
-      const pagePorsi = Number(document.getElementById('inputPorsi')?.value || basePorsi) || basePorsi;
+      const pagePorsi =
+        Number(document.getElementById("inputPorsi")?.value || basePorsi) ||
+        basePorsi;
 
-      const missingDiv = document.createElement('div'); missingDiv.style.display='none'; missingDiv.style.marginBottom='10px'; konten.appendChild(missingDiv);
+      const missingDiv = document.createElement("div");
+      missingDiv.style.display = "none";
+      missingDiv.style.marginBottom = "10px";
+      konten.appendChild(missingDiv);
 
-      const ul = document.createElement('ul'); ul.className = 'konfirmasi-daftar-bahan';
-      const renderList = (p) => { ul.innerHTML = ''; (daftarBahan||[]).forEach(b => { const nama = b.namaBahan||b.nama||b.name||String(b||''); const jumlah = b.jumlah ? (Number(b.jumlah||0) * Number(p||1)) : ''; const satuan = b.satuan||''; const li = document.createElement('li'); li.innerHTML = `<span class="bahan-nama">${escapeHtml(nama)}</span><span class="qty">${escapeHtml(jumlah!==''? (jumlah + ' ' + satuan):'')}</span>`; ul.appendChild(li); }); };
-      renderList(pagePorsi); konten.appendChild(ul);
+      const ul = document.createElement("ul");
+      ul.className = "konfirmasi-daftar-bahan";
+      const renderList = (p) => {
+        ul.innerHTML = "";
+        (daftarBahan || []).forEach((b) => {
+          const nama = b.namaBahan || b.nama || b.name || String(b || "");
+          const jumlah = b.jumlah ? Number(b.jumlah || 0) * Number(p || 1) : "";
+          const satuan = b.satuan || "";
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="bahan-nama">${escapeHtml(
+            nama
+          )}</span><span class="qty">${escapeHtml(
+            jumlah !== "" ? jumlah + " " + satuan : ""
+          )}</span>`;
+          ul.appendChild(li);
+        });
+      };
+      renderList(pagePorsi);
+      konten.appendChild(ul);
 
       // preview missing ingredients using server
-      (async ()=>{
+      (async () => {
         try {
-          const resp = await fetch('/api/resep/' + resepId + '/masak', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ porsi: pagePorsi, preview: true }) });
+          const resp = await fetch("/api/resep/" + resepId + "/masak", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ porsi: pagePorsi, preview: true }),
+          });
           const data = await resp.json();
-          if (data && (data.missing && data.missing.length)){
-            let html = '<div><strong>🛒 Bahan yang perlu dibeli:</strong><ul class="konfirmasi-daftar-bahan">';
-            data.missing.forEach(m => html += `<li><span class="bahan-nama">${escapeHtml(m.namaBahan||m.nama||'')}</span><span class="qty">${escapeHtml(String(m.jumlah || m.alasan || ''))} ${escapeHtml(m.satuan||'')}</span></li>`);
-            html += '</ul></div>';
-            missingDiv.innerHTML = html; missingDiv.style.display = 'block';
+          if (data && data.missing && data.missing.length) {
+            let html =
+              '<div><strong>🛒 Bahan yang perlu dibeli:</strong><ul class="konfirmasi-daftar-bahan">';
+            data.missing.forEach(
+              (m) =>
+                (html += `<li><span class="bahan-nama">${escapeHtml(
+                  m.namaBahan || m.nama || ""
+                )}</span><span class="qty">${escapeHtml(
+                  String(m.jumlah || m.alasan || "")
+                )} ${escapeHtml(m.satuan || "")}</span></li>`)
+            );
+            html += "</ul></div>";
+            missingDiv.innerHTML = html;
+            missingDiv.style.display = "block";
           } else {
-            missingDiv.innerHTML = '<div style="color:var(--warna-sukses)">Semua bahan tersedia</div>'; missingDiv.style.display = 'block';
+            missingDiv.innerHTML =
+              '<div style="color:var(--warna-sukses)">Semua bahan tersedia</div>';
+            missingDiv.style.display = "block";
           }
-        } catch (e) { console.warn('preview masak failed', e); }
+        } catch (e) {
+          console.warn("preview masak failed", e);
+        }
       })();
 
-      const actions = document.createElement('div'); actions.className = 'modal-actions';
-      const btnClose = document.createElement('button'); btnClose.className='notifikasi-secondary'; btnClose.textContent='Tutup';
-      const btnMasak = document.createElement('button'); btnMasak.className='notifikasi-oke'; btnMasak.textContent='Masak Sekarang';
-      actions.appendChild(btnClose); actions.appendChild(btnMasak);
+      const actions = document.createElement("div");
+      actions.className = "modal-actions";
+      const btnClose = document.createElement("button");
+      btnClose.className = "notifikasi-secondary";
+      btnClose.textContent = "Tutup";
+      const btnMasak = document.createElement("button");
+      btnMasak.className = "notifikasi-oke";
+      btnMasak.textContent = "Masak Sekarang";
+      actions.appendChild(btnClose);
+      actions.appendChild(btnMasak);
 
-      card.appendChild(icon); card.appendChild(title); card.appendChild(konten); card.appendChild(actions);
-      modalCont.appendChild(backdrop); modalCont.appendChild(card);
-      modalCont.classList.add('active'); modalCont.setAttribute('aria-hidden','false'); document.body.classList.add('modal-open');
+      card.appendChild(icon);
+      card.appendChild(title);
+      card.appendChild(konten);
+      card.appendChild(actions);
+      modalCont.appendChild(backdrop);
+      modalCont.appendChild(card);
+      modalCont.classList.add("active");
+      modalCont.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modal-open");
 
       // center the card within the modal container for better visual alignment
-      card.style.margin = '0 auto';
-      card.style.maxWidth = '720px';
+      card.style.margin = "0 auto";
+      card.style.maxWidth = "720px";
 
-      btnClose.addEventListener('click', () => { modalCont.classList.remove('active'); modalCont.setAttribute('aria-hidden','true'); modalCont.innerHTML=''; document.body.classList.remove('modal-open'); });
-      backdrop.addEventListener('click', () => { btnClose.click(); });
+      btnClose.addEventListener("click", () => {
+        modalCont.classList.remove("active");
+        modalCont.setAttribute("aria-hidden", "true");
+        modalCont.innerHTML = "";
+        document.body.classList.remove("modal-open");
+      });
+      backdrop.addEventListener("click", () => {
+        btnClose.click();
+      });
 
       // single-click: perform preview (no stock change) immediately
-      btnMasak.addEventListener('click', async () => {
-        try{
-          btnMasak.disabled = true; btnMasak.textContent = 'Memproses...';
-          missingDiv.style.display = 'none'; missingDiv.innerHTML = '';
+      btnMasak.addEventListener("click", async () => {
+        try {
+          btnMasak.disabled = true;
+          btnMasak.textContent = "Memproses...";
+          missingDiv.style.display = "none";
+          missingDiv.innerHTML = "";
 
-          const porsi = Number(document.getElementById('inputPorsi')?.value || basePorsi) || basePorsi;
-          const resp = await fetch('/api/resep/' + resepId + '/masak', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ porsi }) });
+          const porsi =
+            Number(document.getElementById("inputPorsi")?.value || basePorsi) ||
+            basePorsi;
+          const resp = await fetch("/api/resep/" + resepId + "/masak", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ porsi }),
+          });
           const data = await resp.json();
 
-          if (!data.sukses){
-            if (data.missing && data.missing.length){
-              let html = '<div><strong>⚠️ Bahan kurang:</strong><ul class="konfirmasi-daftar-bahan">';
-              data.missing.forEach(m => html += `<li><span class="bahan-nama">${escapeHtml(m.namaBahan||m.nama||'')}</span><span class="qty">${escapeHtml(String(m.jumlah || m.alasan || ''))} ${escapeHtml(m.satuan||'')}</span></li>`);
-              html += '</ul></div>';
-              missingDiv.innerHTML = html; missingDiv.style.display='block';
-              try{ tampilkanNotifikasi('Beberapa bahan kurang — periksa daftar bahan','peringatan'); }catch(e){}
+          if (!data.sukses) {
+            if (data.missing && data.missing.length) {
+              let html =
+                '<div><strong>⚠️ Bahan kurang:</strong><ul class="konfirmasi-daftar-bahan">';
+              data.missing.forEach(
+                (m) =>
+                  (html += `<li><span class="bahan-nama">${escapeHtml(
+                    m.namaBahan || m.nama || ""
+                  )}</span><span class="qty">${escapeHtml(
+                    String(m.jumlah || m.alasan || "")
+                  )} ${escapeHtml(m.satuan || "")}</span></li>`)
+              );
+              html += "</ul></div>";
+              missingDiv.innerHTML = html;
+              missingDiv.style.display = "block";
+              try {
+                tampilkanNotifikasi(
+                  "Beberapa bahan kurang — periksa daftar bahan",
+                  "peringatan"
+                );
+              } catch (e) {}
             } else {
-              missingDiv.innerHTML = `<div style="color:var(--warna-peringatan)">Gagal: ${escapeHtml(data.pesan || 'Terjadi kesalahan')}</div>`; missingDiv.style.display='block';
-              try{ tampilkanNotifikasi(data.pesan || 'Gagal memproses masak','error'); }catch(e){}
+              missingDiv.innerHTML = `<div style="color:var(--warna-peringatan)">Gagal: ${escapeHtml(
+                data.pesan || "Terjadi kesalahan"
+              )}</div>`;
+              missingDiv.style.display = "block";
+              try {
+                tampilkanNotifikasi(
+                  data.pesan || "Gagal memproses masak",
+                  "error"
+                );
+              } catch (e) {}
             }
-            btnMasak.disabled=false; btnMasak.textContent='Masak Sekarang';
+            btnMasak.disabled = false;
+            btnMasak.textContent = "Masak Sekarang";
             return;
           }
 
           // success: stock was reduced
-          konten.innerHTML = `<div style="color:var(--warna-sukses)"><strong>✅ ${escapeHtml(data.pesan || 'Berhasil')}</strong></div>`;
-          if (data.dihapus) konten.innerHTML += `<div style="margin-top:8px;color:var(--warna-teks-sekunder);">${data.dihapus} bahan dihapus karena habis/kadaluarsa</div>`;
-          try{ tampilkanNotifikasi(data.pesan || 'Resep dimasak, stok diperbarui','sukses'); } catch(e){}
-          setTimeout(()=>{ btnClose.click(); window.location.href = '/bahan'; }, 900);
-
-        }catch(err){ console.warn('openMasakModalGlobal error', err); missingDiv.innerHTML = '<div style="color:var(--warna-peringatan)">Gagal menghubungi server</div>'; missingDiv.style.display='block'; btnMasak.disabled=false; btnMasak.textContent='Masak Sekarang'; try{ tampilkanNotifikasi('Gagal menghubungi server','error'); }catch(e){} }
+          konten.innerHTML = `<div style="color:var(--warna-sukses)"><strong>✅ ${escapeHtml(
+            data.pesan || "Berhasil"
+          )}</strong></div>`;
+          if (data.dihapus)
+            konten.innerHTML += `<div style="margin-top:8px;color:var(--warna-teks-sekunder);">${data.dihapus} bahan dihapus karena habis/kadaluarsa</div>`;
+          try {
+            tampilkanNotifikasi(
+              data.pesan || "Resep dimasak, stok diperbarui",
+              "sukses"
+            );
+          } catch (e) {}
+          setTimeout(() => {
+            btnClose.click();
+            window.location.href = "/bahan";
+          }, 900);
+        } catch (err) {
+          console.warn("openMasakModalGlobal error", err);
+          missingDiv.innerHTML =
+            '<div style="color:var(--warna-peringatan)">Gagal menghubungi server</div>';
+          missingDiv.style.display = "block";
+          btnMasak.disabled = false;
+          btnMasak.textContent = "Masak Sekarang";
+          try {
+            tampilkanNotifikasi("Gagal menghubungi server", "error");
+          } catch (e) {}
+        }
       });
 
-      function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-    }catch(e){ console.warn('openMasakModalGlobal top error', e); }
+      function escapeHtml(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+    } catch (e) {
+      console.warn("openMasakModalGlobal top error", e);
+    }
   }
 
-  document.addEventListener('click', (ev)=>{
-    const btn = ev.target.closest && ev.target.closest('.tombol-mulai');
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest && ev.target.closest(".tombol-mulai");
     if (!btn) return;
     // only trigger if this button has recipe data attributes
     const resepId = btn.dataset.resepId;
-    const daftar = btn.dataset.daftarBahan ? JSON.parse(btn.dataset.daftarBahan) : null;
+    const daftar = btn.dataset.daftarBahan
+      ? JSON.parse(btn.dataset.daftarBahan)
+      : null;
     const base = Number(btn.dataset.basePorsi) || 1;
     if (!resepId) return; // not a recipe-level masak
     ev.preventDefault();
-    console.log('masak button clicked (open modal)', { resepId, base, daftarCount: (daftar||[]).length });
-    try{ tampilkanNotifikasi('Menyiapkan konfirmasi masak...', 'info'); } catch(e){}
+    console.log("masak button clicked (open modal)", {
+      resepId,
+      base,
+      daftarCount: (daftar || []).length,
+    });
+    try {
+      tampilkanNotifikasi("Menyiapkan konfirmasi masak...", "info");
+    } catch (e) {}
     // Open the centralized modal for Masak confirmation
-    try{
-      openMasakModalGlobal({ resepId, daftarBahan: daftar||[], basePorsi: base });
-    }catch(err){ console.warn('Failed to open Masak modal', err); try{ tampilkanNotifikasi('Gagal membuka konfirmasi masak','error'); }catch(e){} }
+    try {
+      openMasakModalGlobal({
+        resepId,
+        daftarBahan: daftar || [],
+        basePorsi: base,
+      });
+    } catch (err) {
+      console.warn("Failed to open Masak modal", err);
+      try {
+        tampilkanNotifikasi("Gagal membuka konfirmasi masak", "error");
+      } catch (e) {}
+    }
   });
 })();
 
@@ -1372,7 +1539,13 @@ async function loadDaftarBahan() {
       const li = document.createElement("li");
       li.className = "item-bahan";
       const sisaHari = b.tanggalKadaluarsa
-        ? Math.max(0, Math.floor((new Date(b.tanggalKadaluarsa) - new Date()) / (1000 * 60 * 60 * 24)))
+        ? Math.max(
+            0,
+            Math.floor(
+              (new Date(b.tanggalKadaluarsa) - new Date()) /
+                (1000 * 60 * 60 * 24)
+            )
+          )
         : null; // floor-based: 3 -> 2 -> 1 countdown
       const kategoriTag = b.kategoriBahan
         ? `<span class="tag">${escapeHtml(

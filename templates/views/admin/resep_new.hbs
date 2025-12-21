@@ -1,49 +1,131 @@
-<section class="bagian admin-resep-form">
-  <div class="kartu">
-    <h2 class="kartu-judul">Tambah Resep Baru</h2>
-    {{#if error}}<div class="peringatan">{{error}}</div>{{/if}}
-    <form method="post" action="/admin/resep" class="form-resep">
-      <div class="form-row">
-        <label class="label">Nama Resep</label>
-        <input name="namaResep" class="input-lg" placeholder="Nama Resep" required />
-      </div>
-
-      <div class="form-row">
-        <label class="label">Deskripsi <span class="muted">(opsional)</span></label>
-        <textarea name="deskripsi" rows="3" placeholder="Deskripsi singkat tentang resep..."></textarea>
-      </div>
-
-      <div class="form-row form-inline">
-        <div class="field-pill">
-          <label class="label">Porsi</label>
-          <input name="porsi" class="pill-input" type="number" value="1" min="1" />
+<div class="admin-page">
+  <div class="admin-container">
+    <!-- Header -->
+    <div class="admin-header">
+      <div class="admin-header-content">
+        <div class="admin-header-info">
+          <h1>Buat Resep Baru</h1>
+          <p>Tambahkan resep baru ke koleksi situs Anda</p>
         </div>
-        <div class="field-pill">
-          <label class="label">Waktu persiapan (menit)</label>
-          <input name="waktuPersiapan" class="pill-input" type="number" min="0" />
-        </div>
-        <div class="field-pill">
-          <label class="label">Waktu memasak (menit)</label>
-          <input name="waktuMemasak" class="pill-input" type="number" min="0" />
+        <div class="admin-header-actions">
+          <a href="/admin/resep" class="admin-btn admin-btn-secondary">
+            <span>←</span>
+            Kembali
+          </a>
         </div>
       </div>
+    </div>
 
-      <div class="form-row">
-        <label class="label">Bahan <span class="muted">(satu bahan per baris)</span></label>
-        <textarea name="daftarBahan" rows="6" placeholder="contoh:\nWortel\nGaram\natau: Wortel 200 gram"></textarea>
-      </div>
+    <!-- Form Card -->
+    <div class="admin-card">
+      {{#if error}}
+        <div
+          style="background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.3); color: #e74c3c; padding: 16px; border-radius: 8px; margin-bottom: 20px;"
+        >
+          <strong>⚠️ Terjadi Kesalahan:</strong>
+          {{error}}
+        </div>
+      {{/if}}
 
-      <div class="form-row">
-        <label class="label">Langkah <span class="muted">(satu per baris)</span></label>
-        <textarea name="langkah" rows="6" placeholder="contoh:\nKupas dan potong wortel\nRebus wortel"></textarea>
-      </div>
+      <form method="post" action="/admin/resep" class="admin-form-row">
+        <!-- Nama Resep -->
+        <div style="grid-column: 1 / -1;">
+          <div class="admin-form-group">
+            <label>Nama Resep <span style="color: #e74c3c;">*</span></label>
+            <input
+              type="text"
+              name="namaResep"
+              placeholder="Contoh: Nasi Goreng Spesial"
+              required
+            />
+          </div>
+        </div>
 
-      <div class="form-actions">
-        <button type="submit" class="tombol-kirim tombol-primer">Simpan</button>
-        <a href="/admin/resep" class="tombol-kecil tombol-batal">Batal</a>
-      </div>
+        <!-- Deskripsi -->
+        <div style="grid-column: 1 / -1;">
+          <div class="admin-form-group">
+            <label>Deskripsi
+              <span
+                style="color: var(--admin-text-light);"
+              >(opsional)</span></label>
+            <textarea
+              name="deskripsi"
+              rows="3"
+              placeholder="Deskripsi singkat tentang resep ini..."
+            ></textarea>
+            <p class="admin-form-help">Ceritakan apa yang membuat resep ini
+              istimewa</p>
+          </div>
+        </div>
 
-      <div class="form-note muted">Cukup isi nama resep dan minimal satu bahan (satu baris = satu bahan). Format jumlah/satuan optional.</div>
-    </form>
+        <!-- Porsi, Waktu Persiapan, Waktu Memasak -->
+        <div style="grid-column: span 1;">
+          <div class="admin-form-group">
+            <label>Porsi</label>
+            <input type="number" name="porsi" value="1" min="1" />
+          </div>
+        </div>
+        <div style="grid-column: span 1;">
+          <div class="admin-form-group">
+            <label>Waktu Persiapan (menit)</label>
+            <input
+              type="number"
+              name="waktuPersiapan"
+              min="0"
+              placeholder="15"
+            />
+          </div>
+        </div>
+        <div style="grid-column: span 1;">
+          <div class="admin-form-group">
+            <label>Waktu Memasak (menit)</label>
+            <input type="number" name="waktuMemasak" min="0" placeholder="30" />
+          </div>
+        </div>
+
+        <!-- Bahan -->
+        <div style="grid-column: 1 / -1;">
+          <div class="admin-form-group">
+            <label>Bahan <span style="color: #e74c3c;">*</span></label>
+            <textarea
+              name="daftarBahan"
+              rows="6"
+              placeholder="Satu bahan per baris&#10;Contoh:&#10;Wortel 200 gram&#10;Garam 1 sendok teh&#10;Minyak 2 sendok makan"
+              required
+            ></textarea>
+            <p class="admin-form-help">Satu bahan per baris. Format
+              jumlah/satuan opsional.</p>
+          </div>
+        </div>
+
+        <!-- Langkah -->
+        <div style="grid-column: 1 / -1;">
+          <div class="admin-form-group">
+            <label>Langkah <span style="color: #e74c3c;">*</span></label>
+            <textarea
+              name="langkah"
+              rows="6"
+              placeholder="Satu langkah per baris&#10;Contoh:&#10;Kupas dan potong wortel menjadi dadu kecil&#10;Panaskan minyak di wajan&#10;Tumis wortel hingga empuk"
+              required
+            ></textarea>
+            <p class="admin-form-help">Satu langkah per baris. Jelaskan dengan
+              detail.</p>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div
+          style="grid-column: 1 / -1; display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;"
+        >
+          <a href="/admin/resep" class="admin-btn admin-btn-secondary">
+            Batal
+          </a>
+          <button type="submit" class="admin-btn admin-btn-primary">
+            <span>✓</span>
+            Simpan Resep
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
-</section>
+</div>
