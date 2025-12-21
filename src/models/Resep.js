@@ -29,6 +29,14 @@ const skemaResep = new mongoose.Schema({
   tanggalDiperbarui: { type: Date, default: Date.now }
 });
 
-skemaResep.pre('save', function(next) { this.tanggalDiperbarui = Date.now(); next(); });
+skemaResep.pre('save', function() {
+  // synchronous update of the update timestamp
+  this.tanggalDiperbarui = Date.now();
+});
+
+// update timestamp when using findOneAndUpdate / findByIdAndUpdate
+skemaResep.pre('findOneAndUpdate', function() {
+  this.set({ tanggalDiperbarui: Date.now() });
+});
 
 module.exports = mongoose.model('Resep', skemaResep, 'resep');

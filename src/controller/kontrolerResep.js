@@ -45,8 +45,8 @@ const dapatkanResepById = async (req, res) => {
       const hasil = layananNutrisi.hitungNutrisiResep(
         resep.daftarBahan || [],
         resep.porsi || 1
-      );
-      resep.nutrisiPerPorsi = hasil.nutrisiPerPorsi;
+      ) || { nutrisiPerPorsi: { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 } };
+      resep.nutrisiPerPorsi = hasil.nutrisiPerPorsi || { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 };
       await resep.save();
     }
     res.json({ sukses: true, data: resep });
@@ -68,8 +68,8 @@ const buatResepBaru = async (req, res) => {
       const nutr = layananNutrisi.hitungNutrisiResep(
         data.daftarBahan,
         data.porsi || 1
-      );
-      data.nutrisiPerPorsi = nutr.nutrisiPerPorsi;
+      ) || { nutrisiPerPorsi: { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 } };
+      data.nutrisiPerPorsi = nutr.nutrisiPerPorsi || { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 };
     }
     const resepBaru = new Resep(data);
     await resepBaru.save();
@@ -96,8 +96,8 @@ const perbaruiResep = async (req, res) => {
       const nutr = layananNutrisi.hitungNutrisiResep(
         data.daftarBahan,
         data.porsi || 1
-      );
-      data.nutrisiPerPorsi = nutr.nutrisiPerPorsi;
+      ) || { nutrisiPerPorsi: { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 } };
+      data.nutrisiPerPorsi = nutr.nutrisiPerPorsi || { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 };
     }
     const resep = await Resep.findByIdAndUpdate(req.params.id, data, {
       new: true,

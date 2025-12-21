@@ -2,8 +2,38 @@
   <section>
     <div class="kartu">
       <h2 class="kartu-judul">📖 Daftar Resep</h2>
-      <div class="form-grup"><input type="text" class="form-input" id="cariResep" placeholder="🔍 Cari resep..."></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="form-grup" style="flex:1"><input type="text" class="form-input" id="cariResep" placeholder="🔍 Cari resep..."></div>
+        <div><button id="tombolTambahResep" class="tombol-kirim">＋ Tambah Resep</button></div>
+      </div>
       <p style="margin-top:8px;color:var(--warna-teks-sekunder);font-size:0.95rem;">Klik kartu resep untuk melihat bahan dan langkah pembuatan.</p>
+
+      <div id="formTambahResep" class="kartu" style="display:none;margin-top:12px;">
+        <h3 class="kartu-judul">Tambah Resep Baru</h3>
+        <div class="form-grup"><input id="inputNamaResep" class="form-input" placeholder="Nama Resep" required></div>
+        <div class="form-grup"><textarea id="inputDeskripsi" class="form-input" placeholder="Deskripsi (opsional)" rows="2"></textarea></div>
+        <div style="display:flex;gap:8px;">
+          <input id="inputPorsi" type="number" min="1" class="form-input" placeholder="Porsi" style="width:80px;">
+          <input id="inputWaktuPersiapan" type="number" min="0" class="form-input" placeholder="Waktu persiapan (menit)" style="width:180px;">
+          <input id="inputWaktuMemasak" type="number" min="0" class="form-input" placeholder="Waktu memasak (menit)" style="width:180px;">
+        </div>
+        <div class="form-grup">
+          <label>Bahan (satu bahan per baris). Format yang disarankan: <strong>Nama [jumlah] [satuan]</strong> — cukup spasi sebagai pemisah. Jika perlu, format lama dengan titik koma juga masih didukung.</label>
+          <textarea id="inputBahan" class="form-input" placeholder="contoh: Wortel
+Garam
+atau: Wortel 200 gram" rows="4"></textarea>
+        </div>
+        <div class="form-grup">
+          <label>Langkah (satu per baris)</label>
+          <textarea id="inputLangkah" class="form-input" placeholder="contoh: Kupas dan potong wortel
+Rebus wortel" rows="4"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="tombolSimpanResep" class="tombol-kirim">Simpan</button>
+          <button id="tombolBatalResep" class="tombol-batal">Batal</button>
+        </div>
+        <small style="color:var(--warna-teks-sekunder);">Cukup isi nama resep dan minimal satu bahan (satu baris = satu bahan). Format jumlah/satuan opsional.</small>
+      </div>
     </div>
     <div class="grid-resep" id="daftarResep">
       {{#if resep.length}}

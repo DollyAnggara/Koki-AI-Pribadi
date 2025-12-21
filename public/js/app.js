@@ -583,6 +583,109 @@ function inisialisasiPencarianResep() {
   input.addEventListener("input", handler);
 }
 
+// --- Tambah Resep: form handling ---
+function inisialisasiTambahResep() {
+  const btn = document.getElementById('tombolTambahResep');
+  const form = document.getElementById('formTambahResep');
+  if (!btn || !form) return;
+  const inputNama = document.getElementById('inputNamaResep');
+  const inputDeskripsi = document.getElementById('inputDeskripsi');
+  const inputPorsi = document.getElementById('inputPorsi');
+  const inputWaktuPersiapan = document.getElementById('inputWaktuPersiapan');
+  const inputWaktuMemasak = document.getElementById('inputWaktuMemasak');
+  const inputBahan = document.getElementById('inputBahan');
+  const inputLangkah = document.getElementById('inputLangkah');
+  const tombolSimpan = document.getElementById('tombolSimpanResep');
+  const tombolBatal = document.getElementById('tombolBatalResep');
+
+  btn.addEventListener('click', (e)=>{ e.preventDefault(); form.style.display = 'block'; form.scrollIntoView({behavior:'smooth'}); });
+
+  tombolBatal.addEventListener('click', (e)=>{ e.preventDefault(); form.style.display = 'none'; });
+
+  tombolSimpan.addEventListener('click', async (e)=> {
+    e.preventDefault();
+    const nama = (inputNama.value || '').trim();
+    if (!nama) return tampilkanNotifikasi('Nama resep wajib diisi','error');
+    const deskripsi = inputDeskripsi.value || '';
+    const porsi = Number(inputPorsi.value) || 1;
+    const waktuPersiapan = Number(inputWaktuPersiapan.value) || 0;
+    const waktuMemasak = Number(inputWaktuMemasak.value) || 0;
+    const bahanLines = (inputBahan.value || '').split('\n').map(l=>l.trim()).filter(Boolean);
+    const daftarBahan = bahanLines.map(line => {
+      // backward-compatible semicolon format: 'nama;jumlah;satuan'
+      if (line.indexOf(';') !== -1) {
+        const parts = line.split(';').map(s=>s.trim());
+        return { namaBahan: parts[0] || '', jumlah: Number(parts[1]) || 0, satuan: parts[2] || '' };
+      }
+
+      // prefer space-separated format: 'Nama [jumlah] [satuan]'
+      const toks = line.split(/\s+/).filter(Boolean);
+      // single token -> name only
+      if (toks.length === 1) return { namaBahan: toks[0], jumlah: 0, satuan: '' };
+
+      // detect numeric token (integer or decimal, supports comma as decimal separator)
+      const isNumeric = (s) => /^\d+(?:[.,]\d+)?$/.test(String(s));
+      const last = toks[toks.length - 1];
+      const secondLast = toks[toks.length - 2];
+
+      if (isNumeric(secondLast)) {
+        // pattern: 'Nama ... <jumlah> <satuan>'
+        const jumlah = Number(String(secondLast).replace(',', '.')) || 0;
+        const satuan = last || '';
+        const nama = toks.slice(0, toks.length - 2).join(' ') || toks[0];
+        return { namaBahan: nama, jumlah, satuan };
+      }
+
+      if (isNumeric(last)) {
+        // pattern: 'Nama ... <jumlah>' (no unit)
+        const jumlah = Number(String(last).replace(',', '.')) || 0;
+        const nama = toks.slice(0, toks.length - 1).join(' ') || toks[0];
+        return { namaBahan: nama, jumlah, satuan: '' };
+      }
+
+      // fallback: treat entire line as name
+      return { namaBahan: line, jumlah: 0, satuan: '' };
+    }).filter(b => b.namaBahan);
+    const langkahLines = (inputLangkah.value || '').split('\n').map(l=>l.trim()).filter(Boolean);
+    const langkah = langkahLines.map((lk, idx) => ({ nomorUrut: idx+1, deskripsi: lk }));
+
+    const payload = {
+      namaResep: nama,
+      deskripsi,
+      porsi,
+      waktuPersiapanMenit: waktuPersiapan,
+      waktuMemasakMenit: waktuMemasak,
+      daftarBahan,
+      langkah
+    };
+
+    try {
+      tombolSimpan.disabled = true;
+      tombolSimpan.textContent = 'Menyimpan...';
+      const res = await fetch('/api/resep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!data.sukses) {
+        tampilkanNotifikasi(data.pesan || 'Gagal menyimpan resep', 'error');
+        tombolSimpan.disabled = false;
+        tombolSimpan.textContent = 'Simpan';
+        return;
+      }
+      tampilkanNotifikasi('Resep berhasil disimpan', 'sukses');
+      // reset form
+      inputNama.value=''; inputDeskripsi.value=''; inputPorsi.value=''; inputWaktuPersiapan.value=''; inputWaktuMemasak.value=''; inputBahan.value=''; inputLangkah.value='';
+      form.style.display='none';
+      // refresh list
+      loadDaftarResep();
+    } catch (err) {
+      console.error('Gagal submit resep', err);
+      tampilkanNotifikasi('Gagal menyimpan resep', 'error');
+    } finally {
+      tombolSimpan.disabled = false;
+      tombolSimpan.textContent = 'Simpan';
+    }
+  });
+}
+
 function formatTimestamp(ts) {
   try {
     const d = new Date(ts);
@@ -915,6 +1018,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   inisialisasiUploadGambar();
   inisialisasiTambahBahan();
   inisialisasiPencarianResep();
+  inisialisasiTambahResep();
   inisialisasiMenu();
   inisialisasiPantryChallenge();
 

@@ -5,6 +5,7 @@
   "scripts": {
     "start": "nodemon server.js",
     "seed": "node seed/seedDatabase.js",
+    "seed-admin": "node scripts/seedAdmin.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
