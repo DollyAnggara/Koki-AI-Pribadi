@@ -17,45 +17,115 @@
           <div class="alert alert-error">{{error}}</div>
         {{/if}}
 
-        <form action="/api/pengguna/registrasi" method="post" class="register-form">
+        <form
+          action="/api/pengguna/registrasi"
+          method="post"
+          class="register-form"
+        >
           <div class="form-grup">
-            <input name="namaPengguna" type="text" placeholder="Nama Pengguna" required class="form-control" />
+            <input
+              name="namaPengguna"
+              type="text"
+              placeholder="Nama Pengguna"
+              required
+              class="form-control"
+            />
           </div>
           <div class="form-grup">
-            <input name="telepon" type="tel" placeholder="Nomor HP (opsional)" class="form-control" />
+            <input
+              name="telepon"
+              type="tel"
+              placeholder="Nomor HP (opsional)"
+              class="form-control"
+            />
           </div>
           <div class="form-grup">
-            <input name="email" type="email" placeholder="Email" required class="form-control" />
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              required
+              class="form-control"
+            />
           </div>
           <div class="form-grup">
-            <input name="namaLengkap" type="text" placeholder="Nama Lengkap" class="form-control" />
+            <input
+              name="namaLengkap"
+              type="text"
+              placeholder="Nama Lengkap"
+              class="form-control"
+            />
           </div>
 
           <div class="form-grup input-with-icon">
-            <input name="kataSandi" type="password" placeholder="Password" required class="form-control password-field" />
-            <button type="button" class="btn-icon toggle-password" aria-label="Tampilkan password" title="Tampilkan password">
-              <img src="/img/eye-closed.png" data-open="/img/eye-open.png" data-closed="/img/eye-closed.png" alt="toggle" />
+            <input
+              name="kataSandi"
+              type="password"
+              placeholder="Password"
+              required
+              class="form-control password-field"
+            />
+            <button
+              type="button"
+              class="btn-icon toggle-password"
+              aria-label="Tampilkan password"
+              title="Tampilkan password"
+            >
+              <img
+                src="/img/eye-closed.png"
+                data-open="/img/eye-open.png"
+                data-closed="/img/eye-closed.png"
+                alt="toggle"
+              />
             </button>
           </div>
 
           <div class="form-grup input-with-icon">
-            <input id="passwordConfirm" name="kataSandiConfirm" type="password" placeholder="Konfirmasi Password" required class="form-control password-field" />
-            <button type="button" class="btn-icon toggle-password" aria-label="Tampilkan password" title="Tampilkan password">
-              <img src="/img/eye-closed.png" data-open="/img/eye-open.png" data-closed="/img/eye-closed.png" alt="toggle" />
+            <input
+              id="passwordConfirm"
+              name="kataSandiConfirm"
+              type="password"
+              placeholder="Konfirmasi Password"
+              required
+              class="form-control password-field"
+            />
+            <button
+              type="button"
+              class="btn-icon toggle-password"
+              aria-label="Tampilkan password"
+              title="Tampilkan password"
+            >
+              <img
+                src="/img/eye-closed.png"
+                data-open="/img/eye-open.png"
+                data-closed="/img/eye-closed.png"
+                alt="toggle"
+              />
             </button>
           </div>
 
           <div class="form-grup otp-row">
-            <input name="otp" type="text" placeholder="Masukkan Kode OTP" class="form-control otp-input" />
+            <input
+              name="otp"
+              type="text"
+              placeholder="Masukkan Kode OTP"
+              class="form-control otp-input"
+            />
             <button type="button" class="btn-secondary otp-btn">Kirim Kode OTP</button>
           </div>
-          <div class="form-grup"><small class="help-text">Ketik kode yang dikirimkan ke email Anda sebelum menyerahkan formulir.</small></div>
+          <div class="form-grup"><small class="help-text">Ketik kode yang
+              dikirimkan ke email Anda sebelum menyerahkan formulir.</small></div>
 
-          <div id="registerError" class="alert alert-error" style="display:none; margin-top:4px;"></div>
+          <div
+            id="register-error"
+            class="alert alert-error"
+            style="display:none; margin-top:4px;"
+          ></div>
 
           <button class="btn-primary" type="submit">Buat Akun</button>
 
-          <div class="signup-note-center">Sudah punya akun? <a href="/login" class="link-red">Login</a></div>
+          <div class="signup-note-center">Sudah punya akun?
+            <a href="/login" class="link-red">Login</a></div>
         </form>
       </div>
 

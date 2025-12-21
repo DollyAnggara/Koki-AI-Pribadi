@@ -1,7 +1,8 @@
 // sudah berisi inisialisasi namespace /memasak dan /notifikasi (lihat versi lengkap sebelumnya)
 const timerAktif = new Map();
 const sesiMemasak = new Map();
-const { panggilDeepseek } = require("./layananDeepseek");
+// Removed direct Deepseek dependency; use layananChatBot abstraction which may use Deepseek or OpenRouter
+const layananChatBot = require("./layananChatBot");
 
 const inisialisasiSoketTimer = (io) => {
   const nsMemasak = io.of("/memasak");
@@ -11,16 +12,18 @@ const inisialisasiSoketTimer = (io) => {
     // When a client connects, send current active timers so UI can restore after refresh
     try {
       for (const [id, t] of Array.from(timerAktif.entries())) {
-        nsMemasak.to(socket.id).emit('update_timer', {
+        nsMemasak.to(socket.id).emit("update_timer", {
           idTimer: t.idTimer,
           formatWaktu: formatWaktu(t.sisa),
-          persentase: Math.round(((t.durasiTotal - t.sisa) / t.durasiTotal) * 100),
+          persentase: Math.round(
+            ((t.durasiTotal - t.sisa) / t.durasiTotal) * 100
+          ),
           paused: t.paused,
           namaTimer: t.namaTimer,
         });
       }
     } catch (e) {
-      console.warn('sync timers on connect failed', e);
+      console.warn("sync timers on connect failed", e);
     }
 
     socket.on("pesan_chat", async (data) => {
@@ -30,13 +33,9 @@ const inisialisasiSoketTimer = (io) => {
         const userMsg = data && data.pesan ? String(data.pesan) : "";
         const prompt = `Anda adalah asisten memasak bernama Koki AI. Jawablah pertanyaan pengguna dengan jelas, ringkas, dan berfokus pada langkah praktis atau resep. Jika diperlukan, sertakan estimasi waktu dan bahan.\nPengguna: ${userMsg}`;
 
-        // Call Deepseek API with proper chat/completions format
-        const result = await panggilDeepseek(prompt, {
-          maxTokens: 512,
-          temperature: 0.7,
-        });
-
-        const text = String(result || "").trim();
+        // Call configured chat provider through layananChatBot abstraction
+        const result = await layananChatBot.prosesPercakapan(socket.id, prompt);
+        const text = String(result.pesan || result).trim();
         if (text) {
           socket.emit("respons_koki", { pesan: text });
         } else {
@@ -46,7 +45,10 @@ const inisialisasiSoketTimer = (io) => {
         }
       } catch (err) {
         // Log full details server-side for debugging (do not expose to clients)
-        console.error("Deepseek error:", err && err.stack ? err.stack : err);
+        console.error(
+          "Chat service error:",
+          err && err.stack ? err.stack : err
+        );
 
         // Provide a brief, non-sensitive hint to the user
         let hint = "";
@@ -66,7 +68,7 @@ const inisialisasiSoketTimer = (io) => {
     });
     // timer events: mulai_timer, jeda_timer, lanjutkan_timer, hentikan_timer
 
-    socket.on('mulai_timer', (data) => {
+    socket.on("mulai_timer", (data) => {
       try {
         const { idTimer, durasiDetik, namaTimer } = data || {};
         if (!idTimer || !durasiDetik) return;
@@ -79,7 +81,7 @@ const inisialisasiSoketTimer = (io) => {
         }
         const timer = {
           idTimer,
-          namaTimer: namaTimer || 'Timer',
+          namaTimer: namaTimer || "Timer",
           durasiTotal: durasiDetik,
           sisa: durasiDetik,
           paused: false,
@@ -89,9 +91,12 @@ const inisialisasiSoketTimer = (io) => {
         const sendUpdate = () => {
           const persentase = Math.max(
             0,
-            Math.min(100, ((timer.durasiTotal - timer.sisa) / timer.durasiTotal) * 100)
+            Math.min(
+              100,
+              ((timer.durasiTotal - timer.sisa) / timer.durasiTotal) * 100
+            )
           );
-          nsMemasak.emit('update_timer', {
+          nsMemasak.emit("update_timer", {
             idTimer: timer.idTimer,
             formatWaktu: formatWaktu(timer.sisa),
             persentase: Math.round(persentase),
@@ -105,7 +110,10 @@ const inisialisasiSoketTimer = (io) => {
           timer.sisa -= 1;
           if (timer.sisa <= 0) {
             if (timer.intervalId) clearInterval(timer.intervalId);
-            nsMemasak.emit('timer_selesai', { idTimer: timer.idTimer, namaTimer: timer.namaTimer });
+            nsMemasak.emit("timer_selesai", {
+              idTimer: timer.idTimer,
+              namaTimer: timer.namaTimer,
+            });
             timerAktif.delete(timer.idTimer);
             return;
           }
@@ -117,27 +125,29 @@ const inisialisasiSoketTimer = (io) => {
         sendUpdate();
         timerAktif.set(idTimer, timer);
       } catch (err) {
-        console.error('mulai_timer error', err);
+        console.error("mulai_timer error", err);
       }
     });
 
-    socket.on('jeda_timer', (data) => {
+    socket.on("jeda_timer", (data) => {
       const { idTimer } = data || {};
       const t = timerAktif.get(idTimer);
       if (!t) return;
       t.paused = true;
       if (t.intervalId) clearInterval(t.intervalId);
       t.intervalId = null;
-      nsMemasak.emit('update_timer', {
+      nsMemasak.emit("update_timer", {
         idTimer: t.idTimer,
         formatWaktu: formatWaktu(t.sisa),
-        persentase: Math.round(((t.durasiTotal - t.sisa) / t.durasiTotal) * 100),
+        persentase: Math.round(
+          ((t.durasiTotal - t.sisa) / t.durasiTotal) * 100
+        ),
         paused: true,
         namaTimer: t.namaTimer,
       });
     });
 
-    socket.on('lanjutkan_timer', (data) => {
+    socket.on("lanjutkan_timer", (data) => {
       const { idTimer } = data || {};
       const t = timerAktif.get(idTimer);
       if (!t || !t.paused) return;
@@ -147,37 +157,50 @@ const inisialisasiSoketTimer = (io) => {
         t.sisa -= 1;
         if (t.sisa <= 0) {
           if (t.intervalId) clearInterval(t.intervalId);
-          nsMemasak.emit('timer_selesai', { idTimer: t.idTimer, namaTimer: t.namaTimer });
+          nsMemasak.emit("timer_selesai", {
+            idTimer: t.idTimer,
+            namaTimer: t.namaTimer,
+          });
           timerAktif.delete(t.idTimer);
           return;
         }
-        nsMemasak.emit('update_timer', {
+        nsMemasak.emit("update_timer", {
           idTimer: t.idTimer,
           formatWaktu: formatWaktu(t.sisa),
-          persentase: Math.round(((t.durasiTotal - t.sisa) / t.durasiTotal) * 100),
+          persentase: Math.round(
+            ((t.durasiTotal - t.sisa) / t.durasiTotal) * 100
+          ),
           paused: false,
           namaTimer: t.namaTimer,
         });
       };
       t.intervalId = setInterval(tick, 1000);
       // immediate update
-      nsMemasak.emit('update_timer', {
+      nsMemasak.emit("update_timer", {
         idTimer: t.idTimer,
         formatWaktu: formatWaktu(t.sisa),
-        persentase: Math.round(((t.durasiTotal - t.sisa) / t.durasiTotal) * 100),
+        persentase: Math.round(
+          ((t.durasiTotal - t.sisa) / t.durasiTotal) * 100
+        ),
         paused: false,
         namaTimer: t.namaTimer,
       });
     });
 
-    socket.on('hentikan_timer', (data) => {
+    socket.on("hentikan_timer", (data) => {
       const { idTimer } = data || {};
       const t = timerAktif.get(idTimer);
       if (!t) return;
       if (t.intervalId) clearInterval(t.intervalId);
       timerAktif.delete(idTimer);
       // notify clients that timer was stopped
-      nsMemasak.emit('update_timer', { idTimer, formatWaktu: formatWaktu(0), persentase: 100, paused: true, namaTimer: t.namaTimer });
+      nsMemasak.emit("update_timer", {
+        idTimer,
+        formatWaktu: formatWaktu(0),
+        persentase: 100,
+        paused: true,
+        namaTimer: t.namaTimer,
+      });
     });
 
     // helper to format seconds into H:MM:SS or MM:SS
@@ -186,8 +209,8 @@ const inisialisasiSoketTimer = (io) => {
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
       const s = sec % 60;
-      const mm = String(m).padStart(2, '0');
-      const ss = String(s).padStart(2, '0');
+      const mm = String(m).padStart(2, "0");
+      const ss = String(s).padStart(2, "0");
       return `${h}:${mm}:${ss}`;
     }
   });

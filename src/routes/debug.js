@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const { panggilDeepseek } = require("../utils/layananDeepseek");
 const Pengguna = require("../models/Pengguna");
 const Resep = require("../models/Resep");
 const Bahan = require("../models/Bahan");
@@ -11,6 +10,21 @@ router.post("/deepseek", async (req, res) => {
     return res
       .status(400)
       .json({ sukses: false, pesan: "DEEPSEEK_API_KEY not configured" });
+
+  // Require Deepseek utils only when the provider is configured.
+  let panggilDeepseek, pingUrl;
+  try {
+    ({ panggilDeepseek, pingUrl } = require("../utils/layananDeepseek"));
+  } catch (e) {
+    console.error("Deepseek module not available:", e && e.stack ? e.stack : e);
+    return res
+      .status(500)
+      .json({
+        sukses: false,
+        pesan: "Deepseek module not available on server",
+      });
+  }
+
   const prompt = req.body.prompt;
   if (!prompt)
     return res.status(400).json({ sukses: false, pesan: "Prompt required" });
@@ -28,7 +42,6 @@ router.post("/deepseek", async (req, res) => {
     const opts = { maxTokens, timeoutMs, includeRaw, temperature, extra };
     // Ping diagnostic: /api/debug/deepseek?ping=1
     if (req.query.ping === "1" || req.query.ping === "true") {
-      const { pingUrl } = require("../utils/layananDeepseek");
       const diag = await pingUrl(timeoutMs);
       return res.json({ sukses: true, ping: diag });
     }
@@ -68,27 +81,37 @@ router.get("/db-stats", async (req, res) => {
 });
 
 // GET /api/debug/session - returns current session user info (for debugging)
-router.get('/session', (req, res) => {
+router.get("/session", (req, res) => {
   try {
-    if (!req.session || !req.session.user) return res.status(401).json({ sukses: false, pesan: 'Tidak ada sesi login' });
+    if (!req.session || !req.session.user)
+      return res
+        .status(401)
+        .json({ sukses: false, pesan: "Tidak ada sesi login" });
     const user = req.session.user;
     return res.json({ sukses: true, data: { id: user._id || user.id, user } });
   } catch (err) {
-    console.error('Session debug failed:', err);
-    return res.status(500).json({ sukses: false, pesan: 'Gagal ambil session' });
+    console.error("Session debug failed:", err);
+    return res
+      .status(500)
+      .json({ sukses: false, pesan: "Gagal ambil session" });
   }
 });
 
 // GET /api/debug/bahan - returns all bahan for current session user (for debugging)
-router.get('/bahan', async (req, res) => {
+router.get("/bahan", async (req, res) => {
   try {
-    if (!req.session || !req.session.user) return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
+    if (!req.session || !req.session.user)
+      return res
+        .status(401)
+        .json({ sukses: false, pesan: "Autentikasi diperlukan" });
     const userId = req.session.user._id || req.session.user.id;
-    const semua = await Bahan.find({ pemilik: userId }).sort({ tanggalKadaluarsa: 1 });
+    const semua = await Bahan.find({ pemilik: userId }).sort({
+      tanggalKadaluarsa: 1,
+    });
     return res.json({ sukses: true, data: semua });
   } catch (err) {
-    console.error('Debug bahan failed:', err);
-    return res.status(500).json({ sukses: false, pesan: 'Gagal ambil bahan' });
+    console.error("Debug bahan failed:", err);
+    return res.status(500).json({ sukses: false, pesan: "Gagal ambil bahan" });
   }
 });
 

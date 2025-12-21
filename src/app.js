@@ -11,10 +11,20 @@ const { Server } = require("socket.io");
 const exphbs = require("express-handlebars");
 const cron = require("node-cron");
 require("dotenv").config();
-if (!process.env.DEEPSEEK_API_KEY) {
+
+// Determine available chat providers (Deepseek or OpenRouter)
+// Warn only when neither provider is configured
+const hasDeepseek = !!process.env.DEEPSEEK_API_KEY;
+const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+if (!hasDeepseek && !hasOpenRouter) {
   console.warn(
-    "⚠️ DEEPSEEK_API_KEY not set. Koki AI chat will not be available until you set DEEPSEEK_API_KEY in your .env."
+    "⚠️ Neither DEEPSEEK_API_KEY nor OPENROUTER_API_KEY are set. Koki AI chat will not be available until you set at least one provider in your .env."
   );
+} else {
+  console.log("ℹ️ Chat providers configured:", {
+    DEEPSEEK: hasDeepseek ? "[set]" : "[not set]",
+    OPENROUTER: hasOpenRouter ? "[set]" : "[not set]",
+  });
 }
 
 // utils
@@ -111,13 +121,11 @@ const jalankanServer = async () => {
   // block API endpoints when DB is unavailable (allow /api/status)
   aplikasi.use("/api", (req, res, next) => {
     if (!req.app.locals.dbConnected && req.path !== "/status") {
-      return res
-        .status(503)
-        .json({
-          sukses: false,
-          pesan:
-            "Layanan database tidak tersedia saat ini. Silakan coba lagi nanti.",
-        });
+      return res.status(503).json({
+        sukses: false,
+        pesan:
+          "Layanan database tidak tersedia saat ini. Silakan coba lagi nanti.",
+      });
     }
     next();
   });
@@ -237,6 +245,7 @@ const jalankanServer = async () => {
       console.log("🔐 Env summary:", {
         MONGO_URI: mask(process.env.MONGO_URI),
         DEEPSEEK_API_KEY: mask(process.env.DEEPSEEK_API_KEY),
+        OPENROUTER_API_KEY: mask(process.env.OPENROUTER_API_KEY),
         SESSION_SECRET: mask(process.env.SESSION_SECRET),
       });
 

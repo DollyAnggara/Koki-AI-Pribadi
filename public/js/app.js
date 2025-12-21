@@ -223,11 +223,153 @@ function inisialisasiChat() {
   });
 }
 
+// Minimal, safe markdown-like renderer for chat messages
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function inlineMarkdown(s) {
+  // bold **text**
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  // italic *text* (avoid capturing **bold**)
+  s = s.replace(/\*(?!\*)(.+?)\*(?!\*)/g, "<em>$1</em>");
+  // inline code `code`
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  // autolink URLs
+  s = s.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+  return s;
+}
+
+function renderChatMarkdown(text) {
+  if (!text) return "";
+  text = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+  // Fix accidental in-word newlines like "a\nir" -> "air" but avoid touching
+  // formatting markers (lists, bullets, headings). Use Unicode letters to be safe.
+  try {
+    text = text.replace(/([\p{L}])\n([\p{L}])/gu, "$1$2");
+  } catch (e) {
+    // If Unicode property escapes not supported, fallback to simple ASCII letters
+    text = text.replace(/([A-Za-z])\n([A-Za-z])/g, "$1$2");
+  }
+
+  const lines = text.split("\n");
+  const out = [];
+  let inUl = false;
+  let inOl = false;
+  let paraBuf = [];
+
+  const flushParagraph = () => {
+    if (paraBuf.length === 0) return;
+    // join lines in paragraph with <br> to preserve intentional single-line breaks
+    const joined = paraBuf.map((l) => escapeHtml(l.trim())).join("<br>");
+    out.push("<p>" + inlineMarkdown(joined) + "</p>");
+    paraBuf = [];
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const ulMatch = line.match(
+      /^\s*[\-\*\u2022\u2023\u25E6\u2043\u2219·\u2013\u2014]\s+(.*)/
+    ); // support common bullets including • · – —
+    const olMatch = line.match(/^\s*(\d+)[\.)]\s+(.*)/); // support "1." and "1)"
+    const continuationMatch = line.match(/^\s{2,}(.*)/); // indented continuation for previous list item
+
+    if (ulMatch) {
+      flushParagraph();
+      if (inOl) {
+        out.push("</ol>");
+        inOl = false;
+      }
+      if (!inUl) {
+        out.push("<ul>");
+        inUl = true;
+      }
+      out.push("<li>" + inlineMarkdown(escapeHtml(ulMatch[1])) + "</li>");
+      continue;
+    } else if (inUl) {
+      out.push("</ul>");
+      inUl = false;
+    }
+
+    if (olMatch) {
+      flushParagraph();
+      if (inUl) {
+        out.push("</ul>");
+        inUl = false;
+      }
+      if (!inOl) {
+        out.push("<ol>");
+        inOl = true;
+      }
+      out.push("<li>" + inlineMarkdown(escapeHtml(olMatch[2])) + "</li>");
+      continue;
+    } else if (inOl) {
+      out.push("</ol>");
+      inOl = false;
+    }
+
+    // handle indented continuation lines inside a list item (after checking for list markers)
+    if (continuationMatch && (inUl || inOl)) {
+      // append to the last <li> in out (preserve line break)
+      for (let j = out.length - 1; j >= 0; j--) {
+        if (/^\s*<li>/.test(out[j])) {
+          const addition =
+            "<br>" + inlineMarkdown(escapeHtml(continuationMatch[1].trim()));
+          out[j] = out[j].replace(/<\/li>\s*$/, "") + addition + "</li>";
+          break;
+        }
+      }
+      continue;
+    }
+
+    if (olMatch) {
+      flushParagraph();
+      if (inUl) {
+        out.push("</ul>");
+        inUl = false;
+      }
+      if (!inOl) {
+        out.push("<ol>");
+        inOl = true;
+      }
+      out.push("<li>" + inlineMarkdown(escapeHtml(olMatch[2])) + "</li>");
+      continue;
+    } else if (inOl) {
+      out.push("</ol>");
+      inOl = false;
+    }
+
+    if (line.trim() === "") {
+      // empty line separates paragraphs
+      flushParagraph();
+    } else {
+      // accumulate into paragraph buffer
+      paraBuf.push(line);
+    }
+  }
+
+  // flush any remaining paragraph buffer
+  flushParagraph();
+
+  if (inUl) out.push("</ul>");
+  if (inOl) out.push("</ol>");
+  return out.join("");
+}
+
 function tambahPesanChat(pesan, tipe) {
   const areaPesan = document.getElementById("areaPesan");
   const divPesan = document.createElement("div");
   divPesan.className = `pesan pesan-${tipe}`;
-  divPesan.innerHTML = pesan.replace(/\n/g, "<br>");
+  // render markdown-like formatting safely
+  divPesan.innerHTML = renderChatMarkdown(pesan);
   if (areaPesan) {
     areaPesan.appendChild(divPesan);
     areaPesan.scrollTop = areaPesan.scrollHeight;
@@ -556,15 +698,17 @@ function renderResepList(items) {
         : null;
     const kalori = kaloriVal ? Math.round(kaloriVal) : "-";
     const nama = r.namaResep || r.nama || "Resep";
-    const idResep = r._id || r.recipeId || '';
+    const idResep = r._id || r.recipeId || "";
     const div = document.createElement("div");
     div.className = "kartu-resep";
     if (idResep) div.dataset.id = idResep;
-    div.innerHTML = `\n      <div class="gambar-resep">🍲</div>\n      <div class="info-resep">\n        <div class="nama-resep">${escapeHtml(nama)}</div>\n        <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>🔥 ${kalori} kkal</span></div>\n      </div>\n      <div class="detail-resep" id="detail_${idResep}" style="display:none;margin-top:8px;"></div>`;
+    div.innerHTML = `\n      <div class="gambar-resep">🍲</div>\n      <div class="info-resep">\n        <div class="nama-resep">${escapeHtml(
+      nama
+    )}</div>\n        <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>🔥 ${kalori} kkal</span></div>\n      </div>\n      <div class="detail-resep" id="detail_${idResep}" style="display:none;margin-top:8px;"></div>`;
 
     // clicking the card (except on internal buttons) navigates to the recipe detail page
-    div.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.tagName === 'A') return; // ignore button/link clicks
+    div.addEventListener("click", (e) => {
+      if (e.target.closest("button") || e.target.tagName === "A") return; // ignore button/link clicks
       if (!idResep) return;
       window.location.href = `/resep/${idResep}`;
     });
@@ -585,69 +729,92 @@ function inisialisasiPencarianResep() {
 
 // --- Tambah Resep: form handling ---
 function inisialisasiTambahResep() {
-  const btn = document.getElementById('tombolTambahResep');
-  const form = document.getElementById('formTambahResep');
+  const btn = document.getElementById("tombolTambahResep");
+  const form = document.getElementById("formTambahResep");
   if (!btn || !form) return;
-  const inputNama = document.getElementById('inputNamaResep');
-  const inputDeskripsi = document.getElementById('inputDeskripsi');
-  const inputPorsi = document.getElementById('inputPorsi');
-  const inputWaktuPersiapan = document.getElementById('inputWaktuPersiapan');
-  const inputWaktuMemasak = document.getElementById('inputWaktuMemasak');
-  const inputBahan = document.getElementById('inputBahan');
-  const inputLangkah = document.getElementById('inputLangkah');
-  const tombolSimpan = document.getElementById('tombolSimpanResep');
-  const tombolBatal = document.getElementById('tombolBatalResep');
+  const inputNama = document.getElementById("inputNamaResep");
+  const inputDeskripsi = document.getElementById("inputDeskripsi");
+  const inputPorsi = document.getElementById("inputPorsi");
+  const inputWaktuPersiapan = document.getElementById("inputWaktuPersiapan");
+  const inputWaktuMemasak = document.getElementById("inputWaktuMemasak");
+  const inputBahan = document.getElementById("inputBahan");
+  const inputLangkah = document.getElementById("inputLangkah");
+  const tombolSimpan = document.getElementById("tombolSimpanResep");
+  const tombolBatal = document.getElementById("tombolBatalResep");
 
-  btn.addEventListener('click', (e)=>{ e.preventDefault(); form.style.display = 'block'; form.scrollIntoView({behavior:'smooth'}); });
-
-  tombolBatal.addEventListener('click', (e)=>{ e.preventDefault(); form.style.display = 'none'; });
-
-  tombolSimpan.addEventListener('click', async (e)=> {
+  btn.addEventListener("click", (e) => {
     e.preventDefault();
-    const nama = (inputNama.value || '').trim();
-    if (!nama) return tampilkanNotifikasi('Nama resep wajib diisi','error');
-    const deskripsi = inputDeskripsi.value || '';
+    form.style.display = "block";
+    form.scrollIntoView({ behavior: "smooth" });
+  });
+
+  tombolBatal.addEventListener("click", (e) => {
+    e.preventDefault();
+    form.style.display = "none";
+  });
+
+  tombolSimpan.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const nama = (inputNama.value || "").trim();
+    if (!nama) return tampilkanNotifikasi("Nama resep wajib diisi", "error");
+    const deskripsi = inputDeskripsi.value || "";
     const porsi = Number(inputPorsi.value) || 1;
     const waktuPersiapan = Number(inputWaktuPersiapan.value) || 0;
     const waktuMemasak = Number(inputWaktuMemasak.value) || 0;
-    const bahanLines = (inputBahan.value || '').split('\n').map(l=>l.trim()).filter(Boolean);
-    const daftarBahan = bahanLines.map(line => {
-      // backward-compatible semicolon format: 'nama;jumlah;satuan'
-      if (line.indexOf(';') !== -1) {
-        const parts = line.split(';').map(s=>s.trim());
-        return { namaBahan: parts[0] || '', jumlah: Number(parts[1]) || 0, satuan: parts[2] || '' };
-      }
+    const bahanLines = (inputBahan.value || "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const daftarBahan = bahanLines
+      .map((line) => {
+        // backward-compatible semicolon format: 'nama;jumlah;satuan'
+        if (line.indexOf(";") !== -1) {
+          const parts = line.split(";").map((s) => s.trim());
+          return {
+            namaBahan: parts[0] || "",
+            jumlah: Number(parts[1]) || 0,
+            satuan: parts[2] || "",
+          };
+        }
 
-      // prefer space-separated format: 'Nama [jumlah] [satuan]'
-      const toks = line.split(/\s+/).filter(Boolean);
-      // single token -> name only
-      if (toks.length === 1) return { namaBahan: toks[0], jumlah: 0, satuan: '' };
+        // prefer space-separated format: 'Nama [jumlah] [satuan]'
+        const toks = line.split(/\s+/).filter(Boolean);
+        // single token -> name only
+        if (toks.length === 1)
+          return { namaBahan: toks[0], jumlah: 0, satuan: "" };
 
-      // detect numeric token (integer or decimal, supports comma as decimal separator)
-      const isNumeric = (s) => /^\d+(?:[.,]\d+)?$/.test(String(s));
-      const last = toks[toks.length - 1];
-      const secondLast = toks[toks.length - 2];
+        // detect numeric token (integer or decimal, supports comma as decimal separator)
+        const isNumeric = (s) => /^\d+(?:[.,]\d+)?$/.test(String(s));
+        const last = toks[toks.length - 1];
+        const secondLast = toks[toks.length - 2];
 
-      if (isNumeric(secondLast)) {
-        // pattern: 'Nama ... <jumlah> <satuan>'
-        const jumlah = Number(String(secondLast).replace(',', '.')) || 0;
-        const satuan = last || '';
-        const nama = toks.slice(0, toks.length - 2).join(' ') || toks[0];
-        return { namaBahan: nama, jumlah, satuan };
-      }
+        if (isNumeric(secondLast)) {
+          // pattern: 'Nama ... <jumlah> <satuan>'
+          const jumlah = Number(String(secondLast).replace(",", ".")) || 0;
+          const satuan = last || "";
+          const nama = toks.slice(0, toks.length - 2).join(" ") || toks[0];
+          return { namaBahan: nama, jumlah, satuan };
+        }
 
-      if (isNumeric(last)) {
-        // pattern: 'Nama ... <jumlah>' (no unit)
-        const jumlah = Number(String(last).replace(',', '.')) || 0;
-        const nama = toks.slice(0, toks.length - 1).join(' ') || toks[0];
-        return { namaBahan: nama, jumlah, satuan: '' };
-      }
+        if (isNumeric(last)) {
+          // pattern: 'Nama ... <jumlah>' (no unit)
+          const jumlah = Number(String(last).replace(",", ".")) || 0;
+          const nama = toks.slice(0, toks.length - 1).join(" ") || toks[0];
+          return { namaBahan: nama, jumlah, satuan: "" };
+        }
 
-      // fallback: treat entire line as name
-      return { namaBahan: line, jumlah: 0, satuan: '' };
-    }).filter(b => b.namaBahan);
-    const langkahLines = (inputLangkah.value || '').split('\n').map(l=>l.trim()).filter(Boolean);
-    const langkah = langkahLines.map((lk, idx) => ({ nomorUrut: idx+1, deskripsi: lk }));
+        // fallback: treat entire line as name
+        return { namaBahan: line, jumlah: 0, satuan: "" };
+      })
+      .filter((b) => b.namaBahan);
+    const langkahLines = (inputLangkah.value || "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const langkah = langkahLines.map((lk, idx) => ({
+      nomorUrut: idx + 1,
+      deskripsi: lk,
+    }));
 
     const payload = {
       namaResep: nama,
@@ -656,32 +823,43 @@ function inisialisasiTambahResep() {
       waktuPersiapanMenit: waktuPersiapan,
       waktuMemasakMenit: waktuMemasak,
       daftarBahan,
-      langkah
+      langkah,
     };
 
     try {
       tombolSimpan.disabled = true;
-      tombolSimpan.textContent = 'Menyimpan...';
-      const res = await fetch('/api/resep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+      tombolSimpan.textContent = "Menyimpan...";
+      const res = await fetch("/api/resep", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload),
+      });
       const data = await res.json();
       if (!data.sukses) {
-        tampilkanNotifikasi(data.pesan || 'Gagal menyimpan resep', 'error');
+        tampilkanNotifikasi(data.pesan || "Gagal menyimpan resep", "error");
         tombolSimpan.disabled = false;
-        tombolSimpan.textContent = 'Simpan';
+        tombolSimpan.textContent = "Simpan";
         return;
       }
-      tampilkanNotifikasi('Resep berhasil disimpan', 'sukses');
+      tampilkanNotifikasi("Resep berhasil disimpan", "sukses");
       // reset form
-      inputNama.value=''; inputDeskripsi.value=''; inputPorsi.value=''; inputWaktuPersiapan.value=''; inputWaktuMemasak.value=''; inputBahan.value=''; inputLangkah.value='';
-      form.style.display='none';
+      inputNama.value = "";
+      inputDeskripsi.value = "";
+      inputPorsi.value = "";
+      inputWaktuPersiapan.value = "";
+      inputWaktuMemasak.value = "";
+      inputBahan.value = "";
+      inputLangkah.value = "";
+      form.style.display = "none";
       // refresh list
       loadDaftarResep();
     } catch (err) {
-      console.error('Gagal submit resep', err);
-      tampilkanNotifikasi('Gagal menyimpan resep', 'error');
+      console.error("Gagal submit resep", err);
+      tampilkanNotifikasi("Gagal menyimpan resep", "error");
     } finally {
       tombolSimpan.disabled = false;
-      tombolSimpan.textContent = 'Simpan';
+      tombolSimpan.textContent = "Simpan";
     }
   });
 }
@@ -940,7 +1118,7 @@ function stopBunyi() {
 async function loadDaftarBahan() {
   try {
     const resp = await fetch("/api/bahan", { credentials: "same-origin" });
-    const ul = document.getElementById("daftarBahanSaya");
+    const ul = document.getElementById("daftar-bahan-saya");
     if (!ul) return;
     ul.innerHTML = "";
 
@@ -974,11 +1152,22 @@ async function loadDaftarBahan() {
           )
         : null;
       const kategoriTag = b.kategoriBahan
-        ? `<span class="tag">${escapeHtml(String(b.kategoriBahan || ''))}</span>`
+        ? `<span class="tag">${escapeHtml(
+            String(b.kategoriBahan || "")
+          )}</span>`
         : "";
-      const sisaBadge = sisaHari !== null
-        ? `<span class="badge-kadaluarsa ${sisaHari <= 1 ? 'segera' : sisaHari <= 3 ? 'perhatian' : ''}">${sisaHari <= 1 ? 'SEGERA GUNAKAN!' : sisaHari <= 3 ? sisaHari + ' hari lagi' : ''}</span>`
-        : '';
+      const sisaBadge =
+        sisaHari !== null
+          ? `<span class="badge-kadaluarsa ${
+              sisaHari <= 1 ? "segera" : sisaHari <= 3 ? "perhatian" : ""
+            }">${
+              sisaHari <= 1
+                ? "SEGERA GUNAKAN!"
+                : sisaHari <= 3
+                ? sisaHari + " hari lagi"
+                : ""
+            }</span>`
+          : "";
       const tglPembelian = b.tanggalPembelian
         ? `<div class="meta-col"><div class="meta-label">Pembelian</div><div class="meta-val">${formatTimestamp(
             b.tanggalPembelian
@@ -997,7 +1186,11 @@ async function loadDaftarBahan() {
 
       li.innerHTML = `
         <div class="bahan-left">
-          <div class="bahan-name">${escapeHtml(b.namaBahan)} <span class="bahan-satuan">${b.jumlahTersedia || 0} ${b.satuan || ''}</span></div>
+          <div class="bahan-name">${escapeHtml(
+            b.namaBahan
+          )} <span class="bahan-satuan">${b.jumlahTersedia || 0} ${
+        b.satuan || ""
+      }</span></div>
           <div class="bahan-badges">${kategoriTag} ${sisaBadge}</div>
         </div>
         <div class="bahan-mid">${tglPembelian}${added}${tglKadaluarsa}</div>
@@ -1031,48 +1224,76 @@ document.addEventListener("DOMContentLoaded", async () => {
     const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     const dayNum = date.getUTCDay() || 7;
     date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
-    const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1)/7);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
     return { mingguKe: weekNo, tahun: date.getUTCFullYear() };
   }
 
   function renderMenuMingguan(menuMingguan) {
-    const kont = document.getElementById('menuMingguanContainer');
+    const kont = document.getElementById("menuMingguanContainer");
     if (!kont) return;
     currentMenuMingguan = menuMingguan || [];
-    kont.innerHTML = '';
+    kont.innerHTML = "";
     if (!currentMenuMingguan || currentMenuMingguan.length === 0) {
-      kont.innerHTML = '<p>Tidak ada saran menu. Klik "Generate Menu dengan AI" untuk membuat saran.</p>';
-      document.getElementById('tombolSimpanRencana').style.display = 'none';
+      kont.innerHTML =
+        '<p>Tidak ada saran menu. Klik "Generate Menu dengan AI" untuk membuat saran.</p>';
+      document.getElementById("tombolSimpanRencana").style.display = "none";
       return;
     }
 
     const namaResepOrText = (val) => {
-      if (!val) return '-';
-      if (typeof val === 'string') return val;
+      if (!val) return "-";
+      if (typeof val === "string") return val;
       if (val.namaResep) return val.namaResep;
       if (val.name) return val.name;
       if (val._id) return String(val._id);
-      return '-';
+      return "-";
     };
 
     let html = '<div class="daftar-hari">';
     currentMenuMingguan.forEach((h, idx) => {
-      const s = h._populated && h._populated.sarapan ? h._populated.sarapan.namaResep : (h.menu && h.menu.sarapan ? namaResepOrText(h.menu.sarapan) : '-');
-      const siang = h._populated && h._populated.makanSiang ? h._populated.makanSiang.namaResep : (h.menu && h.menu.makanSiang ? namaResepOrText(h.menu.makanSiang) : '-');
-      const malam = h._populated && h._populated.makanMalam ? h._populated.makanMalam.namaResep : (h.menu && h.menu.makanMalam ? namaResepOrText(h.menu.makanMalam) : '-');
-      html += `<div class="kartu-mini"><strong>${escapeHtml(h.hari || 'Hari')}</strong><div>Sarapan: ${escapeHtml(s)}</div><div>Makan siang: ${escapeHtml(siang)}</div><div>Makan malam: ${escapeHtml(malam)}</div></div>`;
+      const s =
+        h._populated && h._populated.sarapan
+          ? h._populated.sarapan.namaResep
+          : h.menu && h.menu.sarapan
+          ? namaResepOrText(h.menu.sarapan)
+          : "-";
+      const siang =
+        h._populated && h._populated.makanSiang
+          ? h._populated.makanSiang.namaResep
+          : h.menu && h.menu.makanSiang
+          ? namaResepOrText(h.menu.makanSiang)
+          : "-";
+      const malam =
+        h._populated && h._populated.makanMalam
+          ? h._populated.makanMalam.namaResep
+          : h.menu && h.menu.makanMalam
+          ? namaResepOrText(h.menu.makanMalam)
+          : "-";
+      html += `<div class="kartu-mini"><strong>${escapeHtml(
+        h.hari || "Hari"
+      )}</strong><div>Sarapan: ${escapeHtml(
+        s
+      )}</div><div>Makan siang: ${escapeHtml(
+        siang
+      )}</div><div>Makan malam: ${escapeHtml(malam)}</div></div>`;
     });
-    html += '</div>';
+    html += "</div>";
     kont.innerHTML = html;
-    document.getElementById('tombolSimpanRencana').style.display = 'inline-block';
+    document.getElementById("tombolSimpanRencana").style.display =
+      "inline-block";
   }
 
   async function simpanRencana() {
-    const main = document.querySelector('main.kontainer-utama');
+    const main = document.querySelector("main.kontainer-utama");
     const idPengguna = main ? main.dataset.userId : null;
-    if (!idPengguna) return tampilkanNotifikasi('Silakan login untuk menyimpan rencana', 'error');
-    if (!currentMenuMingguan || currentMenuMingguan.length === 0) return tampilkanNotifikasi('Tidak ada menu untuk disimpan', 'error');
+    if (!idPengguna)
+      return tampilkanNotifikasi(
+        "Silakan login untuk menyimpan rencana",
+        "error"
+      );
+    if (!currentMenuMingguan || currentMenuMingguan.length === 0)
+      return tampilkanNotifikasi("Tidak ada menu untuk disimpan", "error");
     const { mingguKe, tahun } = getISOWeekAndYear();
 
     const menuUntukKirim = currentMenuMingguan.map((h) => ({
@@ -1081,33 +1302,46 @@ document.addEventListener("DOMContentLoaded", async () => {
         sarapan: h._populated?.sarapan?._id || h.menu.sarapan || null,
         makanSiang: h._populated?.makanSiang?._id || h.menu.makanSiang || null,
         makanMalam: h._populated?.makanMalam?._id || h.menu.makanMalam || null,
-      }
+      },
     }));
 
     try {
       const res = await fetch(`${API_URL}/menu`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ idPengguna, mingguKe, tahun, menuMingguan: menuUntukKirim })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idPengguna,
+          mingguKe,
+          tahun,
+          menuMingguan: menuUntukKirim,
+        }),
       });
       const data = await res.json();
-      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal simpan rencana', 'error');
+      if (!data.sukses)
+        return tampilkanNotifikasi(
+          data.pesan || "Gagal simpan rencana",
+          "error"
+        );
       currentRencanaId = data.data._id;
-      tampilkanNotifikasi('Rencana tersimpan', 'sukses');
+      tampilkanNotifikasi("Rencana tersimpan", "sukses");
       // show saved calory summary if available
       if (data.data && data.data.totalKaloriMingguan) {
-        renderKaloriInfo({ perHari: [], totalMingguan: data.data.totalKaloriMingguan }, null);
+        renderKaloriInfo(
+          { perHari: [], totalMingguan: data.data.totalKaloriMingguan },
+          null
+        );
       }
       // load daftar belanja
       await loadDaftarBelanjaRencana(currentRencanaId);
       // show both buttons (Konfirmasi visible even before any checkbox is ticked)
-      const btnKonf = document.getElementById('tombolKonfirmasi');
-      if (btnKonf) btnKonf.style.display = 'inline-block';
+      const btnKonf = document.getElementById("tombolKonfirmasi");
+      if (btnKonf) btnKonf.style.display = "inline-block";
       // show 'Kirim ke Email' button so user can send the saved rencana
-      const btnKirim = document.getElementById('tombolKirimEmail');
-      if (btnKirim) btnKirim.style.display = 'inline-block';
+      const btnKirim = document.getElementById("tombolKirimEmail");
+      if (btnKirim) btnKirim.style.display = "inline-block";
     } catch (err) {
-      console.error('Gagal simpan rencana', err);
-      tampilkanNotifikasi('Gagal simpan rencana', 'error');
+      console.error("Gagal simpan rencana", err);
+      tampilkanNotifikasi("Gagal simpan rencana", "error");
     }
   }
 
@@ -1119,149 +1353,178 @@ document.addEventListener("DOMContentLoaded", async () => {
       const daftar = data.data || [];
       if (!daftar.length) {
         // No shopping items remain — show empty message and hide action buttons
-        const ul = document.getElementById('daftarBelanja');
-        if (ul) ul.innerHTML = '<p style="color:var(--warna-teks-sekunder);padding:8px 12px;margin:0;">Tidak ada daftar belanja.</p>';
-        const btnKonf = document.getElementById('tombolKonfirmasi');
-        if (btnKonf) btnKonf.style.display = 'none';
-        const btnKirim = document.getElementById('tombolKirimEmail');
-        if (btnKirim) btnKirim.style.display = 'none';
+        const ul = document.getElementById("daftarBelanja");
+        if (ul)
+          ul.innerHTML =
+            '<p style="color:var(--warna-teks-sekunder);padding:8px 12px;margin:0;">Tidak ada daftar belanja.</p>';
+        const btnKonf = document.getElementById("tombolKonfirmasi");
+        if (btnKonf) btnKonf.style.display = "none";
+        const btnKirim = document.getElementById("tombolKirimEmail");
+        if (btnKirim) btnKirim.style.display = "none";
         return;
       }
 
       renderDaftarBelanja(daftar);
 
       // show kirim + konfirmasi buttons when a rencana exists (Konfirmasi stays visible even if nothing is checked)
-      const btnKirim = document.getElementById('tombolKirimEmail');
-      if (btnKirim) btnKirim.style.display = currentRencanaId ? 'inline-block' : 'none';
-      const btnKonf = document.getElementById('tombolKonfirmasi');
-      if (btnKonf) btnKonf.style.display = currentRencanaId ? 'inline-block' : 'none';
+      const btnKirim = document.getElementById("tombolKirimEmail");
+      if (btnKirim)
+        btnKirim.style.display = currentRencanaId ? "inline-block" : "none";
+      const btnKonf = document.getElementById("tombolKonfirmasi");
+      if (btnKonf)
+        btnKonf.style.display = currentRencanaId ? "inline-block" : "none";
     } catch (err) {
-      console.error('Gagal load daftar belanja', err);
+      console.error("Gagal load daftar belanja", err);
     }
   }
 
   function renderDaftarBelanja(items) {
-    const ul = document.getElementById('daftarBelanja');
+    const ul = document.getElementById("daftarBelanja");
     if (!ul) return;
-    ul.innerHTML = '';
+    ul.innerHTML = "";
     const fmt = (n) => {
-      if (typeof n === 'undefined' || n === null) return '';
+      if (typeof n === "undefined" || n === null) return "";
       const num = Number(n);
       if (Number.isInteger(num)) return String(num);
       // show up to 2 decimals, trim trailing zeros
       let s = (Math.round(num * 100) / 100).toFixed(2);
-      s = s.replace(/\.00$/, '');
-      s = s.replace(/\.(\d)0$/, '.$1');
+      s = s.replace(/\.00$/, "");
+      s = s.replace(/\.(\d)0$/, ".$1");
       return s;
     };
 
     items.forEach((it, idx) => {
-      const li = document.createElement('li');
-      li.className = 'item-bahan';
+      const li = document.createElement("li");
+      li.className = "item-bahan";
       li.dataset.index = idx;
-      li.dataset.namaBahan = it.namaBahan || '';
-      li.dataset.jumlah = typeof it.jumlah !== 'undefined' ? String(it.jumlah) : '';
-      li.dataset.satuan = it.satuan || '';
+      li.dataset.namaBahan = it.namaBahan || "";
+      li.dataset.jumlah =
+        typeof it.jumlah !== "undefined" ? String(it.jumlah) : "";
+      li.dataset.satuan = it.satuan || "";
 
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
       checkbox.checked = !!it.sudahDibeli;
 
       // storage select
-      const storageSelect = document.createElement('select');
-      storageSelect.className = 'select-penyimpanan';
+      const storageSelect = document.createElement("select");
+      storageSelect.className = "select-penyimpanan";
       const options = [
-        { v: 'rak_dapur', t: 'Rak Dapur' },
-        { v: 'lemari', t: 'Lemari' },
-        { v: 'kulkas', t: 'Kulkas' },
-        { v: 'freezer', t: 'Freezer' }
+        { v: "rak_dapur", t: "Rak Dapur" },
+        { v: "lemari", t: "Lemari" },
+        { v: "kulkas", t: "Kulkas" },
+        { v: "freezer", t: "Freezer" },
       ];
       options.forEach((o) => {
-        const opt = document.createElement('option');
-        opt.value = o.v; opt.textContent = o.t; storageSelect.appendChild(opt);
+        const opt = document.createElement("option");
+        opt.value = o.v;
+        opt.textContent = o.t;
+        storageSelect.appendChild(opt);
       });
       // set selected option based on item suggestion if available
-      storageSelect.value = it.lokasiPenyimpanan || 'rak_dapur';
+      storageSelect.value = it.lokasiPenyimpanan || "rak_dapur";
 
       const onCheckChange = async () => {
         // (Konfirmasi button is always visible when a rencana exists; no show/hide on checkbox change)
 
         if (!currentRencanaId) return; // only update server if rencana exists
         try {
-          const res = await fetch(`${API_URL}/menu/${currentRencanaId}/daftar-belanja/${idx}`, {
-            method: 'PATCH', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ sudahDibeli: checkbox.checked })
-          });
+          const res = await fetch(
+            `${API_URL}/menu/${currentRencanaId}/daftar-belanja/${idx}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sudahDibeli: checkbox.checked }),
+            }
+          );
           const d = await res.json();
-          if (!d.sukses) throw new Error(d.pesan || 'Gagal update');
-          tampilkanNotifikasi('Status item diperbarui', 'sukses');
+          if (!d.sukses) throw new Error(d.pesan || "Gagal update");
+          tampilkanNotifikasi("Status item diperbarui", "sukses");
         } catch (err) {
-          console.error('Gagal update status', err);
-          tampilkanNotifikasi('Gagal update status', 'error');
+          console.error("Gagal update status", err);
+          tampilkanNotifikasi("Gagal update status", "error");
           checkbox.checked = !checkbox.checked; // revert
         }
       };
 
-      checkbox.addEventListener('change', onCheckChange);
+      checkbox.addEventListener("change", onCheckChange);
 
       const jumlahText = fmt(it.jumlah);
-      li.innerHTML = `<span style="display:inline-block;margin-right:8px;">${escapeHtml(it.namaBahan)}${jumlahText ? ' - ' + escapeHtml(jumlahText) + ' ' + escapeHtml(it.satuan || '') : ''}</span>`;
+      li.innerHTML = `<span style="display:inline-block;margin-right:8px;">${escapeHtml(
+        it.namaBahan
+      )}${
+        jumlahText
+          ? " - " + escapeHtml(jumlahText) + " " + escapeHtml(it.satuan || "")
+          : ""
+      }</span>`;
       // append storage select and checkbox
-      const container = document.createElement('span');
-      container.style.display = 'inline-flex';
-      container.style.alignItems = 'center';
-      container.style.gap = '8px';
-      const label = document.createElement('label'); label.style.display='inline-flex'; label.style.alignItems='center'; label.style.gap='6px';
+      const container = document.createElement("span");
+      container.style.display = "inline-flex";
+      container.style.alignItems = "center";
+      container.style.gap = "8px";
+      const label = document.createElement("label");
+      label.style.display = "inline-flex";
+      label.style.alignItems = "center";
+      label.style.gap = "6px";
       // determine default storage based on name/category heuristic and pre-select it (no visible suggestion text)
       const recommend = (name) => {
-        const s = String(name || '').toLowerCase();
-        if (/daging|ayam|sapi|kambing|ikan|seafood|udang|salmon/.test(s)) return 'kulkas';
-        if (/es|beku|frozen/.test(s)) return 'freezer';
-        if (/sayur|sayuran|bayam|wortel|selada/.test(s)) return 'kulkas';
-        if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) return 'rak_dapur';
-        if (/telur/.test(s)) return 'kulkas';
-        if (/roti|tawar/.test(s)) return 'rak_dapur';
-        if (/minyak|oil|olive|butter|mentega/.test(s)) return 'rak_dapur';
-        if (/susu|yoghurt|keju|cream/.test(s)) return 'kulkas';
-        return 'rak_dapur';
+        const s = String(name || "").toLowerCase();
+        if (/daging|ayam|sapi|kambing|ikan|seafood|udang|salmon/.test(s))
+          return "kulkas";
+        if (/es|beku|frozen/.test(s)) return "freezer";
+        if (/sayur|sayuran|bayam|wortel|selada/.test(s)) return "kulkas";
+        if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) return "rak_dapur";
+        if (/telur/.test(s)) return "kulkas";
+        if (/roti|tawar/.test(s)) return "rak_dapur";
+        if (/minyak|oil|olive|butter|mentega/.test(s)) return "rak_dapur";
+        if (/susu|yoghurt|keju|cream/.test(s)) return "kulkas";
+        return "rak_dapur";
       };
       // pre-select storage (use provided lokasiPenyimpanan if available, otherwise choose from heuristic)
-      storageSelect.value = it.lokasiPenyimpanan || recommend(it.namaBahan || it.nama || '');
+      storageSelect.value =
+        it.lokasiPenyimpanan || recommend(it.namaBahan || it.nama || "");
       label.appendChild(storageSelect);
       // NOTE: move the checkbox to its own column on the right so rows stay aligned
-      const checkboxWrapper = document.createElement('div');
-      checkboxWrapper.className = 'checkbox-wrap';
-      checkboxWrapper.style.display = 'inline-flex';
-      checkboxWrapper.style.alignItems = 'center';
-      checkboxWrapper.style.justifyContent = 'center';
+      const checkboxWrapper = document.createElement("div");
+      checkboxWrapper.className = "checkbox-wrap";
+      checkboxWrapper.style.display = "inline-flex";
+      checkboxWrapper.style.alignItems = "center";
+      checkboxWrapper.style.justifyContent = "center";
       checkboxWrapper.appendChild(checkbox);
 
       // expiry display for chosen storage (note: expiry is a separate column so it doesn't affect layout)
-      const expirySpan = document.createElement('small');
-      expirySpan.className = 'expiry-note';
+      const expirySpan = document.createElement("small");
+      expirySpan.className = "expiry-note";
       const updateExpiry = () => {
         const lokasi = storageSelect.value;
-        const name = it.namaBahan || it.nama || '';
-        const days = (function(nama, lok) {
-          const s = String(nama || '').toLowerCase();
+        const name = it.namaBahan || it.nama || "";
+        const days = (function (nama, lok) {
+          const s = String(nama || "").toLowerCase();
           let d = 30;
-          if (/daging|sapi|kambing/.test(s)) { if (lok === 'lemari' || lok === 'rak_dapur') d = 2; else d = 3; }
-          else if (/ayam|ikan|seafood|udang|salmon/.test(s)) { d = 2; }
-          else if (/sayur|sayuran|bayam|wortel|selada/.test(s)) d = 5;
+          if (/daging|sapi|kambing/.test(s)) {
+            if (lok === "lemari" || lok === "rak_dapur") d = 2;
+            else d = 3;
+          } else if (/ayam|ikan|seafood|udang|salmon/.test(s)) {
+            d = 2;
+          } else if (/sayur|sayuran|bayam|wortel|selada/.test(s)) d = 5;
           else if (/buah|apel|pisang|jeruk|mangga|pepaya/.test(s)) d = 7;
           else if (/telur/.test(s)) d = 21;
           else if (/roti/.test(s)) d = 3;
           else if (/minyak|oil|olive|butter|mentega/.test(s)) d = 365;
           else if (/susu|yoghurt/.test(s)) d = 7;
           // if stored in fridge/freezer get additional 2 weeks
-          if (lok === 'kulkas' || lok === 'freezer') d = d + 14;
+          if (lok === "kulkas" || lok === "freezer") d = d + 14;
           return d;
         })(name, lokasi);
-        if (!isFinite(days) || days <= 0) { expirySpan.textContent = ''; return; }
-        const d = new Date(); d.setDate(d.getDate() + days);
+        if (!isFinite(days) || days <= 0) {
+          expirySpan.textContent = "";
+          return;
+        }
+        const d = new Date();
+        d.setDate(d.getDate() + days);
         expirySpan.textContent = `Kadaluarsa: ${formatTimestamp(d)}`;
       };
-      storageSelect.addEventListener('change', updateExpiry);
+      storageSelect.addEventListener("change", updateExpiry);
       updateExpiry();
 
       // append label (select) and expiry as siblings; checkbox sits in its own column at the end
@@ -1274,110 +1537,146 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function okieTambahKePantry() {
-    if (!currentRencanaId) return tampilkanNotifikasi('Tidak ada rencana yang dipilih', 'error');
-    const ul = document.getElementById('daftarBelanja');
+    if (!currentRencanaId)
+      return tampilkanNotifikasi("Tidak ada rencana yang dipilih", "error");
+    const ul = document.getElementById("daftarBelanja");
     if (!ul) return;
-    const checked = Array.from(ul.querySelectorAll('li.item-bahan')).filter((li) => li.querySelector('input[type=checkbox]')?.checked);
-    if (!checked.length) return tampilkanNotifikasi('Tidak ada item yang dicentang', 'error');
+    const checked = Array.from(ul.querySelectorAll("li.item-bahan")).filter(
+      (li) => li.querySelector("input[type=checkbox]")?.checked
+    );
+    if (!checked.length)
+      return tampilkanNotifikasi("Tidak ada item yang dicentang", "error");
     // build daftar untuk ditambahkan
     const daftarBahan = checked.map((li) => {
-      const nama = li.dataset.namaBahan || li.textContent.split(' - ')[0].trim();
-      const jumlah = parseFloat(li.dataset.jumlah || '0') || 0;
-      const satuan = li.dataset.satuan || 'gram';
-      const select = li.querySelector('.select-penyimpanan');
-      const lokasi = select ? select.value : 'rak_dapur';
+      const nama =
+        li.dataset.namaBahan || li.textContent.split(" - ")[0].trim();
+      const jumlah = parseFloat(li.dataset.jumlah || "0") || 0;
+      const satuan = li.dataset.satuan || "gram";
+      const select = li.querySelector(".select-penyimpanan");
+      const lokasi = select ? select.value : "rak_dapur";
       // infer if meat/fish/ayam based on name keyword
-      const meatRegex = /\b(daging|ayam|sapi|ikan|udang|seafood|dori|tuna|salmon)\b/i;
+      const meatRegex =
+        /\b(daging|ayam|sapi|ikan|udang|seafood|dori|tuna|salmon)\b/i;
       const isMeat = meatRegex.test(nama);
       // compute tanggal kadaluarsa suggestion if not provided
       let tanggalKadaluarsa = undefined;
       if (isMeat) {
         const now = new Date();
-        if (lokasi === 'lemari' || lokasi === 'rak_dapur') {
+        if (lokasi === "lemari" || lokasi === "rak_dapur") {
           now.setDate(now.getDate() + 2);
-        } else if (lokasi === 'kulkas') {
+        } else if (lokasi === "kulkas") {
           // base 2 days + 14 days extra
           now.setDate(now.getDate() + 2 + 14);
-        } else if (lokasi === 'freezer') {
+        } else if (lokasi === "freezer") {
           // freezer keeps longer + 2 weeks extra
           now.setDate(now.getDate() + 90 + 14);
         }
         tanggalKadaluarsa = now.toISOString();
       }
       // normalize name by removing parenthetical qualifiers to improve merge chances on server
-      const namaNormalized = (nama || '').replace(/\s*\(.+\)\s*/g, '').trim() || nama;
-      return ({
+      const namaNormalized =
+        (nama || "").replace(/\s*\(.+\)\s*/g, "").trim() || nama;
+      return {
         namaBahan: namaNormalized,
         jumlahTersedia: jumlah,
         satuan: satuan,
         lokasiPenyimpanan: lokasi,
         tanggalPembelian: new Date(),
-        tanggalKadaluarsa
-      });
+        tanggalKadaluarsa,
+      };
     });
 
     try {
       // bulk add to pantry
-      const main = document.querySelector('main.kontainer-utama');
+      const main = document.querySelector("main.kontainer-utama");
       const idPengguna = main ? main.dataset.userId : null;
-      const res = await fetch(`${API_URL}/bahan/tambah-banyak`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan, idPengguna }) });
+      const res = await fetch(`${API_URL}/bahan/tambah-banyak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ daftarBahan, idPengguna }),
+      });
       const data = await res.json();
-      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal menambahkan bahan', 'error');
+      if (!data.sukses)
+        return tampilkanNotifikasi(
+          data.pesan || "Gagal menambahkan bahan",
+          "error"
+        );
       // Option: mark items as sudahDibeli (not strictly necessary) - we will clear the whole daftar after adding
       try {
-        await fetch(`${API_URL}/menu/${currentRencanaId}/hapus-semua`, { method: 'POST' });
-      } catch (err) { console.warn('Gagal hapus semua daftar', err); }
+        await fetch(`${API_URL}/menu/${currentRencanaId}/hapus-semua`, {
+          method: "POST",
+        });
+      } catch (err) {
+        console.warn("Gagal hapus semua daftar", err);
+      }
 
-      tampilkanNotifikasi('Bahan berhasil ditambahkan; daftar belanja dikosongkan', 'sukses');
+      tampilkanNotifikasi(
+        "Bahan berhasil ditambahkan; daftar belanja dikosongkan",
+        "sukses"
+      );
       await loadDaftarBelanjaRencana(currentRencanaId);
       await loadDaftarBahan();
     } catch (err) {
-      console.error('Gagal menambahkan ke bahan', err);
-      tampilkanNotifikasi('Gagal menambahkan ke bahan', 'error');
+      console.error("Gagal menambahkan ke bahan", err);
+      tampilkanNotifikasi("Gagal menambahkan ke bahan", "error");
     }
   }
 
   function renderKaloriInfo(kaloriSummary, targetKaloriHarian) {
-    const el = document.getElementById('kaloriInfo');
+    const el = document.getElementById("kaloriInfo");
     if (!el) return;
     if (!kaloriSummary || !kaloriSummary.perHari) {
-      el.textContent = '';
+      el.textContent = "";
       return;
     }
-    const hariStr = kaloriSummary.perHari.map((p) => `${p.hari}: ${p.totalHari} kkal`).join(' • ');
+    const hariStr = kaloriSummary.perHari
+      .map((p) => `${p.hari}: ${p.totalHari} kkal`)
+      .join(" • ");
     let txt = `Kalori: ${hariStr} — Total minggu: ${kaloriSummary.totalMingguan} kkal`;
     if (targetKaloriHarian) {
       // indicate whether average per-day meets target
-      const avgPerDay = Math.round(kaloriSummary.totalMingguan / (kaloriSummary.perHari.length || 7));
-      const ok = Math.abs(avgPerDay - targetKaloriHarian) <= Math.round(targetKaloriHarian * 0.15); // within 15%
-      txt += ` • Target harian: ${targetKaloriHarian} kkal (${ok ? 'OK' : 'Tidak sesuai'})`;
+      const avgPerDay = Math.round(
+        kaloriSummary.totalMingguan / (kaloriSummary.perHari.length || 7)
+      );
+      const ok =
+        Math.abs(avgPerDay - targetKaloriHarian) <=
+        Math.round(targetKaloriHarian * 0.15); // within 15%
+      txt += ` • Target harian: ${targetKaloriHarian} kkal (${
+        ok ? "OK" : "Tidak sesuai"
+      })`;
     }
     el.textContent = txt;
   }
 
   async function kirimEmailRencana() {
-    if (!currentRencanaId) return tampilkanNotifikasi('Tidak ada rencana yang dipilih', 'error');
+    if (!currentRencanaId)
+      return tampilkanNotifikasi("Tidak ada rencana yang dipilih", "error");
     try {
-      const res = await fetch(`${API_URL}/menu/${currentRencanaId}/kirim-email`, { method: 'POST' });
+      const res = await fetch(
+        `${API_URL}/menu/${currentRencanaId}/kirim-email`,
+        { method: "POST" }
+      );
       const data = await res.json();
       if (data.sukses) {
-        tampilkanNotifikasi('Email rencana dikirim', 'sukses');
+        tampilkanNotifikasi("Email rencana dikirim", "sukses");
       } else {
-        tampilkanNotifikasi(data.pesan || 'Gagal mengirim email', 'error');
+        tampilkanNotifikasi(data.pesan || "Gagal mengirim email", "error");
       }
     } catch (err) {
-      console.error('Gagal kirim email', err);
-      tampilkanNotifikasi('Gagal kirim email', 'error');
+      console.error("Gagal kirim email", err);
+      tampilkanNotifikasi("Gagal kirim email", "error");
     }
   }
 
   async function loadCurrentRencana() {
-    const main = document.querySelector('main.kontainer-utama');
+    const main = document.querySelector("main.kontainer-utama");
     const idPengguna = main ? main.dataset.userId : null;
     if (!idPengguna) return;
     const { mingguKe, tahun } = getISOWeekAndYear();
     try {
-      const res = await fetch(`${API_URL}/menu/${idPengguna}/${tahun}/${mingguKe}`);
+      const res = await fetch(
+        `${API_URL}/menu/${idPengguna}/${tahun}/${mingguKe}`
+      );
       const data = await res.json();
       if (data && data.sukses && data.data) {
         // set current rencana id and render menu + daftar belanja
@@ -1386,61 +1685,77 @@ document.addEventListener("DOMContentLoaded", async () => {
         await loadDaftarBelanjaRencana(currentRencanaId);
       }
     } catch (err) {
-      console.warn('Gagal load rencana sekarang', err);
+      console.warn("Gagal load rencana sekarang", err);
     }
   }
 
   function inisialisasiMenu() {
-    const btnGen = document.getElementById('tombolGenerateMenu');
-    const btnSimpan = document.getElementById('tombolSimpanRencana');
-    const btnKonf = document.getElementById('tombolKonfirmasi');
-    const btnKirim = document.getElementById('tombolKirimEmail');
+    const btnGen = document.getElementById("tombolGenerateMenu");
+    const btnSimpan = document.getElementById("tombolSimpanRencana");
+    const btnKonf = document.getElementById("tombolKonfirmasi");
+    const btnKirim = document.getElementById("tombolKirimEmail");
 
     // If it's Monday, clear old rencana before loading
-    const main = document.querySelector('main.kontainer-utama');
+    const main = document.querySelector("main.kontainer-utama");
     const idPengguna = main ? main.dataset.userId : null;
     const today = new Date();
     if (today.getDay() === 1 && idPengguna) {
-      fetch(`${API_URL}/menu/clear-old/${idPengguna}`, { method: 'POST' }).catch((e) => console.warn('Gagal bersihkan rencana lama', e));
+      fetch(`${API_URL}/menu/clear-old/${idPengguna}`, {
+        method: "POST",
+      }).catch((e) => console.warn("Gagal bersihkan rencana lama", e));
     }
 
     // Load current rencana if present
     loadCurrentRencana();
 
-    if (btnGen) btnGen.addEventListener('click', async () => {
-      try {
-        btnGen.disabled = true;
-        btnGen.textContent = '🔄 Meng-generate...';
-        const pilihanDietEl = document.getElementById('pilihanDiet');
-        const pilihanDiet = pilihanDietEl ? pilihanDietEl.value : '';
-        // map simple presets to target calories
-        let targetKaloriHarian = null;
-        if (pilihanDiet === 'kalori_1500') targetKaloriHarian = 1500;
-        if (pilihanDiet === 'kalori_1800') targetKaloriHarian = 1800;
-        if (pilihanDiet === 'kalori_2000') targetKaloriHarian = 2000;
-        const res = await fetch(`${API_URL}/menu/generate-saran`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ idPengguna, pilihanDiet, targetKaloriHarian }) });
-        const data = await res.json();
-        if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal generate menu', 'error');
-        renderMenuMingguan(data.data.menuMingguan);
-        // show calorie info if server sent it
-        if (data.data && data.data.kaloriSummary) renderKaloriInfo(data.data.kaloriSummary, targetKaloriHarian);
-        // Perubahan: tidak melakukan preview daftar belanja otomatis — daftar akan dikirim ke email saja setelah menyimpan rencana.
-      } catch (err) {
-        console.error('Gagal generate menu', err);
-        tampilkanNotifikasi('Gagal generate menu', 'error');
-      } finally {
-        btnGen.disabled = false;
-        btnGen.textContent = '🤖 Generate Menu dengan AI';
-      }
-    });
-    if (btnSimpan) btnSimpan.addEventListener('click', simpanRencana);
-    if (btnKonf) btnKonf.addEventListener('click', okieTambahKePantry);
-    if (btnKirim) btnKirim.addEventListener('click', kirimEmailRencana);
+    if (btnGen)
+      btnGen.addEventListener("click", async () => {
+        try {
+          btnGen.disabled = true;
+          btnGen.textContent = "🔄 Meng-generate...";
+          const pilihanDietEl = document.getElementById("pilihanDiet");
+          const pilihanDiet = pilihanDietEl ? pilihanDietEl.value : "";
+          // map simple presets to target calories
+          let targetKaloriHarian = null;
+          if (pilihanDiet === "kalori_1500") targetKaloriHarian = 1500;
+          if (pilihanDiet === "kalori_1800") targetKaloriHarian = 1800;
+          if (pilihanDiet === "kalori_2000") targetKaloriHarian = 2000;
+          const res = await fetch(`${API_URL}/menu/generate-saran`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              idPengguna,
+              pilihanDiet,
+              targetKaloriHarian,
+            }),
+          });
+          const data = await res.json();
+          if (!data.sukses)
+            return tampilkanNotifikasi(
+              data.pesan || "Gagal generate menu",
+              "error"
+            );
+          renderMenuMingguan(data.data.menuMingguan);
+          // show calorie info if server sent it
+          if (data.data && data.data.kaloriSummary)
+            renderKaloriInfo(data.data.kaloriSummary, targetKaloriHarian);
+          // Perubahan: tidak melakukan preview daftar belanja otomatis — daftar akan dikirim ke email saja setelah menyimpan rencana.
+        } catch (err) {
+          console.error("Gagal generate menu", err);
+          tampilkanNotifikasi("Gagal generate menu", "error");
+        } finally {
+          btnGen.disabled = false;
+          btnGen.textContent = "🤖 Generate Menu dengan AI";
+        }
+      });
+    if (btnSimpan) btnSimpan.addEventListener("click", simpanRencana);
+    if (btnKonf) btnKonf.addEventListener("click", okieTambahKePantry);
+    if (btnKirim) btnKirim.addEventListener("click", kirimEmailRencana);
   }
 
   // --- Pantry Challenge ---
   // current recommendation source: 'kadaluarsa' (we intentionally restrict to expiring items only)
-  let currentRecommendationSource = 'kadaluarsa';
+  let currentRecommendationSource = "kadaluarsa";
 
   async function loadPantryChallenge() {
     // default: use server-side default (3 days)
@@ -1448,74 +1763,113 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadPantryItems();
 
     // clear previous recommendations to avoid stale display
-    const kont = document.getElementById('rekomendasiPantry');
-    if (kont) kont.innerHTML = '';
-    const titleEl = document.getElementById('rekomendasiTitle');
-    if (titleEl) titleEl.textContent = '';
-    const msgEl = document.getElementById('rekomendasiMessage');
-    if (msgEl) msgEl.textContent = '';
+    const kont = document.getElementById("rekomendasiPantry");
+    if (kont) kont.innerHTML = "";
+    const titleEl = document.getElementById("rekomendasiTitle");
+    if (titleEl) titleEl.textContent = "";
+    const msgEl = document.getElementById("rekomendasiMessage");
+    if (msgEl) msgEl.textContent = "";
 
     try {
-      const res = await fetch(`${API_URL}/bahan/kadaluarsa`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/bahan/kadaluarsa`, {
+        credentials: "include",
+      });
       if (!res.ok) {
-        if (res.status === 401) return tampilkanNotifikasi('Silakan login untuk melihat Pantry Challenge', 'error');
-        console.warn('Kadaluarsa request failed', res.status);
+        if (res.status === 401)
+          return tampilkanNotifikasi(
+            "Silakan login untuk melihat Pantry Challenge",
+            "error"
+          );
+        console.warn("Kadaluarsa request failed", res.status);
         return;
       }
       const data = await res.json();
-      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Tidak ada data kadaluarsa', 'info');
+      if (!data.sukses)
+        return tampilkanNotifikasi(
+          data.pesan || "Tidak ada data kadaluarsa",
+          "info"
+        );
       const bahan = data.data.kadaluarsa || [];
       // store last kadaluarsa items globally for strict client-side checks
       window.__lastKadaluarsaItems = bahan;
       renderBahanHampir(bahan);
 
       // Primary: recommend based on expiring items only
-      const daftarNamaKadaluarsa = bahan.map((b) => b.namaBahan).filter(Boolean).slice(0, 12);
-      const msgEl = document.getElementById('rekomendasiMessage');
+      const daftarNamaKadaluarsa = bahan
+        .map((b) => b.namaBahan)
+        .filter(Boolean)
+        .slice(0, 12);
+      const msgEl = document.getElementById("rekomendasiMessage");
       if (daftarNamaKadaluarsa.length) {
-        currentRecommendationSource = 'kadaluarsa';
-        document.getElementById('rekomendasiTitle').textContent = 'Rekomendasi berdasarkan bahan hampir kadaluarsa';
-        if (msgEl) msgEl.textContent = '';
-        const ada = await cariResepBerdasarkanBahanKadaluarsa(daftarNamaKadaluarsa);
+        currentRecommendationSource = "kadaluarsa";
+        document.getElementById("rekomendasiTitle").textContent =
+          "Rekomendasi berdasarkan bahan hampir kadaluarsa";
+        if (msgEl) msgEl.textContent = "";
+        const ada = await cariResepBerdasarkanBahanKadaluarsa(
+          daftarNamaKadaluarsa
+        );
         if (ada) return; // done (we had matches based on expiring items)
         // no matches found
-        if (msgEl) msgEl.textContent = 'Tidak ditemukan resep yang cocok dengan bahan hampir kadaluarsa.';
+        if (msgEl)
+          msgEl.textContent =
+            "Tidak ditemukan resep yang cocok dengan bahan hampir kadaluarsa.";
         return;
       }
 
       // If no expiring ingredients at all, show message and stop (no pantry fallback)
-      currentRecommendationSource = 'kadaluarsa';
-      if (msgEl) msgEl.textContent = 'Tidak ada bahan hampir kadaluarsa.';
+      currentRecommendationSource = "kadaluarsa";
+      if (msgEl) msgEl.textContent = "Tidak ada bahan hampir kadaluarsa.";
       return;
     } catch (err) {
-      console.error('Gagal load kadaluarsa', err);
-      tampilkanNotifikasi('Gagal memuat bahan kadaluarsa', 'error');
+      console.error("Gagal load kadaluarsa", err);
+      tampilkanNotifikasi("Gagal memuat bahan kadaluarsa", "error");
     }
   }
 
   function renderBahanHampir(items) {
-    const ul = document.getElementById('bahanHampirKadaluarsa');
+    const ul = document.getElementById("bahanHampirKadaluarsa");
     if (!ul) return;
-    ul.innerHTML = '';
+    ul.innerHTML = "";
     items.forEach((b) => {
-      const li = document.createElement('li');
+      const li = document.createElement("li");
       const sisa = b.sisaHariKadaluarsa;
-      const kelas = sisa === null ? '' : sisa <= 1 ? 'segera' : sisa <= 3 ? 'perhatian' : '';
-      li.className = 'item-bahan ' + kelas;
-      const badge = sisa === null ? '' : `<span class="badge-kadaluarsa ${kelas}">${sisa <= 1 ? 'SEGERA GUNAKAN!' : sisa + ' hari lagi'}</span>`;
-      li.innerHTML = `<span>🍽️ ${escapeHtml(b.namaBahan)} - ${b.jumlahTersedia || 0} ${b.satuan || ''}</span>${badge}`;
+      const kelas =
+        sisa === null
+          ? ""
+          : sisa <= 1
+          ? "segera"
+          : sisa <= 3
+          ? "perhatian"
+          : "";
+      li.className = "item-bahan " + kelas;
+      const badge =
+        sisa === null
+          ? ""
+          : `<span class="badge-kadaluarsa ${kelas}">${
+              sisa <= 1 ? "SEGERA GUNAKAN!" : sisa + " hari lagi"
+            }</span>`;
+      li.innerHTML = `<span>🍽️ ${escapeHtml(b.namaBahan)} - ${
+        b.jumlahTersedia || 0
+      } ${b.satuan || ""}</span>${badge}`;
       ul.appendChild(li);
     });
   }
 
   async function cariResepDenganBahan(daftarNama, minKecocokan = 30) {
     try {
-      const res = await fetch(`${API_URL}/resep/cari-dengan-bahan`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan: daftarNama, minimumKecocokan: minKecocokan }) });
+      const res = await fetch(`${API_URL}/resep/cari-dengan-bahan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          daftarBahan: daftarNama,
+          minimumKecocokan: minKecocokan,
+        }),
+      });
       const data = await res.json();
       if (!data.sukses) return renderRekomendasi([]);
       renderRekomendasi(data.data || []);
     } catch (err) {
-      console.error('Gagal cari resep pantry', err);
+      console.error("Gagal cari resep pantry", err);
       renderRekomendasi([]);
     }
   }
@@ -1523,67 +1877,91 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Try to find recipes that specifically match expiring ingredients
   async function cariResepBerdasarkanBahanKadaluarsa(daftarNamaKadaluarsa) {
     try {
-      const res = await fetch(`${API_URL}/resep/cari-dengan-bahan`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan: daftarNamaKadaluarsa, minimumKecocokan: 10 }) });
+      const res = await fetch(`${API_URL}/resep/cari-dengan-bahan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          daftarBahan: daftarNamaKadaluarsa,
+          minimumKecocokan: 10,
+        }),
+      });
       const data = await res.json();
-      if (!data.sukses || !Array.isArray(data.data) || data.data.length === 0) return false;
+      if (!data.sukses || !Array.isArray(data.data) || data.data.length === 0)
+        return false;
       // Filter results to only those that include at least one of the expiring ingredients
-      const expLower = daftarNamaKadaluarsa.map(x => String(x).toLowerCase());
+      const expLower = daftarNamaKadaluarsa.map((x) => String(x).toLowerCase());
       // stricter matching: use normalized whole-word/token matching to avoid substrings (eg 'bayam' vs 'ayam')
       const filtered = data.data.filter((entry) => {
         const r = entry.resep || entry;
-        const daftar = (r.daftarBahan || []).map(b => normalizeName(b.namaBahan || ''));
-        return daftar.some(d => expLower.some(e => {
-          const term = normalizeName(e);
-          if (!term) return false;
-          const re = new RegExp('\\b' + escapeRegExp(term) + '\\b');
-          if (re.test(d)) return true;
-          const dtoks = d.split(' ').filter(Boolean);
-          // token intersection for tokens length >= 3
-          if (term.length >= 3 && dtoks.includes(term)) return true;
-          return false;
-        }));
+        const daftar = (r.daftarBahan || []).map((b) =>
+          normalizeName(b.namaBahan || "")
+        );
+        return daftar.some((d) =>
+          expLower.some((e) => {
+            const term = normalizeName(e);
+            if (!term) return false;
+            const re = new RegExp("\\b" + escapeRegExp(term) + "\\b");
+            if (re.test(d)) return true;
+            const dtoks = d.split(" ").filter(Boolean);
+            // token intersection for tokens length >= 3
+            if (term.length >= 3 && dtoks.includes(term)) return true;
+            return false;
+          })
+        );
       });
       if (!filtered.length) return false;
       // Enhance each with count of expiring ingredient matches
       const enhanced = filtered.map((entry) => {
         const r = entry.resep || entry;
-        const daftar = (r.daftarBahan || []).map(b => normalizeName(b.namaBahan || ''));
+        const daftar = (r.daftarBahan || []).map((b) =>
+          normalizeName(b.namaBahan || "")
+        );
         const expMatches = expLower.reduce((acc, e) => {
           const term = normalizeName(e);
           if (!term) return acc;
-          const re = new RegExp('\\b' + escapeRegExp(term) + '\\b');
-          const found = daftar.some(d => re.test(d) || (term.length >= 3 && d.split(' ').includes(term)));
+          const re = new RegExp("\\b" + escapeRegExp(term) + "\\b");
+          const found = daftar.some(
+            (d) =>
+              re.test(d) || (term.length >= 3 && d.split(" ").includes(term))
+          );
           return acc + (found ? 1 : 0);
         }, 0);
         return Object.assign({}, entry, { expMatches });
       });
       // Sort by expMatches desc, then by estimatedMatch/persen
-      enhanced.sort((a,b) => (b.expMatches - a.expMatches) || ((b.estimatedMatch || b.persentaseKecocokan || 0) - (a.estimatedMatch || a.persentaseKecocokan || 0)));
+      enhanced.sort(
+        (a, b) =>
+          b.expMatches - a.expMatches ||
+          (b.estimatedMatch || b.persentaseKecocokan || 0) -
+            (a.estimatedMatch || a.persentaseKecocokan || 0)
+      );
       // Render but annotate name with expiring match count inside renderRekomendasi we will use presentCount; for now pass entries as-is
       renderRekomendasi(enhanced);
       // add small note
-      const titleEl = document.getElementById('rekomendasiTitle');
-      if (titleEl) titleEl.textContent = `Rekomendasi berdasarkan bahan hampir kadaluarsa (menyesuaikan yang paling cocok)`;
+      const titleEl = document.getElementById("rekomendasiTitle");
+      if (titleEl)
+        titleEl.textContent = `Rekomendasi berdasarkan bahan hampir kadaluarsa (menyesuaikan yang paling cocok)`;
       return true;
     } catch (err) {
-      console.error('Gagal cari resep berdasarkan kadaluarsa', err);
+      console.error("Gagal cari resep berdasarkan kadaluarsa", err);
       return false;
     }
   }
-
 
   // Pantry cache of ingredient names (lowercase)
   let pantryIngredientNames = new Set();
 
   async function loadPantryItems() {
     try {
-      const res = await fetch(`${API_URL}/bahan`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/bahan`, { credentials: "include" });
       if (!res.ok) return;
       const data = await res.json();
       if (!data.sukses) return;
-      pantryIngredientNames = new Set((data.data || []).map((b) => (b.namaBahan || '').toLowerCase()));
+      pantryIngredientNames = new Set(
+        (data.data || []).map((b) => (b.namaBahan || "").toLowerCase())
+      );
     } catch (err) {
-      console.error('Gagal load pantry items', err);
+      console.error("Gagal load pantry items", err);
     }
   }
 
@@ -1592,12 +1970,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function normalizeName(s) {
-    return String(s || '')
+    return String(s || "")
       .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '') // remove diacritics
-      .replace(/[^a-z0-9\s]/g, ' ') // keep letters/numbers/spaces
-      .replace(/\s+/g, ' ')
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "") // remove diacritics
+      .replace(/[^a-z0-9\s]/g, " ") // keep letters/numbers/spaces
+      .replace(/\s+/g, " ")
       .trim();
   }
 
@@ -1607,7 +1985,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!n) return false;
 
     // prefer token / whole-word matches to avoid substring false positives (e.g., 'bayam' vs 'ayam')
-    const nTokens = n.split(' ').filter(Boolean);
+    const nTokens = n.split(" ").filter(Boolean);
 
     for (const rawP of pantryIngredientNames) {
       if (!rawP) continue;
@@ -1620,7 +1998,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (reP.test(n) || reN.test(p)) return true;
 
       // token intersection: require tokens of length >= 3 to avoid tiny-word matches
-      const pTokens = p.split(' ').filter(Boolean);
+      const pTokens = p.split(" ").filter(Boolean);
       for (const t of nTokens) {
         if (t.length < 3) continue;
         if (pTokens.includes(t)) return true;
@@ -1631,81 +2009,95 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function lihatBahanResep(id, holder) {
     if (!id || !holder) return;
-    const target = holder.querySelector(`#bahan_${id}`) || holder.querySelector(`#detail_${id}`);
+    const target =
+      holder.querySelector(`#bahan_${id}`) ||
+      holder.querySelector(`#detail_${id}`);
     if (!target) return;
-    if (target.dataset.loaded === '1') {
-      target.style.display = target.style.display === 'none' ? 'block' : 'none';
+    if (target.dataset.loaded === "1") {
+      target.style.display = target.style.display === "none" ? "block" : "none";
       return;
     }
     try {
-      target.innerHTML = '<p>Memuat detail…</p>';
+      target.innerHTML = "<p>Memuat detail…</p>";
       const res = await fetch(`${API_URL}/resep/${id}`);
       const data = await res.json();
       if (!data.sukses) {
-        target.innerHTML = '<p>Gagal memuat detail resep</p>';
+        target.innerHTML = "<p>Gagal memuat detail resep</p>";
         return;
       }
       muatDetailResepToElement(target, data.data);
-      target.dataset.loaded = '1';
+      target.dataset.loaded = "1";
     } catch (err) {
-      console.error('Gagal load detail resep', err);
-      target.innerHTML = '<p>Gagal memuat detail resep</p>';
+      console.error("Gagal load detail resep", err);
+      target.innerHTML = "<p>Gagal memuat detail resep</p>";
     }
   }
 
   // helper: populate a detail container with bahan + langkah for a recipe object
   function muatDetailResepToElement(el, resep) {
     if (!el || !resep) return;
-    let html = '';
+    let html = "";
     // ingredients can be objects or strings; support alternative keys
     const daftar = resep.daftarBahan || resep.bahan || resep.ingredients || [];
-    html += '<h4>Bahan</h4>';
-    if (!daftar.length) html += '<p><em>Tidak ada informasi bahan.</em></p>';
+    html += "<h4>Bahan</h4>";
+    if (!daftar.length) html += "<p><em>Tidak ada informasi bahan.</em></p>";
     else {
       html += '<ul class="daftar-bahan-resep">';
       daftar.forEach((it) => {
-        let nama = '';
-        let jumlah = '';
-        let satuan = '';
+        let nama = "";
+        let jumlah = "";
+        let satuan = "";
         if (!it) {
-          nama = '';
-        } else if (typeof it === 'string') {
+          nama = "";
+        } else if (typeof it === "string") {
           nama = it;
         } else {
-          nama = it.namaBahan || it.nama || it.name || it.item || '';
-          jumlah = it.jumlah || it.qty || it.jumlahTersedia || '';
-          satuan = it.satuan || it.unit || '';
+          nama = it.namaBahan || it.nama || it.name || it.item || "";
+          jumlah = it.jumlah || it.qty || it.jumlahTersedia || "";
+          satuan = it.satuan || it.unit || "";
         }
-        html += `<li>${escapeHtml(nama)} ${jumlah ? '- ' + escapeHtml(String(jumlah)) + ' ' + escapeHtml(satuan) : ''}</li>`;
+        html += `<li>${escapeHtml(nama)} ${
+          jumlah
+            ? "- " + escapeHtml(String(jumlah)) + " " + escapeHtml(satuan)
+            : ""
+        }</li>`;
       });
-      html += '</ul>';
+      html += "</ul>";
     }
 
     // steps can be objects or strings; support alternative keys
     const langkah = resep.langkah || resep.steps || resep.instruksi || [];
-    html += '<h4>Langkah</h4>';
+    html += "<h4>Langkah</h4>";
     if (!langkah.length && resep.deskripsi) {
       html += `<p>${escapeHtml(resep.deskripsi)}</p>`;
     } else if (!langkah.length) {
-      html += '<p><em>Tidak ada instruksi langkah.</em></p>';
+      html += "<p><em>Tidak ada instruksi langkah.</em></p>";
     } else {
       html += '<ol class="daftar-langkah-resep">';
       langkah.forEach((lk) => {
-        let desc = '';
-        let dur = '';
-        let tips = '';
+        let desc = "";
+        let dur = "";
+        let tips = "";
         if (!lk) {
-          desc = '';
-        } else if (typeof lk === 'string') {
+          desc = "";
+        } else if (typeof lk === "string") {
           desc = lk;
         } else {
-          desc = lk.deskripsi || lk.text || lk.instruksi || lk.step || lk.title || '';
-          dur = lk.durasiMenit || lk.duration || '';
-          tips = lk.tips || lk.catatan || '';
+          desc =
+            lk.deskripsi ||
+            lk.text ||
+            lk.instruksi ||
+            lk.step ||
+            lk.title ||
+            "";
+          dur = lk.durasiMenit || lk.duration || "";
+          tips = lk.tips || lk.catatan || "";
         }
-        html += `<li>${escapeHtml(desc)}${dur ? ` <em>(${escapeHtml(String(dur))} menit)</em>` : ''}${tips ? `<div class="tip">💡 ${escapeHtml(tips)}</div>` : ''}</li>`;
+        html += `<li>${escapeHtml(desc)}${
+          dur ? ` <em>(${escapeHtml(String(dur))} menit)</em>` : ""
+        }${tips ? `<div class="tip">💡 ${escapeHtml(tips)}</div>` : ""}</li>`;
       });
-      html += '</ol>';
+      html += "</ol>";
     }
 
     el.innerHTML = html;
@@ -1715,48 +2107,51 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function toggleResepDetail(id, holder, card) {
     if (!id || !holder) return;
     // if already visible, hide
-    if (holder.style.display === 'block') {
-      holder.style.display = 'none';
-      if (card) card.classList.remove('expanded');
+    if (holder.style.display === "block") {
+      holder.style.display = "none";
+      if (card) card.classList.remove("expanded");
       return;
     }
     // if not loaded yet, fetch
-    if (holder.dataset.loaded !== '1') {
-      holder.innerHTML = '<p>🔄 Memuat detail resep...</p>';
+    if (holder.dataset.loaded !== "1") {
+      holder.innerHTML = "<p>🔄 Memuat detail resep...</p>";
       try {
         const res = await fetch(`${API_URL}/resep/${id}`);
         const data = await res.json();
         if (!data.sukses) {
-          holder.innerHTML = `<p>❌ ${data.pesan || 'Gagal memuat detail'}</p>`;
+          holder.innerHTML = `<p>❌ ${data.pesan || "Gagal memuat detail"}</p>`;
           return;
         }
         muatDetailResepToElement(holder, data.data);
-        holder.dataset.loaded = '1';
+        holder.dataset.loaded = "1";
       } catch (err) {
-        console.error('Gagal memuat detail resep', err);
-        holder.innerHTML = '<p>❌ Gagal memuat detail resep</p>';
+        console.error("Gagal memuat detail resep", err);
+        holder.innerHTML = "<p>❌ Gagal memuat detail resep</p>";
         return;
       }
     }
 
     // show
-    holder.style.display = 'block';
-    if (card) card.classList.add('expanded');
+    holder.style.display = "block";
+    if (card) card.classList.add("expanded");
   }
 
   function renderRekomendasi(list) {
-    const kont = document.getElementById('rekomendasiPantry');
+    const kont = document.getElementById("rekomendasiPantry");
     if (!kont) return;
-    kont.innerHTML = '';
+    kont.innerHTML = "";
     if (!list || list.length === 0) {
-      kont.innerHTML = '<div class="kartu"><p>Tidak ada rekomendasi saat ini. Tambahkan bahan ke pantry atau refresh.</p></div>';
+      kont.innerHTML =
+        '<div class="kartu"><p>Tidak ada rekomendasi saat ini. Tambahkan bahan ke pantry atau refresh.</p></div>';
       return;
     }
 
     // If recommending specifically for kadaluarsa, show only recipes that explicitly contain at least one expiring ingredient
-    if (currentRecommendationSource === 'kadaluarsa') {
+    if (currentRecommendationSource === "kadaluarsa") {
       // build normalized expiring tokens from the global last kadaluarsa fetch
-      const expItems = (window.__lastKadaluarsaItems || []).map((b) => normalizeName(b.namaBahan || '')).filter(Boolean);
+      const expItems = (window.__lastKadaluarsaItems || [])
+        .map((b) => normalizeName(b.namaBahan || ""))
+        .filter(Boolean);
       const expSet = new Set(expItems);
 
       list = (list || []).filter((e) => {
@@ -1764,13 +2159,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         // prefer server-supplied expMatches if available
         if (e.expMatches && e.expMatches > 0) return true;
         const r = e.resep || e;
-        const daftarTokens = (r.daftarBahan || []).map((b) => normalizeName(b.namaBahan || '')).filter(Boolean);
+        const daftarTokens = (r.daftarBahan || [])
+          .map((b) => normalizeName(b.namaBahan || ""))
+          .filter(Boolean);
         // require at least one token to match exactly
         return daftarTokens.some((tok) => expSet.has(tok));
       });
 
       if (!list.length) {
-        kont.innerHTML = '<div class="kartu"><p>Tidak ditemukan resep yang cocok dengan bahan hampir kadaluarsa.</p></div>';
+        kont.innerHTML =
+          '<div class="kartu"><p>Tidak ditemukan resep yang cocok dengan bahan hampir kadaluarsa.</p></div>';
         return;
       }
     }
@@ -1784,83 +2182,158 @@ document.addEventListener("DOMContentLoaded", async () => {
         totalBahan = r.daftarBahan.length;
         let miss = 0;
         r.daftarBahan.forEach((b) => {
-          const name = (b.namaBahan || '').toLowerCase();
+          const name = (b.namaBahan || "").toLowerCase();
           if (!ingredientMatchesPantry(name)) miss++;
         });
         missingCount = miss;
       } else if (entry.bahanKurang && Array.isArray(entry.bahanKurang)) {
         missingCount = entry.bahanKurang.length;
-      } else if (entry.missingIngredients && Array.isArray(entry.missingIngredients)) {
+      } else if (
+        entry.missingIngredients &&
+        Array.isArray(entry.missingIngredients)
+      ) {
         missingCount = entry.missingIngredients.length;
       }
-      const presentCount = (totalBahan !== null && missingCount !== null) ? (totalBahan - missingCount) : null;
+      const presentCount =
+        totalBahan !== null && missingCount !== null
+          ? totalBahan - missingCount
+          : null;
       const estimated = entry.estimatedMatch || entry.persentaseKecocokan || 0;
       const score = presentCount !== null ? presentCount : estimated;
       return { entry, r, presentCount, totalBahan, score };
     });
 
     enriched.sort((a, b) => {
-      if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
-      return (b.entry.estimatedMatch || b.entry.persentaseKecocokan || 0) - (a.entry.estimatedMatch || a.entry.persentaseKecocokan || 0);
+      if ((b.score || 0) !== (a.score || 0))
+        return (b.score || 0) - (a.score || 0);
+      return (
+        (b.entry.estimatedMatch || b.entry.persentaseKecocokan || 0) -
+        (a.entry.estimatedMatch || a.entry.persentaseKecocokan || 0)
+      );
     });
 
-    enriched.slice(0,12).forEach(({ entry, r, presentCount, totalBahan }) => {
-      const sourceLabel = currentRecommendationSource === 'kadaluarsa' ? ' (dari bahan hampir kadaluarsa)' : '';
-      const nama = r.namaResep || r.name || r.nama || 'Resep';
+    enriched.slice(0, 12).forEach(({ entry, r, presentCount, totalBahan }) => {
+      const sourceLabel =
+        currentRecommendationSource === "kadaluarsa"
+          ? " (dari bahan hampir kadaluarsa)"
+          : "";
+      const nama = r.namaResep || r.name || r.nama || "Resep";
       const waktu = (r.waktuPersiapanMenit || 0) + (r.waktuMemasakMenit || 0);
-      const kecocokan = entry.persentaseKecocokan ? `${entry.persentaseKecocokan}% cocok` : (entry.estimatedMatch ? `${entry.estimatedMatch}% cocok` : '');
-      const kurang = entry.bahanKurang && entry.bahanKurang.length ? ` - butuh: ${entry.bahanKurang.join(', ')}` : (entry.missingIngredients && entry.missingIngredients.length ? ` - butuh: ${entry.missingIngredients.join(', ')}` : '');
-      const idResep = (r._id || r.recipeId || '');
-      const div = document.createElement('div');
-      div.className = 'kartu-resep';
+      const kecocokan = entry.persentaseKecocokan
+        ? `${entry.persentaseKecocokan}% cocok`
+        : entry.estimatedMatch
+        ? `${entry.estimatedMatch}% cocok`
+        : "";
+      const kurang =
+        entry.bahanKurang && entry.bahanKurang.length
+          ? ` - butuh: ${entry.bahanKurang.join(", ")}`
+          : entry.missingIngredients && entry.missingIngredients.length
+          ? ` - butuh: ${entry.missingIngredients.join(", ")}`
+          : "";
+      const idResep = r._id || r.recipeId || "";
+      const div = document.createElement("div");
+      div.className = "kartu-resep";
       if (idResep) div.dataset.id = idResep;
       div.innerHTML = `
         <div class="gambar-resep">🍲</div>
         <div class="info-resep">
           <div class="nama-resep">${escapeHtml(nama)}${sourceLabel}</div>
-          <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>${escapeHtml(kecocokan)}</span>${presentCount !== null ? `<span style="margin-left:8px;">• <strong>${presentCount}/${totalBahan}</strong> bahan ada</span>` : ''}${entry.expMatches ? `<span style="margin-left:8px;color:var(--warna-utama);">• ${entry.expMatches} bahan hampir kadaluarsa cocok</span>` : ''}</div>
-          ${entry.description ? `<div style="margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(entry.description)}</div>` : ''}
+          <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>${escapeHtml(
+        kecocokan
+      )}</span>${
+        presentCount !== null
+          ? `<span style="margin-left:8px;">• <strong>${presentCount}/${totalBahan}</strong> bahan ada</span>`
+          : ""
+      }${
+        entry.expMatches
+          ? `<span style="margin-left:8px;color:var(--warna-utama);">• ${entry.expMatches} bahan hampir kadaluarsa cocok</span>`
+          : ""
+      }</div>
+          ${
+            entry.description
+              ? `<div style="margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(
+                  entry.description
+                )}</div>`
+              : ""
+          }
           <div style="margin-top:8px;">
-            ${idResep ? `<button class="tombol-kecil tombol-utama lihat-bahan" data-id="${idResep}">🔎 Lihat Detail</button>` : ''}
-            ${kurang ? `<small style="display:block;margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(kurang)}</small>` : ''}
+            ${
+              idResep
+                ? `<button class="tombol-kecil tombol-utama lihat-bahan" data-id="${idResep}">🔎 Lihat Detail</button>`
+                : ""
+            }
+            ${
+              kurang
+                ? `<small style="display:block;margin-top:6px;color:var(--warna-teks-sekunder);">${escapeHtml(
+                    kurang
+                  )}</small>`
+                : ""
+            }
           </div>
           <div class="detail-resep" id="detail_${idResep}" style="display:none;margin-top:8px;"></div>
         </div>`;
       kont.appendChild(div);
 
       // attach click handler for lihat detail (navigate to detail page)
-      const lihatBtn = div.querySelector('.lihat-bahan');
-      if (lihatBtn) lihatBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = lihatBtn.dataset.id;
-        if (id) window.location.href = `/resep/${id}`;
-      });
+      const lihatBtn = div.querySelector(".lihat-bahan");
+      if (lihatBtn)
+        lihatBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const id = lihatBtn.dataset.id;
+          if (id) window.location.href = `/resep/${id}`;
+        });
     });
   }
 
   async function loadAISaranForPantry() {
-    const ul = document.getElementById('bahanHampirKadaluarsa');
+    const ul = document.getElementById("bahanHampirKadaluarsa");
     if (!ul) return;
-    const items = Array.from(ul.querySelectorAll('.item-bahan')).map((li) => li.querySelector('span')?.textContent || '').filter(Boolean);
+    const items = Array.from(ul.querySelectorAll(".item-bahan"))
+      .map((li) => li.querySelector("span")?.textContent || "")
+      .filter(Boolean);
     // extract only names (format: '🍽️ Name - qty')
-    const names = items.map((t) => t.replace(/^[^a-zA-Z0-9]*/,'').split(' - ')[0].trim());
-    if (!names.length) return tampilkanNotifikasi('Tidak ada bahan untuk dianalisis', 'error');
+    const names = items.map((t) =>
+      t
+        .replace(/^[^a-zA-Z0-9]*/, "")
+        .split(" - ")[0]
+        .trim()
+    );
+    if (!names.length)
+      return tampilkanNotifikasi("Tidak ada bahan untuk dianalisis", "error");
     try {
-      const res = await fetch(`${API_URL}/resep/saran-ai`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ daftarBahan: names }) });
+      const res = await fetch(`${API_URL}/resep/saran-ai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ daftarBahan: names }),
+      });
       const data = await res.json();
-      if (!data.sukses) return tampilkanNotifikasi(data.pesan || 'Gagal dapatkan saran AI', 'error');
-      renderRekomendasi(data.data.map((x) => ({ name: x.name || x.nama, description: x.description, estimatedMatch: x.estimatedMatch, missingIngredients: x.missingIngredients, recipeId: x.recipeId })));
+      if (!data.sukses)
+        return tampilkanNotifikasi(
+          data.pesan || "Gagal dapatkan saran AI",
+          "error"
+        );
+      renderRekomendasi(
+        data.data.map((x) => ({
+          name: x.name || x.nama,
+          description: x.description,
+          estimatedMatch: x.estimatedMatch,
+          missingIngredients: x.missingIngredients,
+          recipeId: x.recipeId,
+        }))
+      );
     } catch (err) {
-      console.error('Gagal saran AI pantry', err);
-      tampilkanNotifikasi('Gagal dapatkan saran AI', 'error');
+      console.error("Gagal saran AI pantry", err);
+      tampilkanNotifikasi("Gagal dapatkan saran AI", "error");
     }
   }
 
   function inisialisasiPantryChallenge() {
-    const btn = document.getElementById('tombolRefreshPantry');
-    if (btn) btn.addEventListener('click', () => loadPantryChallenge());
+    const btn = document.getElementById("tombolRefreshPantry");
+    if (btn) btn.addEventListener("click", () => loadPantryChallenge());
     // Try load automatically when on pantry page
-    const onPantry = document.getElementById('rekomendasiPantry') || document.getElementById('bahanHampirKadaluarsa');
+    const onPantry =
+      document.getElementById("rekomendasiPantry") ||
+      document.getElementById("bahanHampirKadaluarsa");
     if (onPantry) setTimeout(() => loadPantryChallenge(), 100);
   }
 
@@ -1869,12 +2342,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   setTimeout(() => loadDaftarResep(), 0);
 
   // Delegate clicks for server-rendered recipe cards (if any) so clicking card navigates to detail page
-  const daftarResepEl = document.getElementById('daftarResep');
+  const daftarResepEl = document.getElementById("daftarResep");
   if (daftarResepEl) {
-    daftarResepEl.addEventListener('click', (e) => {
-      const card = e.target.closest('.kartu-resep');
+    daftarResepEl.addEventListener("click", (e) => {
+      const card = e.target.closest(".kartu-resep");
       if (!card) return;
-      if (e.target.closest('button') || e.target.tagName === 'A') return;
+      if (e.target.closest("button") || e.target.tagName === "A") return;
       const id = card.dataset.id;
       if (!id) return;
       window.location.href = `/resep/${id}`;
@@ -2028,7 +2501,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     form.addEventListener("submit", async (e) => {
       const pw = form.querySelector('input[name="kataSandi"]');
       const pwc = form.querySelector('input[name="kataSandiConfirm"]');
-      const errEl = document.getElementById("registerError");
+      const errEl = document.getElementById("register-error");
       if (pw && pwc && pw.value !== pwc.value) {
         e.preventDefault();
         if (errEl) {
@@ -2132,7 +2605,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Reset form client-side validation (password match)
   document.querySelectorAll(".reset-form").forEach((form) => {
     form.addEventListener("submit", (e) => {
-      const errEl = document.getElementById("resetError");
+      const errEl = document.getElementById("reset-error");
       const pw = form.querySelector('input[name="kataSandi"]');
       const pwc = form.querySelector('input[name="kataSandiConfirm"]');
       if (!pw || !pwc) return true;
