@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+let bcrypt;
+try { bcrypt = require('bcrypt'); } catch (e) { bcrypt = null; }
 
 const skemaPengguna = new mongoose.Schema({
   namaPengguna: { type: String, required: true, unique: true },
@@ -17,7 +19,13 @@ skemaPengguna.pre('save', async function() {
   // Use async hook (returning a promise) to avoid callback-style expectations.
   try {
     if (!this.isModified('kataSandi')) return;
-    // Hash password before saving
+    // Prefer bcrypt if available for stronger hashing
+    if (bcrypt && typeof bcrypt.hash === 'function') {
+      // use saltRounds = 10
+      this.kataSandi = await bcrypt.hash(this.kataSandi, 10);
+      return;
+    }
+    // fallback to sha256 if bcrypt is not installed
     this.kataSandi = crypto.createHash('sha256').update(this.kataSandi).digest('hex');
   } catch (err) {
     console.error('Error in pre-save hook (Pengguna):', err);
@@ -26,6 +34,11 @@ skemaPengguna.pre('save', async function() {
 });
 
 skemaPengguna.methods.verifikasiKataSandi = function(kataSandiInput) {
+  // If password stored with bcrypt ($2...), verify with bcrypt if available
+  if (typeof this.kataSandi === 'string' && this.kataSandi.startsWith('$2') && bcrypt && typeof bcrypt.compareSync === 'function') {
+    try { return bcrypt.compareSync(kataSandiInput, this.kataSandi); } catch (e) { return false; }
+  }
+  // Fallback to sha256 hex compare
   const hash = crypto.createHash('sha256').update(kataSandiInput).digest('hex');
   return hash === this.kataSandi;
 };

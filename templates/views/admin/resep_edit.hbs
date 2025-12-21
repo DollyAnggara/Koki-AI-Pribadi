@@ -1,0 +1,23 @@
+<section class="bagian">
+  <div class="kartu">
+    <h2 class="kartu-judul">Edit Resep</h2>
+    {{#if error}}<div class="peringatan">{{error}}</div>{{/if}}
+    <form method="post" action="/admin/resep/{{resep._id}}">
+      <label>Nama Resep</label>
+      <input name="namaResep" required value="{{resep.namaResep}}" />
+      <label>Kategori</label>
+      <input name="kategori" value="{{resep.kategori}}" />
+      <label>Porsi</label>
+      <input name="porsi" type="number" value="{{resep.porsi}}" min="1" />
+      <label>Deskripsi</label>
+      <textarea name="deskripsi">{{resep.deskripsi}}</textarea>
+      <label>Status</label>
+      <select name="status">
+        <option value="approved" {{#if resep.isApproved}}selected{{/if}}>Approved</option>
+        <option value="pending" {{#if resep.isPending}}selected{{/if}}>Pending</option>
+        <option value="rejected" {{#if resep.isRejected}}selected{{/if}}>Rejected</option>
+      </select>
+      <div style="margin-top:12px;"><button class="tombol-kirim">Simpan</button></div>
+    </form>
+  </div>
+</section>

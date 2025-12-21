@@ -14,25 +14,14 @@ const layananChatBot = require("../utils/layananChatBot");
 const dapatkanSemuaResep = async (req, res) => {
   try {
     const q = (req.query.q || "").trim();
-    const filter = {};
-    // by default show only approved to normal users
-    if (!(req.session && req.session.user && req.session.user.isAdmin)) {
-      filter.status = 'approved';
-    } else {
-      // admins can pass ?filter=pending to see pending submissions
-      if (req.query.filter === 'pending') filter.status = 'pending';
-      else if (req.query.filter === 'approved') filter.status = 'approved';
-      // else leave undefined to see all
-    }
-
     let resep;
     if (q) {
       // escape regex special chars
       const esc = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(esc, "i");
-      resep = await Resep.find(Object.assign({ namaResep: regex }, filter)).limit(200);
+      resep = await Resep.find({ namaResep: regex }).limit(200);
     } else {
-      resep = await Resep.find(filter).limit(200);
+      resep = await Resep.find().limit(200);
     }
     res.json({ sukses: true, data: resep });
   } catch (err) {
@@ -46,21 +35,11 @@ const dapatkanSemuaResep = async (req, res) => {
  */
 const dapatkanResepById = async (req, res) => {
   try {
-    const resep = await Resep.findById(req.params.id).populate('submittedBy','namaPengguna email');
+    const resep = await Resep.findById(req.params.id);
     if (!resep)
       return res
         .status(404)
         .json({ sukses: false, pesan: "Resep tidak ditemukan" });
-
-    // if recipe is not approved, only allow owner or admin to view
-    if (resep.status && resep.status !== 'approved') {
-      const isOwner = req.session && req.session.user && (String(req.session.user._id || req.session.user.id) === String(resep.submittedBy && resep.submittedBy._id));
-      const isAdmin = req.session && req.session.user && req.session.user.isAdmin;
-      if (!isOwner && !isAdmin) {
-        return res.status(403).json({ sukses: false, pesan: 'Resep ini sedang menunggu moderasi' });
-      }
-    }
-
     // Hitung nutrisi jika belum ada
     if (!resep.nutrisiPerPorsi || !resep.nutrisiPerPorsi.kalori) {
       const hasil = layananNutrisi.hitungNutrisiResep(
@@ -92,20 +71,11 @@ const buatResepBaru = async (req, res) => {
       ) || { nutrisiPerPorsi: { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 } };
       data.nutrisiPerPorsi = nutr.nutrisiPerPorsi || { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 };
     }
-
-    // If a logged-in user creates a recipe and is not admin, mark as pending for moderation
-    if (req.session && req.session.user) {
-      data.submittedBy = req.session.user._id || req.session.user.id;
-      if (!req.session.user.isAdmin) {
-        data.status = 'pending';
-      } else {
-        data.status = data.status || 'approved';
-      }
-    } else {
-      // anonymous submissions are pending
+    // If created by a regular user, mark as pending for admin moderation
+    if (req.session && req.session.user && req.session.user.role !== 'admin') {
       data.status = 'pending';
+      data.submittedBy = req.session.user._id;
     }
-
     const resepBaru = new Resep(data);
     await resepBaru.save();
     res.status(201).json({ sukses: true, data: resepBaru });

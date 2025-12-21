@@ -1,0 +1,30 @@
+<section class="bagian">
+  <div class="kartu">
+    <h2 class="kartu-judul">Daftar Resep</h2>
+    {{#if error}}<div class="peringatan">{{error}}</div>{{/if}}
+    <div style="margin-top:12px; margin-bottom:12px;">
+      <a href="/admin/resep/new" class="tombol-kirim">+ Tambah Resep</a>
+      <a href="/admin/resep/pending" class="tombol-kirim">🔔 Resep Pending</a>
+    </div>
+    <table class="tabel">
+      <thead><tr><th>Nama</th><th>Kategori</th><th>Status</th><th>Submitted By</th><th></th></tr></thead>
+      <tbody>
+        {{#each resep}}
+          <tr>
+            <td>{{this.namaResep}}</td>
+            <td>{{this.kategori}}</td>
+            <td>{{this.status}}</td>
+            <td>{{#if this.submittedBy}}{{this.submittedBy}}{{else}}-{{/if}}</td>
+            <td>
+              <a href="/admin/resep/{{this._id}}/edit" class="tombol-kecil">Edit</a>
+              <form method="post" action="/admin/resep/{{this._id}}/delete" style="display:inline" onsubmit="return confirm('Hapus resep ini?');">
+                <button class="tombol-kecil tombol-bahaya">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</section>
+<script src="/js/admin.js"></script>

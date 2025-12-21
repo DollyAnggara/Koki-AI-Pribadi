@@ -42,7 +42,8 @@ const ruteMenu = require("./routes/menu");
 const ruteOtp = require("./routes/otp");
 const ruteDebug = require("./routes/debug");
 const ruteKontak = require("./routes/kontak");
-  const ruteAdmin = require("./routes/admin");
+
+const Pengguna = require("./models/Pengguna");
 const Bahan = require("./models/Bahan");
 
 const jalankanServer = async () => {
@@ -84,9 +85,10 @@ const jalankanServer = async () => {
     })
   );
 
-  // Make session user available in templates
+  // Make session user available in templates and flag admins
   aplikasi.use((req, res, next) => {
     res.locals.user = req.session ? req.session.user : null;
+    res.locals.isAdmin = req.session && req.session.user && req.session.user.role === 'admin';
     next();
   });
 
@@ -104,10 +106,6 @@ const jalankanServer = async () => {
         path.join(__dirname, "..", "templates", "partials"),
         path.join(__dirname, "..", "templates", "views"),
       ],
-      helpers: {
-        eq: (a, b) => String(a) === String(b),
-        json: (ctx) => JSON.stringify(ctx || [], null, 2),
-      },
     })
   );
   aplikasi.set("view engine", "hbs");
@@ -145,7 +143,9 @@ const jalankanServer = async () => {
   // Debug/test endpoints for development (deepseek test)
   aplikasi.use("/api/debug", ruteDebug);
   aplikasi.use("/api/kontak", ruteKontak);
-  // Admin pages
+
+  // admin routes (UI + actions)
+  const ruteAdmin = require('./routes/admin');
   aplikasi.use('/admin', ruteAdmin);
 
   aplikasi.get("/api/status", (req, res) => {

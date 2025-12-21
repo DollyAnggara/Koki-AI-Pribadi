@@ -939,12 +939,7 @@ function inisialisasiTambahResep() {
         tombolSimpan.textContent = "Simpan";
         return;
       }
-      // show moderation info if recipe is pending
-      if (data.data && data.data.status === 'pending') {
-        tampilkanNotifikasi('Resep dikirim untuk moderasi. Akan muncul setelah disetujui admin.', 'info');
-      } else {
-        tampilkanNotifikasi("Resep berhasil disimpan", "sukses");
-      }
+      tampilkanNotifikasi("Resep berhasil disimpan", "sukses");
       // reset form
       inputNama.value = "";
       inputDeskripsi.value = "";
