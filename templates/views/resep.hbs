@@ -2,11 +2,15 @@
   <section>
     <div class="kartu">
       <h2 class="kartu-judul">📖 Daftar Resep</h2>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div class="form-grup" style="flex:1"><input type="text" class="form-input" id="cariResep" placeholder="🔍 Cari resep..."></div>
-        <div><button id="tombolTambahResep" class="tombol-kirim">＋ Tambah Resep</button></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
+        <div style="flex:1;min-width:220px"><input type="text" class="form-input" id="cariResep" placeholder="🔍 Cari resep..."></div>
+        <div style="display:flex;gap:8px;align-items:center;margin-left:12px"><button id="tombolTambahResep" class="tombol-kirim">＋ Tambah Resep</button></div>
       </div>
       <p style="margin-top:8px;color:var(--warna-teks-sekunder);font-size:0.95rem;">Klik kartu resep untuk melihat bahan dan langkah pembuatan.</p>
+
+      {{#if counts}}
+        <div id="resepInfoBar" style="margin-top:8px;color:var(--warna-teks-secondary);font-size:0.95rem;">Total: {{counts.total}} • Approved: {{counts.approved}} • Pending: {{counts.pending}} • Rejected: {{counts.rejected}}</div>
+      {{/if}}
 
       <div id="formTambahResep" class="kartu" style="display:none;margin-top:12px;">
         <h3 class="kartu-judul">Tambah Resep Baru</h3>

@@ -110,6 +110,7 @@ const loginPengguna = async (req, res) => {
         id: pengguna._id,
         namaPengguna: pengguna.namaPengguna,
         email: pengguna.email,
+        role: pengguna.role || 'user'
       };
 
       // "Remember me" support: if the form included the remember field, make session persistent
@@ -135,7 +136,8 @@ const loginPengguna = async (req, res) => {
         res.clearCookie("rememberMe");
       }
 
-      // Redirect with a flag so client-side can show welcome message only after login
+      // Redirect admin users to explicit admin dashboard route, others to home
+      if (pengguna.role === 'admin') return res.redirect('/admin/dashboard');
       return res.redirect("/?welcome=1");
     }
 

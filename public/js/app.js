@@ -939,7 +939,13 @@ function inisialisasiTambahResep() {
         tombolSimpan.textContent = "Simpan";
         return;
       }
-      tampilkanNotifikasi("Resep berhasil disimpan", "sukses");
+      // If the recipe was created as pending, notify the user it's awaiting admin review
+      const created = data.data || {};
+      if (created.status === 'pending') {
+        tampilkanNotifikasi("Resep berhasil dikirim. Akan ditinjau oleh admin sebelum dipublikasikan.", "sukses");
+      } else {
+        tampilkanNotifikasi("Resep berhasil disimpan", "sukses");
+      }
       // reset form
       inputNama.value = "";
       inputDeskripsi.value = "";

@@ -97,6 +97,17 @@ router.get("/session", (req, res) => {
   }
 });
 
+// POST /api/debug/impersonate-admin - DEV ONLY: set current session to admin user
+router.post('/impersonate-admin', async (req,res) => {
+  try {
+    if (process.env.DEBUG_IMPERSONATE !== '1') return res.status(403).json({ sukses:false, pesan:'Impersonation disabled' });
+    const admin = await Pengguna.findOne({ email: 'admin@sistem.com' }).lean();
+    if (!admin) return res.status(404).json({ sukses:false, pesan:'Admin not found' });
+    req.session.user = { _id: admin._id, id: admin._id, namaPengguna: admin.namaPengguna, email: admin.email, role: 'admin' };
+    return res.json({ sukses:true, pesan:'Session set to admin' });
+  } catch(err){ console.error('Impersonate failed', err); return res.status(500).json({ sukses:false, pesan:'Gagal impersonate' }); }
+});
+
 // GET /api/debug/bahan - returns all bahan for current session user (for debugging)
 router.get("/bahan", async (req, res) => {
   try {

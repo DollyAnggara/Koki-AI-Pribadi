@@ -173,6 +173,129 @@ body {
   display: block;
 }
 
+/* Admin dashboard styles */
+.admin-dashboard .admin-top { display:flex; align-items:center; justify-content:center; gap:18px; padding:18px; border-radius:10px; background:linear-gradient(90deg, rgba(255,99,71,0.08), rgba(255,160,122,0.04)); }
+.admin-dashboard .admin-top > div:first-child { text-align:center }
+.admin-dashboard .admin-top .kartu-judul { font-size:1.4rem; margin:0; color:var(--warna-teks); }
+.admin-dashboard .admin-top .muted { margin:6px 0 0; color:var(--warna-teks-secondary); }
+.admin-dashboard .admin-top-actions { display:flex; gap:10px; align-items:center; justify-content:center }
+.tombol-kecil { background:#fff; border:1px solid rgba(0,0,0,0.04); padding:8px 12px; border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,0.04); text-decoration:none; color:inherit; transition:transform .15s ease, box-shadow .15s ease }
+.tombol-kecil:hover { transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,0.08) }
+.tombol-kirim { background:transparent; border:none; padding:10px 14px; border-radius:999px; cursor:pointer; font-weight:700 }
+.tombol-primer { background:linear-gradient(90deg,var(--warna-primer), #f06548); color:#fff; box-shadow:0 8px 30px rgba(240,96,72,0.18); }
+.tombol-primer:hover { transform:translateY(-3px); }
+.admin-dashboard .admin-cards {
+  display:flex; gap:14px; flex-wrap:wrap; margin:14px auto 0; justify-content:center; max-width:760px; align-items:stretch;
+}
+.admin-dashboard .kartu-mini { padding:14px; border-radius:10px; background:linear-gradient(180deg,#ffffff,#fff7f4); box-shadow:0 8px 20px rgba(14,21,47,0.04); text-decoration:none; color:inherit; transition:transform .15s ease, box-shadow .15s ease; flex:0 0 240px; max-width:240px; display:flex; flex-direction:column; justify-content:center; min-height:84px }
+.admin-dashboard .kartu-mini:hover { transform:translateY(-6px); box-shadow:0 18px 40px rgba(14,21,47,0.07) }
+.admin-dashboard .kartu-mini-judul { font-weight:700; margin-bottom:6px; font-size:1.02rem }
+.admin-dashboard .kartu-mini-detail { color:var(--warna-teks-secondary); font-size:0.92rem }
+.admin-dashboard .kartu-mini-primary { background:linear-gradient(90deg,var(--warna-primer), #f08b72); color:#fff }
+.admin-dashboard .kartu-mini-warn { background:linear-gradient(90deg,#fff8ef,#fff2da) }
+.admin-dashboard .admin-stats { margin-top:18px; display:flex; gap:12px; font-weight:600; align-items:center; justify-content:center; max-width:720px; margin-left:auto; margin-right:auto }
+.admin-dashboard .admin-stats .stat { background:#fff; padding:12px 14px; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.04); min-width:140px; display:flex; justify-content:space-between; align-items:center }
+.admin-dashboard .admin-stats .stat strong { color:var(--warna-primer); font-size:1.1rem }
+
+/* Admin resep list: center header, buttons and show total above table */
+.admin-resep-list .admin-top { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px 0 }
+.admin-resep-list .admin-top > div:first-child { text-align:center }
+.admin-resep-list .admin-top-actions { display:flex; justify-content:center; gap:12px }
+.admin-resep-list .admin-top-actions .tombol-kecil, .admin-resep-list .admin-top-actions .tombol-kirim { min-width:140px; text-align:center }
+.admin-resep-list .resep-controls { display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:14px }
+    .search-wrap input#resepSearch { width:320px; max-width:60vw; padding:10px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.08); box-shadow:0 6px 18px rgba(14,21,47,0.02) }
+    .view-toggle { display:flex; gap:8px }
+    .view-toggle .toggle { padding:8px 12px; border-radius:999px; border:1px solid rgba(0,0,0,0.04); background:#fff; cursor:pointer }
+    .view-toggle .toggle.active { background:linear-gradient(90deg,var(--warna-primer), #f06548); color:#fff; box-shadow:0 8px 24px rgba(240,96,72,0.12) }
+    .admin-resep-list .resep-meta { text-align:center; margin-top:0 }
+    .admin-resep-list .resep-meta .total { display:inline-block; background:#fff; padding:10px 16px; border-radius:999px; box-shadow:0 8px 24px rgba(14,21,47,0.06); color:var(--warna-teks); font-weight:700 }
+
+    /* view toggles: table view shows table and hides grid, grid view shows grid and hides table */
+    .admin-resep-list.view-table .resep-grid { display:none }
+    .admin-resep-list.view-table .table-wrap { display:block }
+    .admin-resep-list.view-grid .resep-grid { display:grid }
+    .admin-resep-list.view-grid .table-wrap { display:none }
+
+/* small responsive adjustments */
+@media (max-width:800px){
+  .admin-dashboard .admin-top{flex-direction:column;align-items:center}
+  .admin-dashboard .admin-top-actions{width:100%;justify-content:center}
+  .admin-dashboard .admin-stats{flex-direction:column;align-items:center;gap:10px}
+  .admin-dashboard .kartu-mini{flex:1 1 100%;max-width:100%;margin:0 auto}
+  .admin-resep-list .admin-top{flex-direction:column;align-items:center}
+  .admin-resep-list .admin-top-actions{width:100%;justify-content:center}
+  .admin-resep-list .resep-meta{margin-top:10px}
+  .admin-dashboard .admin-cards{max-width:100%; padding:0 12px}
+}
+
+/* Admin table helpers (kept as fallback but hidden in card layout) */
+.table-wrap { overflow:auto; border-radius:12px; margin-top:12px; padding:12px; background:#fff; box-shadow:0 10px 30px rgba(14,21,47,0.04); max-width:1100px; margin-left:auto; margin-right:auto }
+.tabel.admin-table { width:100%; border-collapse:collapse }
+.tabel.admin-table th, .tabel.admin-table td { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,0.04); text-align:left }
+.tabel.admin-table thead th { text-transform:uppercase; font-size:0.8rem; color:var(--warna-teks-secondary); font-weight:700 }
+.tabel.admin-table tbody tr:hover { background: rgba(239,240,245,0.8); }
+.aksi-cell { text-align:right; white-space:nowrap }
+.aksi-cell .tombol-kecil { margin-left:8px }
+.admin-empty { padding:28px; border-radius:8px; background:#fff8f4; color: #7d4b2e; box-shadow:0 6px 18px rgba(0,0,0,0.03); margin-top:12px }
+
+/* Card grid layout for recipes (compact cards for admin) */
+.resep-grid { display:grid; grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(220px, 300px)); justify-content:center; gap:16px; margin-top:18px; max-width:960px; margin-left:auto; margin-right:auto }
+.resep-card { max-width:300px; width:100%; background:#fff; padding:14px; border-radius:10px; box-shadow:0 8px 24px rgba(14,21,47,0.04); display:flex; flex-direction:column; gap:8px }
+.resep-card .card-judul { margin:0; font-size:1.02rem }
+.resep-card .card-meta { display:flex; gap:8px; align-items:center }
+.badge { display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; font-weight:700; font-size:0.82rem }
+.badge .badge-icon { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:999px; background:rgba(255,255,255,0.22); font-weight:700; font-size:0.78rem }
+.badge.kategori { background:linear-gradient(90deg,#f7f7f7,#fff); color:var(--warna-teks); padding:6px 8px }
+.badge.status { background:#eef3ff; color:#25418b }
+.badge.status.approved { background:linear-gradient(90deg,#e6fff2,#dcf9ea); color:#0f6b3b; box-shadow:0 6px 18px rgba(14,21,47,0.04) }
+.badge.status.pending { background:linear-gradient(90deg,#fff7e6,#fff4df); color:#a36e00 }
+.badge.status.rejected { background:linear-gradient(90deg,#ffecec,#ffecea); color:#8a2b2b }
+.resep-card .card-body { color:var(--warna-teks-secondary); font-size:0.95rem; max-height:3.6rem; overflow:hidden }
+.resep-card .card-sub { color:var(--warna-teks-secondary); font-size:0.92rem }
+.resep-card .card-actions { margin-top:auto; display:flex; gap:8px; justify-content:flex-end }
+
+/* hide old table by default to keep layout clean */
+.admin-resep-list .table-wrap { display:none }
+
+/* Pending recipes card layout (compact and centered to match admin cards) */
+.admin-resep-pending .kartu { max-width: 880px; margin-left:auto; margin-right:auto; padding:22px; border-radius:14px; box-shadow:0 16px 50px rgba(14,21,47,0.06); }
+.admin-resep-pending .admin-top { display:flex; flex-direction:column; align-items:center; gap:12px }
+
+.pending-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 260px)); justify-content:center; gap:14px; margin-top:14px; max-width:760px; margin-left:auto; margin-right:auto }
+.pending-card { max-width:260px; width:100%; background:#fff; padding:12px; border-radius:10px; box-shadow:0 8px 24px rgba(14,21,47,0.04); display:flex; flex-direction:column; gap:8px }
+.pending-card .card-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start }
+.pending-card .card-judul { margin:0; font-size:0.98rem; font-weight:800 }
+.pending-card .card-body { color:var(--warna-teks-secondary); font-size:0.92rem; max-height:3.8rem; overflow:hidden }
+.pending-card .card-sub { color:var(--warna-teks-secondary); font-size:0.85rem }
+.pending-card .card-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px }
+.tombol-approve { background:linear-gradient(90deg,#f06548,#ee6b4f); color:#fff; border:none; padding:8px 12px; border-radius:999px; box-shadow:0 8px 24px rgba(240,96,72,0.12) }
+.tombol-approve:hover { transform:translateY(-2px) }
+
+@media (max-width:720px){
+  .pending-grid { grid-template-columns: 1fr }
+  .admin-resep-pending .kartu { padding:16px }
+}
+
+@media (max-width:720px){
+  .resep-grid { grid-template-columns: 1fr }
+  .admin-resep-list .table-wrap { display:block }
+}
+
+/* Recipe form styles */
+.form-resep { max-width:920px; margin:0 auto; display:block }
+.form-resep .form-row { margin-top:18px }
+.form-resep .label { display:block; font-weight:700; margin-bottom:8px; color:var(--warna-teks) }
+.form-resep .input-lg, .form-resep textarea, .form-resep input[type="text"] { width:100%; padding:14px 16px; border-radius:10px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 6px 18px rgba(14,21,47,0.02); font-size:0.96rem; resize:vertical }
+.form-resep .form-inline { display:flex; gap:12px; flex-wrap:wrap }
+.field-pill { display:flex; flex-direction:column; min-width:140px }
+.pill-input { padding:10px 12px; border-radius:999px; border:1px solid rgba(0,0,0,0.06); text-align:center }
+.hint { color:var(--warna-teks-secondary); font-size:0.95rem; margin:6px 0 8px }
+.form-actions { margin-top:18px; display:flex; gap:12px; align-items:center }
+.tombol-batal { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:8px; padding:8px 12px; text-decoration:none; color:var(--warna-teks) }
+.form-note { margin-top:12px; font-size:0.92rem }
+
+/* keep existing page helper block unchanged */
+
 /* Page / panel transition helpers */
 .kontainer-utama {
   transition: opacity var(--transition-duration) ease,
@@ -226,6 +349,57 @@ body {
   padding: 18px;
   margin-bottom: 18px;
   box-shadow: var(--bayangan);
+}
+
+/* Centered admin card: limit width and center the main white card on admin dashboard */
+.admin-dashboard .kartu {
+  max-width: 1100px; /* keep modest width */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 22px; /* slightly larger padding for the dashboard card */
+  border-radius: 14px;
+  box-shadow: 0 16px 50px rgba(14,21,47,0.06);
+  background: linear-gradient(180deg,#fff,#fff); /* ensure clean white surface */
+}
+
+/* Centered manage-recipes card: keep same sizing and feel as dashboard */
+.admin-resep-list .kartu {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(14,21,47,0.06);
+  background: linear-gradient(180deg,#fff,#fff);
+}
+
+/* ensure content inside card aligns with grid */
+.admin-resep-list .resep-grid, .admin-resep-list .table-wrap {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Compact centered form card for Add/Edit Resep pages */
+.admin-resep-form .kartu {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 26px;
+  border-radius: 14px;
+  box-shadow: 0 18px 60px rgba(14,21,47,0.06);
+  background: linear-gradient(180deg,#fff,#fff);
+}
+.admin-resep-form .kartu-judul { color: var(--warna-primer); font-weight:800; margin-bottom:6px }
+.admin-resep-form .form-resep { max-width:760px; margin:0 auto }
+.admin-resep-form .form-row { margin-top:14px }
+.admin-resep-form .form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:18px }
+.admin-resep-form .form-actions .tombol-kirim { padding:10px 18px }
+
+@media (max-width:800px){
+  .admin-resep-form .kartu { padding:18px }
+  .admin-resep-form .form-resep { width:100% }
+  .admin-resep-form .form-actions { justify-content:center }
 }
 
 /* Bahan page: upload area, form layout and controls */
@@ -2327,6 +2501,14 @@ body.modal-open {
   z-index: 1100;
   pointer-events: none; /* allow clicks to pass through container except the toasts themselves */
 }
+
+/* Admin mode: hide user-specific action buttons (e.g., Masak, Timer creation)
+   Admin will use the Admin Dashboard to manage recipes instead of user UI */
+body.is-admin .tombol-mulai,
+body.is-admin .tombol-timer {
+  display: none !important;
+}
+
 
 .notifikasi {
   pointer-events: auto;

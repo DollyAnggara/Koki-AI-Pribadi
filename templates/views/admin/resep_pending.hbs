@@ -1,45 +1,45 @@
-<section class="bagian">
+<section class="bagian admin-resep-pending">
   <div class="kartu">
-    <h2 class="kartu-judul">Resep Pending</h2>
-    {{#if error}}<div class="peringatan">{{error}}</div>{{/if}}
-    <table class="tabel">
-      <thead><tr><th>Nama</th><th>Pengirim</th><th>Nama</th><th></th></tr></thead>
-      <tbody>
+    <div class="admin-top">
+      <div>
+        <h2 class="kartu-judul">Resep Pending</h2>
+        <p class="muted">Tinjau resep yang dikirim pengguna. Tindakan tidak dapat dibatalkan.</p>
+      </div>
+      <div class="admin-top-actions">
+        <a href="/admin/dashboard" class="tombol-kecil">Dashboard</a>
+        <a href="/admin/resep" class="tombol-kecil">Kelola Resep</a>
+      </div>
+    </div>
+
+    {{#if resep.length}}
+      <div class="pending-grid">
         {{#each resep}}
-          <tr>
-            <td>{{this.namaResep}}</td>
-            <td>{{this.submittedBy}}</td>
-            <td>{{this.kategori}}</td>
-            <td>
-              <button class="tombol-kecil" data-approve-id="{{this._id}}">Setujui</button>
+          <article class="pending-card">
+            <div class="card-head">
+              <h3 class="card-judul">{{this.namaResep}}</h3>
+              <div class="card-meta">
+                <span class="badge kategori">{{this.kategoriLabel}}</span>
+                <span class="muted small">{{this.submittedAt}}</span>
+              </div>
+            </div>
+
+            {{#if this.deskripsi}}
+              <div class="card-body muted">{{this.deskripsi}}</div>
+            {{/if}}
+
+            <div class="card-sub">Pengirim: {{#if this.submittedBy}}{{#if this.submittedBy.namaPengguna}}{{this.submittedBy.namaPengguna}}{{else}}{{this.submittedBy}}{{/if}}{{else}}-{{/if}}</div>
+
+            <div class="card-actions">
+              <button class="tombol-kirim tombol-approve" data-approve-id="{{this._id}}">Setujui</button>
               <button class="tombol-kecil tombol-bahaya" data-reject-id="{{this._id}}">Tolak</button>
-            </td>
-          </tr>
+            </div>
+          </article>
         {{/each}}
-      </tbody>
-    </table>
+      </div>
+    {{else}}
+      <div class="admin-empty">Tidak ada resep pending saat ini. Bagus!</div>
+    {{/if}}
   </div>
 </section>
 
-<script>
-// simple delegated handler for approve/reject
-document.addEventListener('click', async (e)=>{
-  const btn = e.target;
-  if (btn.dataset.approveId) {
-    if (!confirm('Setujui resep ini?')) return;
-    const id = btn.dataset.approveId;
-    const resp = await fetch('/admin/resep/'+id+'/approve', { method: 'POST', headers:{'Content-Type':'application/json'} });
-    const data = await resp.json();
-    if (data && data.sukses) { alert('Resep disetujui'); location.reload(); } else alert('Gagal: '+(data.pesan||'')); 
-  }
-  if (btn.dataset.rejectId) {
-    const note = prompt('Alasan penolakan (opsional)');
-    if (note === null) return;
-    const id = btn.dataset.rejectId;
-    const resp = await fetch('/admin/resep/'+id+'/reject', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ moderationNote: note }) });
-    const data = await resp.json();
-    if (data && data.sukses) { alert('Resep ditolak'); location.reload(); } else alert('Gagal: '+(data.pesan||''));
-  }
-});
-</script>
 <script src="/js/admin.js"></script>

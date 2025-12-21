@@ -1,23 +1,58 @@
-<section class="bagian">
+<section class="bagian admin-resep-form">
   <div class="kartu">
     <h2 class="kartu-judul">Edit Resep</h2>
     {{#if error}}<div class="peringatan">{{error}}</div>{{/if}}
-    <form method="post" action="/admin/resep/{{resep._id}}">
-      <label>Nama Resep</label>
-      <input name="namaResep" required value="{{resep.namaResep}}" />
-      <label>Kategori</label>
-      <input name="kategori" value="{{resep.kategori}}" />
-      <label>Porsi</label>
-      <input name="porsi" type="number" value="{{resep.porsi}}" min="1" />
-      <label>Deskripsi</label>
-      <textarea name="deskripsi">{{resep.deskripsi}}</textarea>
-      <label>Status</label>
-      <select name="status">
-        <option value="approved" {{#if resep.isApproved}}selected{{/if}}>Approved</option>
-        <option value="pending" {{#if resep.isPending}}selected{{/if}}>Pending</option>
-        <option value="rejected" {{#if resep.isRejected}}selected{{/if}}>Rejected</option>
-      </select>
-      <div style="margin-top:12px;"><button class="tombol-kirim">Simpan</button></div>
+    <form method="post" action="/admin/resep/{{resep._id}}" class="form-resep">
+      <div class="form-row">
+        <label class="label">Nama Resep</label>
+        <input name="namaResep" class="input-lg" placeholder="Nama Resep" required value="{{resep.namaResep}}" />
+      </div>
+
+      <div class="form-row">
+        <label class="label">Deskripsi <span class="muted">(opsional)</span></label>
+        <textarea name="deskripsi" rows="3" placeholder="Deskripsi singkat tentang resep...">{{resep.deskripsi}}</textarea>
+      </div>
+
+      <div class="form-row form-inline">
+        <div class="field-pill">
+          <label class="label">Porsi</label>
+          <input name="porsi" class="pill-input" type="number" value="{{resep.porsi}}" min="1" />
+        </div>
+        <div class="field-pill">
+          <label class="label">Waktu persiapan (menit)</label>
+          <input name="waktuPersiapan" class="pill-input" type="number" min="0" value="{{resep.waktuPersiapan}}" />
+        </div>
+        <div class="field-pill">
+          <label class="label">Waktu memasak (menit)</label>
+          <input name="waktuMemasak" class="pill-input" type="number" min="0" value="{{resep.waktuMemasak}}" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="label">Bahan <span class="muted">(satu bahan per baris)</span></label>
+        <textarea name="daftarBahan" rows="6" placeholder="contoh:\nWortel\nGaram\natau: Wortel 200 gram">{{resep.daftarBahanText}}</textarea>
+      </div>
+
+      <div class="form-row">
+        <label class="label">Langkah <span class="muted">(satu per baris)</span></label>
+        <textarea name="langkah" rows="6" placeholder="contoh:\nKupas dan potong wortel\nRebus wortel">{{resep.langkahText}}</textarea>
+      </div>
+
+      <div class="form-row">
+        <label class="label">Status</label>
+        <select name="status">
+          <option value="approved" {{#if resep.isApproved}}selected{{/if}}>Approved</option>
+          <option value="pending" {{#if resep.isPending}}selected{{/if}}>Pending</option>
+          <option value="rejected" {{#if resep.isRejected}}selected{{/if}}>Rejected</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="tombol-kirim tombol-primer">Simpan</button>
+        <a href="/admin/resep" class="tombol-kecil tombol-batal">Batal</a>
+      </div>
+
+      <div class="form-note muted">Cukup isi nama resep dan minimal satu bahan (satu baris = satu bahan). Format jumlah/satuan optional.</div>
     </form>
   </div>
 </section>

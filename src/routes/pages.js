@@ -148,7 +148,22 @@ router.get('/resep/:id', requireAuth, async (req, res) => {
 
 router.get("/resep", requireAuth, async (req, res) => {
   try {
-    const daftarResep = await Resep.find().limit(50);
+    // show approved recipes to regular users; admins see all
+    const isAdmin = req.session && req.session.user && req.session.user.role === 'admin';
+    const baseFilter = isAdmin ? {} : { status: 'approved' };
+
+    const daftarResep = await Resep.find(baseFilter).limit(50);
+
+    // compute counts for diagnostics
+    const [total, approvedCount, pendingCount, rejectedCount] = await Promise.all([
+      Resep.countDocuments({}),
+      Resep.countDocuments({ status: 'approved' }),
+      Resep.countDocuments({ status: 'pending' }),
+      Resep.countDocuments({ status: 'rejected' })
+    ]);
+
+    console.debug(`[GET /resep] isAdmin=${isAdmin} returned=${daftarResep.length} total=${total} approved=${approvedCount} pending=${pendingCount} rejected=${rejectedCount}`);
+
     // Map fields to view-friendly shape used by templates
     const resepUntukView = daftarResep.map((r) => {
       const waktu = (r.waktuPersiapanMenit || 0) + (r.waktuMemasakMenit || 0);
@@ -168,6 +183,7 @@ router.get("/resep", requireAuth, async (req, res) => {
     res.render("resep", {
       judul: "Resep - Koki AI Pribadi",
       resep: resepUntukView,
+      counts: { total, approved: approvedCount, pending: pendingCount, rejected: rejectedCount },
     });
   } catch (err) {
     console.error("Gagal render resep:", err);

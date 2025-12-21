@@ -30,16 +30,21 @@
 
 {{! Hide main app nav on the public landing page (isLanding) }}
 {{#unless isLanding}}
-  <nav class="navigasi-utama">
-    <a href="/beranda" class="tombol-nav">🏠 Beranda</a>
-    <a href="/resep" class="tombol-nav">📖 Resep</a>
-    <a href="/bahan" class="tombol-nav">🥗 Bahan Saya</a>
-    <a href="/pantry" class="tombol-nav">🎯 Pantry Challenge</a>
-    <a href="/chat" class="tombol-nav">💬 Chat Koki AI</a>
-    <a href="/timer" class="tombol-nav">⏱️ Timer</a>
-    <a href="/menu" class="tombol-nav">📅 Menu Mingguan</a>
-    {{#if isAdmin}}
-      <a href="/admin/resep" class="tombol-nav">⚙️ Admin</a>
-    {{/if}}
-  </nav>
+  {{#if isAdmin}}
+    <nav class="navigasi-utama navigasi-admin">
+      <a href="/admin/dashboard" class="tombol-nav">⚙️ Admin Dashboard</a>
+      <a href="/admin/resep" class="tombol-nav">📖 Kelola Resep</a>
+      <a href="/admin/resep/pending" class="tombol-nav">🔔 Resep Pending</a>
+    </nav>
+  {{else}}
+    <nav class="navigasi-utama">
+      <a href="/beranda" class="tombol-nav">🏠 Beranda</a>
+      <a href="/resep" class="tombol-nav">📖 Resep</a>
+      <a href="/bahan" class="tombol-nav">🥗 Bahan Saya</a>
+      <a href="/pantry" class="tombol-nav">🎯 Pantry Challenge</a>
+      <a href="/chat" class="tombol-nav">💬 Chat Koki AI</a>
+      <a href="/timer" class="tombol-nav">⏱️ Timer</a>
+      <a href="/menu" class="tombol-nav">📅 Menu Mingguan</a>
+    </nav>
+  {{/if}}
 {{/unless}}

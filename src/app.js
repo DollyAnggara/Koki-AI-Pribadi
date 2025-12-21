@@ -86,7 +86,24 @@ const jalankanServer = async () => {
   );
 
   // Make session user available in templates and flag admins
-  aplikasi.use((req, res, next) => {
+  // Refresh role from DB when it differs from the session copy (keeps sessions up-to-date)
+  aplikasi.use(async (req, res, next) => {
+    try {
+      if (req.session && req.session.user) {
+        try {
+          const u = await Pengguna.findById(req.session.user._id).select('role').lean();
+          if (u && u.role && u.role !== req.session.user.role) {
+            req.session.user.role = u.role;
+          }
+        } catch (err) {
+          // non-fatal: continue without blocking the request
+          console.warn('Could not refresh user role from DB:', err && err.message ? err.message : err);
+        }
+      }
+    } catch (e) {
+      console.error('Error in session middleware:', e);
+    }
+
     res.locals.user = req.session ? req.session.user : null;
     res.locals.isAdmin = req.session && req.session.user && req.session.user.role === 'admin';
     next();

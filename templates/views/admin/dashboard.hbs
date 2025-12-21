@@ -1,0 +1,37 @@
+<section class="bagian admin-dashboard">
+  <div class="kartu">
+    <div class="admin-top">
+      <div>
+        <h2 class="kartu-judul">Admin Dashboard</h2>
+        <p class="muted">Ringkasan cepat dan akses cepat ke fungsi admin.</p>
+      </div>
+      <div class="admin-top-actions">
+        <a href="/admin/resep/new" class="tombol-kirim tombol-primer">Tambah Resep</a>
+        <a href="/admin/resep/pending" class="tombol-kecil tombol-bahaya">Resep Pending</a>
+      </div>
+    </div>
+
+    <div class="admin-cards">
+      <a href="/admin/resep" class="kartu-mini">
+        <div class="kartu-mini-judul">Kelola Resep</div>
+        <div class="kartu-mini-detail">Lihat dan edit semua resep</div>
+      </a>
+
+      <a href="/admin/resep/new" class="kartu-mini kartu-mini-primary">
+        <div class="kartu-mini-judul">+ Tambah Resep</div>
+        <div class="kartu-mini-detail">Buat resep baru</div>
+      </a>
+
+      <a href="/admin/resep/pending" class="kartu-mini kartu-mini-warn">
+        <div class="kartu-mini-judul">Resep Pending</div>
+        <div class="kartu-mini-detail">Tinjau resep yang dikirim pengguna</div>
+      </a>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat">Total Resep: <strong>{{stats.totalResep}}</strong></div>
+      <div class="stat">Pending: <strong>{{stats.pendingCount}}</strong></div>
+      <div class="stat">Approved: <strong>{{stats.approvedCount}}</strong></div>
+    </div>
+  </div>
+</section>

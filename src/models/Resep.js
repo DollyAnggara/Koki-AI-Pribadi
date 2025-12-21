@@ -28,6 +28,8 @@ const skemaResep = new mongoose.Schema({
   status: { type: String, enum: ['pending','approved','rejected'], default: 'approved' },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Pengguna', default: null },
   moderationNote: String,
+  moderationBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Pengguna', default: null },
+  approvedAt: Date,
   tanggalDibuat: { type: Date, default: Date.now },
   tanggalDiperbarui: { type: Date, default: Date.now }
 });

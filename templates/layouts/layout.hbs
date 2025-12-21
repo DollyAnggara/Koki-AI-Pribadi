@@ -6,7 +6,7 @@
     <title>{{#if title}}{{title}}{{else}}Koki AI Pribadi{{/if}}</title>
     <link rel="stylesheet" href="/css/style.css">
   </head>
-  <body>
+  <body class="{{#if isAdmin}}is-admin{{/if}}">
     {{> header}}
 
     <!-- Toast notifications (top-right) -->

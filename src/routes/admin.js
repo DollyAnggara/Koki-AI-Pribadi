@@ -12,7 +12,9 @@ function requireAdmin(req, res, next) {
 }
 
 // Admin UI pages
-router.get('/', requireAdmin, (req, res) => res.redirect('/admin/resep'));
+// Redirect root to explicit dashboard route for clarity
+router.get('/', requireAdmin, (req, res) => res.redirect('/admin/dashboard'));
+router.get('/dashboard', requireAdmin, kontrolerAdmin.dashboardPage);
 router.get('/resep', requireAdmin, kontrolerAdmin.listResepPage);
 router.get('/resep/new', requireAdmin, kontrolerAdmin.newResepPage);
 router.post('/resep', requireAdmin, kontrolerAdmin.createResep);

@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 let bcrypt;
-try { bcrypt = require('bcrypt'); } catch (e) { bcrypt = null; }
+let bcryptFallback = null;
+try { bcrypt = require('bcrypt'); } catch (e) { try { bcryptFallback = require('bcryptjs'); console.warn('bcrypt not found, using bcryptjs fallback'); } catch(err) { bcrypt = null; bcryptFallback = null; console.warn('bcrypt and bcryptjs not available; password verification for bcrypt hashed passwords will fail'); } }
 
 const skemaPengguna = new mongoose.Schema({
   namaPengguna: { type: String, required: true, unique: true },
@@ -35,8 +36,17 @@ skemaPengguna.pre('save', async function() {
 
 skemaPengguna.methods.verifikasiKataSandi = function(kataSandiInput) {
   // If password stored with bcrypt ($2...), verify with bcrypt if available
-  if (typeof this.kataSandi === 'string' && this.kataSandi.startsWith('$2') && bcrypt && typeof bcrypt.compareSync === 'function') {
-    try { return bcrypt.compareSync(kataSandiInput, this.kataSandi); } catch (e) { return false; }
+  if (typeof this.kataSandi === 'string' && this.kataSandi.startsWith('$2')) {
+    // Prefer native bcrypt if available
+    if (bcrypt && typeof bcrypt.compareSync === 'function') {
+      try { return bcrypt.compareSync(kataSandiInput, this.kataSandi); } catch (e) { return false; }
+    }
+    // Fallback to bcryptjs if available
+    if (bcryptFallback && typeof bcryptFallback.compareSync === 'function') {
+      try { return bcryptFallback.compareSync(kataSandiInput, this.kataSandi); } catch (e) { return false; }
+    }
+    // Cannot verify bcrypt-style hash without bcrypt or bcryptjs
+    return false;
   }
   // Fallback to sha256 hex compare
   const hash = crypto.createHash('sha256').update(kataSandiInput).digest('hex');
