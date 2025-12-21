@@ -42,8 +42,7 @@ const ruteMenu = require("./routes/menu");
 const ruteOtp = require("./routes/otp");
 const ruteDebug = require("./routes/debug");
 const ruteKontak = require("./routes/kontak");
-
-const Pengguna = require("./models/Pengguna");
+  const ruteAdmin = require("./routes/admin");
 const Bahan = require("./models/Bahan");
 
 const jalankanServer = async () => {
@@ -105,6 +104,10 @@ const jalankanServer = async () => {
         path.join(__dirname, "..", "templates", "partials"),
         path.join(__dirname, "..", "templates", "views"),
       ],
+      helpers: {
+        eq: (a, b) => String(a) === String(b),
+        json: (ctx) => JSON.stringify(ctx || [], null, 2),
+      },
     })
   );
   aplikasi.set("view engine", "hbs");
@@ -142,6 +145,8 @@ const jalankanServer = async () => {
   // Debug/test endpoints for development (deepseek test)
   aplikasi.use("/api/debug", ruteDebug);
   aplikasi.use("/api/kontak", ruteKontak);
+  // Admin pages
+  aplikasi.use('/admin', ruteAdmin);
 
   aplikasi.get("/api/status", (req, res) => {
     res.json({

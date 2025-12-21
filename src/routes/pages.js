@@ -134,7 +134,10 @@ router.get('/resep/:id', requireAuth, async (req, res) => {
         // formatted arrays for clean rendering
         daftarBahanDisplay,
         langkahDisplay,
-        missingIngredients
+        missingIngredients,
+        // raw JSON for client-side use (safe copy)
+        daftarBahanJSON: JSON.stringify(daftarRaw || []),
+        missingIngredientsJSON: JSON.stringify(missingIngredients || [])
       }
     });
   } catch (err) {

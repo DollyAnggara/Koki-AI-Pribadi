@@ -12,6 +12,14 @@ router.post('/', kontrolerResep.buatResepBaru);
 router.put('/:id', kontrolerResep.perbaruiResep);
 router.delete('/:id', kontrolerResep.hapusResep);
 
+// require session for cook operation
+function requireSession(req, res, next) {
+  if (!req.session || !req.session.user) return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
+  next();
+}
+
+router.post('/:id/masak', requireSession, kontrolerResep.masakResep);
+
 router.post('/cari-dengan-bahan', kontrolerResep.cariResepDenganBahan);
 router.post('/saran-ai', kontrolerResep.dapatkanSaranResepAI);
 router.post('/hitung-nutrisi', kontrolerResep.hitungNutrisi);

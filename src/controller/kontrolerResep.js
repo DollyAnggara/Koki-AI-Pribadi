@@ -14,14 +14,25 @@ const layananChatBot = require("../utils/layananChatBot");
 const dapatkanSemuaResep = async (req, res) => {
   try {
     const q = (req.query.q || "").trim();
+    const filter = {};
+    // by default show only approved to normal users
+    if (!(req.session && req.session.user && req.session.user.isAdmin)) {
+      filter.status = 'approved';
+    } else {
+      // admins can pass ?filter=pending to see pending submissions
+      if (req.query.filter === 'pending') filter.status = 'pending';
+      else if (req.query.filter === 'approved') filter.status = 'approved';
+      // else leave undefined to see all
+    }
+
     let resep;
     if (q) {
       // escape regex special chars
       const esc = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(esc, "i");
-      resep = await Resep.find({ namaResep: regex }).limit(200);
+      resep = await Resep.find(Object.assign({ namaResep: regex }, filter)).limit(200);
     } else {
-      resep = await Resep.find().limit(200);
+      resep = await Resep.find(filter).limit(200);
     }
     res.json({ sukses: true, data: resep });
   } catch (err) {
@@ -35,11 +46,21 @@ const dapatkanSemuaResep = async (req, res) => {
  */
 const dapatkanResepById = async (req, res) => {
   try {
-    const resep = await Resep.findById(req.params.id);
+    const resep = await Resep.findById(req.params.id).populate('submittedBy','namaPengguna email');
     if (!resep)
       return res
         .status(404)
         .json({ sukses: false, pesan: "Resep tidak ditemukan" });
+
+    // if recipe is not approved, only allow owner or admin to view
+    if (resep.status && resep.status !== 'approved') {
+      const isOwner = req.session && req.session.user && (String(req.session.user._id || req.session.user.id) === String(resep.submittedBy && resep.submittedBy._id));
+      const isAdmin = req.session && req.session.user && req.session.user.isAdmin;
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ sukses: false, pesan: 'Resep ini sedang menunggu moderasi' });
+      }
+    }
+
     // Hitung nutrisi jika belum ada
     if (!resep.nutrisiPerPorsi || !resep.nutrisiPerPorsi.kalori) {
       const hasil = layananNutrisi.hitungNutrisiResep(
@@ -71,6 +92,20 @@ const buatResepBaru = async (req, res) => {
       ) || { nutrisiPerPorsi: { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 } };
       data.nutrisiPerPorsi = nutr.nutrisiPerPorsi || { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 };
     }
+
+    // If a logged-in user creates a recipe and is not admin, mark as pending for moderation
+    if (req.session && req.session.user) {
+      data.submittedBy = req.session.user._id || req.session.user.id;
+      if (!req.session.user.isAdmin) {
+        data.status = 'pending';
+      } else {
+        data.status = data.status || 'approved';
+      }
+    } else {
+      // anonymous submissions are pending
+      data.status = 'pending';
+    }
+
     const resepBaru = new Resep(data);
     await resepBaru.save();
     res.status(201).json({ sukses: true, data: resepBaru });
@@ -248,6 +283,152 @@ const hitungNutrisi = async (req, res) => {
   }
 };
 
+/**
+ * Masak resep: cek ketersediaan bahan pengguna lalu kurangi stok jika cukup (POST /api/resep/:id/masak)
+ */
+const masakResep = async (req, res) => {
+  try {
+    if (!req.session || !req.session.user)
+      return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
+    const userId = req.session.user._id || req.session.user.id;
+    const resep = await Resep.findById(req.params.id);
+    if (!resep) return res.status(404).json({ sukses: false, pesan: 'Resep tidak ditemukan' });
+
+    const Bahan = require('../models/Bahan');
+
+    // helpers to normalize units and convert to canonical amounts (grams/ml)
+    const normalizeUnit = (u) => {
+      if (!u) return '';
+      const x = String(u).trim().toLowerCase();
+      if (x === 'g' || x === 'gram' || x === 'gramme') return 'gram';
+      if (x === 'kg' || x === 'kilogram') return 'kg';
+      if (x === 'ml' || x === 'milliliter') return 'ml';
+      if (x === 'l' || x === 'liter' || x === 'litre') return 'liter';
+      if (x === 'butir' || x === 'potong' || x === 'buah') return x;
+      return x;
+    };
+    const toCanonical = (jumlah, satuan) => {
+      const u = normalizeUnit(satuan);
+      if (u === 'kg') return { amount: (Number(jumlah) || 0) * 1000, unit: 'gram' };
+      if (u === 'gram') return { amount: (Number(jumlah) || 0) * 1, unit: 'gram' };
+      if (u === 'liter') return { amount: (Number(jumlah) || 0) * 1000, unit: 'ml' };
+      if (u === 'ml') return { amount: (Number(jumlah) || 0) * 1, unit: 'ml' };
+      return { amount: Number(jumlah) || 0, unit: u || '' };
+    };
+    const canonicalToPantry = (amountCanon, pantryUnit) => {
+      const u = normalizeUnit(pantryUnit);
+      if (u === 'kg') return amountCanon / 1000;
+      if (u === 'gram') return amountCanon;
+      if (u === 'liter') return amountCanon / 1000;
+      if (u === 'ml') return amountCanon;
+      return amountCanon;
+    };
+
+    // load user's pantry
+    const pantry = await Bahan.find({ pemilik: userId, statusAktif: true }).sort({ jumlahTersedia: -1 });
+
+    const missing = [];
+    const recipeBahan = resep.daftarBahan || [];
+
+    // Determine portion scaling
+    const requestedPorsi = Number(req.body.porsi || 1) || 1;
+    const basePorsi = Number(resep.porsi || 1) || 1;
+    const scale = requestedPorsi / basePorsi;
+
+    // First pass: detect shortages
+    for (const b of recipeBahan) {
+      const nama = b.namaBahan || b.nama || '';
+      const reqJumlahRaw = (Number(b.jumlah) || 0) * scale;
+      const reqSatuan = b.satuan || '';
+
+      const rx = new RegExp((nama || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const matches = pantry.filter((p) => rx.test(p.namaBahan || ''));
+
+      if (!reqJumlahRaw || reqJumlahRaw === 0) {
+        // presence check
+        if (!matches.length) missing.push({ namaBahan: nama, alasan: 'Tidak ada di pantry' });
+        continue;
+      }
+
+      const reqCanon = toCanonical(Number(reqJumlahRaw) || 0, reqSatuan);
+      let sumAvailable = 0;
+      for (const m of matches) {
+        const availCanon = toCanonical(Number(m.jumlahTersedia || 0), m.satuan);
+        if (availCanon.unit && reqCanon.unit && availCanon.unit === reqCanon.unit) sumAvailable += availCanon.amount;
+      }
+      if (sumAvailable < (reqCanon.amount || 0)) {
+        const needed = (reqCanon.amount || 0) - sumAvailable;
+        let displayAmount = needed;
+        let displayUnit = reqCanon.unit;
+        if (displayUnit === 'gram' && displayAmount >= 1000) {
+          displayAmount = Math.round((displayAmount / 1000) * 100) / 100;
+          displayUnit = 'kg';
+        } else if (displayUnit === 'ml' && displayAmount >= 1000) {
+          displayAmount = Math.round((displayAmount / 1000) * 100) / 100;
+          displayUnit = 'liter';
+        } else {
+          displayAmount = Math.round(displayAmount * 100) / 100;
+        }
+        missing.push({ namaBahan: nama, jumlah: displayAmount, satuan: displayUnit });
+      }
+    }
+
+    if (missing.length) {
+      // If caller requested a preview, return missing list without failing the request
+      if (req.body && req.body.preview) {
+        return res.json({ sukses: true, missing });
+      }
+      return res.status(400).json({ sukses: false, pesan: 'Bahan tidak mencukupi', missing });
+    }
+
+    // If preview mode requested, and there are no missing ingredients, do NOT alter pantry.
+    if (req.body && req.body.preview) {
+      // Return simulated success and list of ingredients that would be consumed
+      const simulated = recipeBahan.map(b => ({ namaBahan: b.namaBahan || b.nama || '', jumlah: (Number(b.jumlah)||0) * scale, satuan: b.satuan || '' }));
+      return res.json({ sukses: true, pesan: 'Preview masak — stok tidak dikurangi', simulated, preview: true });
+    }
+
+    // Second pass: perform decrements (apply same portion scaling as first pass)
+    for (const b of recipeBahan) {
+      const nama = b.namaBahan || b.nama || '';
+      const reqJumlahRaw = (Number(b.jumlah) || 0) * scale; // APPLY SCALE HERE
+      const reqSatuan = b.satuan || '';
+      if (!reqJumlahRaw || reqJumlahRaw === 0) continue; // nothing to decrement
+
+      const reqCanon = toCanonical(Number(reqJumlahRaw) || 0, reqSatuan);
+      let remaining = reqCanon.amount;
+
+      const rx = new RegExp((nama || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const matches = pantry.filter((p) => rx.test(p.namaBahan || '')).sort((a,b)=> (Number(b.jumlahTersedia||0) - Number(a.jumlahTersedia||0)));
+
+      for (const m of matches) {
+        if (remaining <= 0) break;
+        const availCanon = toCanonical(Number(m.jumlahTersedia || 0), m.satuan);
+        if (!availCanon.unit || !reqCanon.unit || availCanon.unit !== reqCanon.unit) continue; // skip incompatible
+        const take = Math.min(availCanon.amount, remaining);
+        const deltaInPantryUnit = canonicalToPantry(take, m.satuan);
+        const newJumlah = Number(m.jumlahTersedia || 0) - deltaInPantryUnit;
+        // update database
+        await Bahan.findByIdAndUpdate(m._id, { jumlahTersedia: Math.max(0, Math.round(newJumlah * 100) / 100) });
+        remaining -= take;
+      }
+    }
+    // remove any items that became empty or already expired
+    let hapusCount = 0;
+    try {
+      const hapusResult = await Bahan.deleteMany({ pemilik: userId, $or: [ { jumlahTersedia: { $lte: 0 } }, { tanggalKadaluarsa: { $lt: new Date() } } ] });
+      hapusCount = hapusResult && hapusResult.deletedCount ? hapusResult.deletedCount : 0;
+      if (hapusCount) console.log(`🗑️ Dihapus ${hapusCount} bahan (habis/kadaluarsa) setelah memasak oleh user=${userId}`);
+    } catch (e) {
+      console.warn('❌ Gagal hapus bahan habis/kadaluarsa:', e.message || e);
+    }
+    return res.json({ sukses: true, pesan: 'Resep dimasak, bahan berhasil dikurangi dari pantry', dihapus: hapusCount });
+  } catch (err) {
+    console.error('❌ Gagal proses masak resep:', err);
+    res.status(500).json({ sukses: false, pesan: 'Gagal memproses masak resep' });
+  }
+};
+
 module.exports = {
   dapatkanSemuaResep,
   dapatkanResepById,
@@ -257,4 +438,5 @@ module.exports = {
   cariResepDenganBahan,
   dapatkanSaranResepAI,
   hitungNutrisi,
+  masakResep,
 };

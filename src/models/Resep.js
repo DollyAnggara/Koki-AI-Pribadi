@@ -25,6 +25,9 @@ const skemaResep = new mongoose.Schema({
   daftarBahan: [skemaBahanResep],
   langkah: [skemaLangkah],
   nutrisiPerPorsi: Object,
+  status: { type: String, enum: ['pending','approved','rejected'], default: 'approved' },
+  submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Pengguna', default: null },
+  moderationNote: String,
   tanggalDibuat: { type: Date, default: Date.now },
   tanggalDiperbarui: { type: Date, default: Date.now }
 });

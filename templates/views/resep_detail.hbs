@@ -53,7 +53,23 @@
         {{/if}}
       {{/if}}
 
-      <div style="margin-top:12px;"><a href="/resep" class="tombol-kirim">← Kembali ke Daftar Resep</a></div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+        <a href="/resep" class="tombol-kirim">← Kembali ke Daftar Resep</a>
+
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <label for="inputPorsi" style="font-weight:600;color:var(--warna-teks-sekunder);">Porsi:</label>
+          <input type="number" id="inputPorsi" min="1" step="1" value="{{resep.porsi}}" style="width:96px;padding:8px 10px;border-radius:8px;border:1px solid #e6e6e6;" />
+          <!-- Masak button moved to the right of porsi -->
+          <button id="tombolMasakKecil" class="tombol-mulai" style="margin-left:6px;" data-resep-id="{{resep._id}}" data-daftar-bahan='{{{resep.daftarBahanJSON}}}' data-base-porsi="{{resep.porsi}}">Masak</button>
+        </div>
+      </div>
+
+
+
+
+
+      <!-- Konfirmasi Masak dinonaktifkan sementara. Interaksi Masak disederhanakan ke native confirm / aksi langsung. -->
+
       {{else}}
         <h2 class="kartu-judul">Resep tidak ditemukan</h2>
         <p>{{error}}</p>
@@ -62,5 +78,8 @@
     </div>
   </section>
 </main>
+
+
+<!-- Konfirmasi masak HTML dihapus sementara -->
 
 {{> footer}}

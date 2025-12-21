@@ -21,8 +21,10 @@ const skemaBahan = new mongoose.Schema(
 
 skemaBahan.virtual("sisaHariKadaluarsa").get(function () {
   if (!this.tanggalKadaluarsa) return null;
-  const hariIni = new Date();
-  return Math.ceil((this.tanggalKadaluarsa - hariIni) / (1000 * 60 * 60 * 24));
+  const now = new Date();
+  // Use floor-based days remaining so it counts down 3 -> 2 -> 1 and shows 'Gunakan segera' at day 1
+  const diffDays = Math.floor((this.tanggalKadaluarsa - now) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
 });
 
 skemaBahan.set("toJSON", { virtuals: true });

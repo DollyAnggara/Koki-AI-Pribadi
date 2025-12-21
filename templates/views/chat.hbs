@@ -2,11 +2,14 @@
   <section>
     <div class="kartu kontainer-chat">
       <h2 class="kartu-judul">💬 Chat dengan Koki AI</h2>
-      <div class="area-pesan" id="areaPesan">
-        <div class="pesan pesan-koki">Halo! 👋 Saya Koki AI, asisten memasak virtual Anda. Apa yang ingin Anda masak hari ini?</div>
+      <div class="area-pesan" id="areaPesan" role="log" aria-live="polite" aria-atomic="false">
+        <!-- Messages will be restored from sessionStorage and rendered by JS -->
       </div>
       <div id="indikatorMengetik" class="indikator-mengetik" style="display:none;"><span></span><span></span><span></span></div>
-      <form class="form-chat" id="formChat"><input type="text" class="input-chat" id="inputPesan" placeholder="Ketik pesan Anda..."><button type="submit" class="tombol-kirim">Kirim</button></form>
+      <form class="form-chat" id="formChat" aria-label="Kirim pesan ke Koki AI">
+        <input type="text" class="input-chat" id="inputPesan" placeholder="Ketik pesan Anda... (Enter untuk kirim)" aria-label="Teks pesan">
+        <button type="submit" class="tombol-kirim" aria-label="Kirim pesan">Kirim</button>
+      </form>
     </div>
   </section>
 </main>

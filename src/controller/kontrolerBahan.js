@@ -52,6 +52,13 @@ const dapatkanSemuaBahan = async (req, res) => {
       filter.pemilik = sessId;
     }
 
+    // Cleanup expired items for this user automatically (they requested expired items be removed)
+    try {
+      await Bahan.deleteMany({ pemilik: filter.pemilik, tanggalKadaluarsa: { $lt: new Date() } });
+    } catch (e) {
+      console.warn('[CLEANUP] gagal hapus bahan kadaluarsa:', e.message || e);
+    }
+
     const daftar = await Bahan.find(filter).sort({ tanggalKadaluarsa: 1 });
     res.json({ sukses: true, data: daftar });
   } catch (err) {
@@ -162,15 +169,63 @@ const tambahBahan = async (req, res) => {
     )
       payload.jumlahTersedia = 0;
 
-    const bahan = new Bahan(payload);
-    await bahan.save();
-    console.log(
-      "✅ Bahan tersimpan:",
-      bahan.namaBahan,
-      "pemilik=",
-      String(bahan.pemilik || "none")
-    );
-    res.status(201).json({ sukses: true, data: bahan });
+    // Try to merge with existing bahan for this user (case-insensitive exact name)
+    const escapeRegex = (s) => String(s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const convertToBase = (jumlah, satuan) => {
+      const u = String(satuan || "").trim().toLowerCase();
+      if (u === "kg") return { amount: Number(jumlah) * 1000, unit: "gram" };
+      if (u === "g" || u === "gram") return { amount: Number(jumlah), unit: "gram" };
+      if (u === "l" || u === "liter" || u === "litre") return { amount: Number(jumlah) * 1000, unit: "ml" };
+      if (u === "ml" || u === "milliliter") return { amount: Number(jumlah), unit: "ml" };
+      return { amount: Number(jumlah) || 0, unit: u || "" };
+    };
+    const fromBaseToUnit = (amountBase, targetUnit) => {
+      const u = String(targetUnit || "").trim().toLowerCase();
+      if (u === "kg") return { amount: amountBase / 1000, unit: "kg" };
+      if (u === "g" || u === "gram") return { amount: amountBase, unit: "gram" };
+      if (u === "liter" || u === "l" || u === "litre") return { amount: amountBase / 1000, unit: "liter" };
+      if (u === "ml" || u === "milliliter") return { amount: amountBase, unit: "ml" };
+      return { amount: amountBase, unit: u || "" };
+    };
+
+    const nama = String(payload.namaBahan || "").trim();
+    const regex = new RegExp(`^${escapeRegex(nama)}$`, "i");
+    let existing = await Bahan.findOne({ pemilik: payload.pemilik, namaBahan: regex, statusAktif: true });
+    if (!existing) {
+      const stripped = nama.replace(/\s*\(.+\)\s*/g, "").trim();
+      if (stripped && stripped !== nama) {
+        const regex2 = new RegExp(`^${escapeRegex(stripped)}$`, "i");
+        existing = await Bahan.findOne({ pemilik: payload.pemilik, namaBahan: regex2, statusAktif: true });
+      }
+    }
+
+    if (!existing) {
+      const bahan = new Bahan(payload);
+      await bahan.save();
+      console.log("✅ Bahan tersimpan:", bahan.namaBahan, "pemilik=", String(bahan.pemilik || "none"));
+      return res.status(201).json({ sukses: true, data: bahan });
+    } else {
+      // attempt to combine amounts if units compatible
+      const existingBase = convertToBase(existing.jumlahTersedia || 0, existing.satuan || "");
+      const newBase = convertToBase(payload.jumlahTersedia || payload.jumlah || 0, payload.satuan || "");
+      if (existingBase.unit && newBase.unit && existingBase.unit === newBase.unit) {
+        const sumBase = (existingBase.amount || 0) + (newBase.amount || 0);
+        const back = fromBaseToUnit(sumBase, existing.satuan || existingBase.unit);
+        existing.jumlahTersedia = back.amount;
+        // update tanggalKadaluarsa conservatively to the later date if provided
+        if (payload.tanggalKadaluarsa && (!existing.tanggalKadaluarsa || existing.tanggalKadaluarsa < payload.tanggalKadaluarsa)) existing.tanggalKadaluarsa = payload.tanggalKadaluarsa;
+        existing.lokasiPenyimpanan = payload.lokasiPenyimpanan || existing.lokasiPenyimpanan;
+        await existing.save();
+        console.log(`🔁 Bahan diperbarui (merge): ${existing.namaBahan} pemilik=${payload.pemilik} jumlah=${existing.jumlahTersedia} ${existing.satuan}`);
+        return res.json({ sukses: true, data: existing, pesan: "Stok bahan diperbarui (digabung dengan item yang ada)" });
+      } else {
+        // unit mismatch: create a new entry
+        const bahan = new Bahan(payload);
+        await bahan.save();
+        console.log(`➕ Bahan baru dibuat (unit mismatch): ${bahan.namaBahan} pemilik=${payload.pemilik} jumlah=${bahan.jumlahTersedia} ${bahan.satuan}`);
+        return res.status(201).json({ sukses: true, data: bahan });
+      }
+    }
   } catch (err) {
     console.error("❌ Gagal tambah bahan:", err);
     res.status(400).json({
@@ -277,6 +332,13 @@ const pantryChallenge = async (req, res) => {
     const sessId = getSessionUserId(req);
     if (!sessId)
       return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
+
+    // cleanup expired items before generating pantry challenge
+    try {
+      await Bahan.deleteMany({ pemilik: sessId, tanggalKadaluarsa: { $lt: new Date() } });
+    } catch (e) {
+      console.warn('[CLEANUP] gagal hapus bahan kadaluarsa (pantry-challenge):', e.message || e);
+    }
 
     const bahanHampir = await Bahan.dapatkanHampirKadaluarsa(sessId, 3);
     console.log(`[PANTRY-DEBUG] sessId=${sessId} requested pantry-challenge`);
