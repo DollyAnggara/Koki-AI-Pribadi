@@ -1,4 +1,4 @@
-// basic chatbot + AI recipe suggestion helper
+// chatbot dasar + pembantu saran resep AI
 const OpenAI = require("openai");
 const Resep = require("../models/Resep");
 const { panggilOpenRouter } = require("./layananOpenRouter");
@@ -11,35 +11,35 @@ const formatRecipeOutput = (teks) => {
 
   let formatted = teks;
 
-  // STEP 1: Remove unwanted markdown
+  // STEP 1: Hapus markdown yang tidak diinginkan
   formatted = formatted.replace(/\*+/g, "");
   formatted = formatted.replace(/_{2,}/g, "");
-  // Remove markdown heading syntax (###, ##, #)
+  // Hapus sintaks heading markdown (###, ##, #)
   formatted = formatted.replace(/#+\s+/g, "");
 
-  // STEP 2: Add newlines after section headers that don't have them
-  // Fix patterns like "Bahan:-" → "Bahan:\n-"
+  // STEP 2: Tambahkan newline setelah header bagian yang tidak memilikinya
+  // Perbaiki pola seperti "Bahan:-" → "Bahan:\n-"
   formatted = formatted.replace(
     /^(Bahan|Langkah|Tips|Catatan|Persiapan|Memasak|Nutrisi|Cara Membuat|Waktu|Porsi|Bumbu|Bumbu Halus|Pelengkap|Toppings|Topping):([^ \n\n])/gm,
     "$1:\n\n$2"
   );
 
-  // STEP 3: Fix section headers that appear after text/punctuation without newline
-  // Handles patterns like "minyak.Langkah:" → "minyak.\n\nLangkah:"
+  // STEP 3: Perbaiki header bagian yang muncul setelah teks/tanda baca tanpa newline
+  // Menangani pola seperti "minyak.Langkah:" → "minyak.\n\nLangkah:"
   formatted = formatted.replace(
     /([.!?])(Bahan|Langkah|Tips|Catatan|Persiapan|Memasak|Nutrisi|Cara Membuat|Waktu|Porsi|Bumbu|Bumbu Halus|Pelengkap|Toppings|Topping):/g,
     "$1\n\n$2:"
   );
 
-  // STEP 3B: Fix section headers that appear directly after text without any separator
-  // Handles patterns like "airLangkah:", "TajikanTips:", "rasaWaktu:", "salamTopping:" etc.
-  // Must come BEFORE the next step that looks for non-punctuated text
+  // STEP 3B: Perbaiki header bagian yang muncul langsung setelah teks tanpa pemisah apapun
+  // Menangani pola seperti "airLangkah:", "TajikanTips:", "rasaWaktu:", "salamTopping:" dll.
+  // Harus datang SEBELUM langkah berikut yang mencari teks tanpa tanda baca
   formatted = formatted.replace(
     /([a-z])(Bahan|Langkah|Tips|Catatan|Persiapan|Memasak|Nutrisi|Cara Membuat|Waktu|Porsi|Bumbu|Bumbu Halus|Pelengkap|Toppings|Topping):/g,
     "$1\n\n$2:"
   );
 
-  // STEP 4: Fix section headers - ensure they have proper spacing with newlines before
+  // STEP 4: Perbaiki header bagian - pastikan memiliki spasi/newline yang tepat sebelum header
   const sections = [
     "Bahan:",
     "Langkah:",
@@ -68,59 +68,59 @@ const formatRecipeOutput = (teks) => {
     formatted = formatted.replace(regex, `$1\n\n$2`);
   });
 
-  // STEP 5: Ensure section headers that start at beginning have spacing
-  // Add spacing before section headers that don't have it
+  // STEP 5: Pastikan header bagian yang dimulai dari awal memiliki spasi
+  // Tambahkan spasi sebelum header bagian yang belum memilikinya
   formatted = formatted.replace(
     /^(?![\n\n])(Bahan|Langkah|Tips|Catatan|Persiapan|Memasak|Nutrisi|Cara Membuat|Waktu|Porsi|Bumbu|Bumbu Halus|Pelengkap|Toppings|Topping):/gm,
     "\n\n$1:"
   );
 
-  // STEP 6: Fix metadata (Waktu/Porsi) that appear directly after tips without newline
-  // Handles patterns like "kesegaran" + "Waktu:" or tips ending + "Waktu:"
+  // STEP 6: Perbaiki metadata (Waktu/Porsi) yang muncul langsung setelah tips tanpa newline
+  // Menangani pola seperti "kesegaran" + "Waktu:" atau tips yang diakhiri + "Waktu:"
   formatted = formatted.replace(/([a-z])(Waktu|Porsi):/g, "$1\n\n$2:");
 
-  // STEP 7: Fix "Waktu:" and "Porsi:" that appear on same line
-  // Handles patterns like "Waktu: 40 menitPorsi:" → separate them
+  // STEP 7: Perbaiki "Waktu:" dan "Porsi:" yang muncul pada baris yang sama
+  // Menangani pola seperti "Waktu: 40 menitPorsi:" → pisahkan mereka
   formatted = formatted.replace(/(Waktu:\s*\d+\s*menit)(Porsi:)/g, "$1\n\n$2");
 
   // Also handle reversed order: Porsi followed by Waktu
   formatted = formatted.replace(/(Porsi:\s*\d+\s*orang)(Waktu:)/g, "$1\n\n$2");
 
-  // STEP 8: Aggressively split "- " patterns that appear without preceding newline
-  // This converts "text- item" or "- item1- item2" into proper separate lines
+  // STEP 8: Pisahkan agresif pola "- " yang muncul tanpa newline sebelumnya
+  // Ini mengubah "text- item" atau "- item1- item2" menjadi baris terpisah yang benar
   formatted = formatted.replace(/([^\n])- /g, "$1\n- ");
 
-  // STEP 9: Split numbered items that are combined on one line
-  // Handles patterns like "...something2. Next step" or "...something5. text"
-  formatted = formatted.replace(/([.!?)])(\d+\.)/g, "$1\n$2"); // Includes closing parenthesis
-  formatted = formatted.replace(/([.!?])(\d+\.)/g, "$1\n$2"); // Original pattern
-  // Also handle when there's no punctuation before a number (for step 4-5 combined scenario)
+  // STEP 9: Pisahkan item bernomor yang digabung pada satu baris
+  // Menangani pola seperti "...something2. Next step" atau "...something5. text"
+  formatted = formatted.replace(/([.!?)])(\d+\.)/g, "$1\n$2"); // Termasuk tanda kurung penutup
+  formatted = formatted.replace(/([.!?])(\d+\.)/g, "$1\n$2"); // Pola asli
+  // Juga tangani ketika tidak ada tanda baca sebelum angka (untuk skenario langkah 4-5 digabung)
   formatted = formatted.replace(/([a-zA-Z])(\d+\.)/g, "$1\n$2");
 
-  // STEP 10: Ensure bullets and numbers have spaces after them
+  // STEP 10: Pastikan bullets dan angka memiliki spasi setelahnya
   formatted = formatted.replace(/^- (?! )/gm, "- ");
   formatted = formatted.replace(/^(\d+\.)(?! )/gm, "$1 ");
 
-  // STEP 11: Clean up multiple spaces
+  // STEP 11: Bersihkan spasi berlebih
   formatted = formatted.replace(/  +/g, " ");
 
-  // STEP 12: Remove trailing whitespace on lines
+  // STEP 12: Hapus whitespace di akhir baris
   formatted = formatted.replace(/\s+\n/g, "\n");
 
-  // STEP 13: Normalize newlines before headers (ensure exactly 2 newlines before each section)
+  // STEP 13: Normalisasi newline sebelum header (pastikan tepat 2 newline sebelum setiap bagian)
   formatted = formatted.replace(
     /\n\n+(Bahan|Langkah|Tips|Catatan|Persiapan|Memasak|Nutrisi|Cara Membuat|Waktu|Porsi|Bumbu|Bumbu Halus|Pelengkap|Toppings|Topping):/g,
     "\n\n$1:"
   );
 
-  // STEP 14: Add bold formatting to section headers
-  // Wrap section headers with ** for markdown bold
+  // STEP 14: Tambahkan format bold ke header bagian
+  // Bungkus header bagian dengan ** untuk bold markdown
   formatted = formatted.replace(
     /^(Bahan|Langkah|Tips|Catatan|Persiapan|Memasak|Nutrisi|Cara Membuat|Waktu|Porsi|Bumbu|Bumbu Halus|Pelengkap|Toppings|Topping):/gm,
     "**$1:**"
   );
 
-  // STEP 15: Clean up excessive newlines (but preserve double breaks for sections)
+  // STEP 15: Bersihkan newline berlebihan (tetap pertahankan double break untuk section)
   formatted = formatted.replace(/\n{3,}/g, "\n\n");
 
   // STEP 16: Trim
@@ -130,7 +130,7 @@ const formatRecipeOutput = (teks) => {
 };
 
 /**
- * Process user message dan return formatted response
+ * Proses pesan pengguna dan kembalikan respons yang diformat
  */
 const prosesPercakapan = async (idSesi, pesan) => {
   const prompt = `Anda adalah Koki AI, asisten memasak profesional dari Indonesia.
@@ -186,7 +186,7 @@ Pertanyaan pengguna: ${pesan}`;
 const saranResep = async (daftarBahan = [], preferensi = {}) => {
   if (!Array.isArray(daftarBahan)) daftarBahan = [];
 
-  // Try OpenAI if key present
+  // Coba OpenAI jika OPENAI_API_KEY tersedia
   if (process.env.OPENAI_API_KEY) {
     try {
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -211,7 +211,7 @@ Kembalikan hanya JSON array tanpa teks tambahan.`;
       const text = resp?.choices?.[0]?.message?.content;
       if (!text) return { sukses: false, pesan: "AI tidak mengembalikan teks" };
 
-      // parse JSON safely
+      // parse JSON dengan aman
       let parsed = [];
       try {
         parsed = JSON.parse(text);

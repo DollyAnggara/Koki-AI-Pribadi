@@ -1,7 +1,6 @@
-/**
- * Admin Dashboard Enhancement Stylesheet
- * Improved styling for all admin pages
- */
+/* ============================================
+   ADMIN DASHBOARD STYLESHEET
+   ============================================ */
 
 :root {
   --admin-bg: #f8fafc;
@@ -34,6 +33,20 @@
 .admin-container {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* Support page transitions for admin area (smooth navigation)
+   The JS transition helpers toggle `page-hidden` / `page-fade` on a container.
+   Ensure the admin container animates like the public container. */
+.admin-container.page-hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.admin-container.page-fade {
+  transition: opacity var(--transition-duration) ease, transform var(--transition-duration) ease;
+  will-change: opacity, transform;
 }
 
 /* ============================================

@@ -1,4 +1,4 @@
-// Admin helpers for approve/reject in pending page
+// Helper admin untuk approve/reject di halaman pending
 async function postJson(url, body) {
   const resp = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) });
   return resp.json();
@@ -7,7 +7,13 @@ async function postJson(url, body) {
 document.addEventListener('click', async (e)=>{
   const btn = e.target;
   if (btn.dataset.approveId) {
-    if (!confirm('Setujui resep ini?')) return;
+    const confirmed = await showConfirmModal({
+      title: 'Setujui resep',
+      message: 'Setujui resep ini?',
+      okLabel: 'Setujui',
+      cancelLabel: 'Batal',
+    });
+    if (!confirmed) return;
     const id = btn.dataset.approveId;
     btn.disabled = true; btn.classList.add('sedang');
     try {
@@ -17,7 +23,11 @@ document.addEventListener('click', async (e)=>{
     finally { btn.disabled = false; btn.classList.remove('sedang'); }
   }
   if (btn.dataset.rejectId) {
-    const note = prompt('Alasan penolakan (opsional)');
+    const note = await showPromptModal({
+      title: 'Tolak resep',
+      message: 'Alasan penolakan (opsional)',
+      placeholder: 'Masukkan alasan (opsional)'
+    });
     if (note === null) return;
     const id = btn.dataset.rejectId;
     btn.disabled = true; btn.classList.add('sedang');
@@ -29,24 +39,53 @@ document.addEventListener('click', async (e)=>{
   }
 });
 
-// small toast helper
-function showToast(m, isError) {
-  let t = document.createElement('div');
-  t.className = 'admin-toast' + (isError ? ' error' : '');
-  t.textContent = m;
-  t.style.position = 'fixed';
-  t.style.right = '18px';
-  t.style.bottom = '18px';
-  t.style.padding = '10px 14px';
-  t.style.borderRadius = '8px';
-  t.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
-  t.style.background = isError ? '#f8d7da' : '#dff0d8';
-  t.style.color = isError ? '#7d1b1b' : '#194d19';
-  document.body.appendChild(t);
-  setTimeout(()=>{ t.style.transition = 'opacity 0.3s'; t.style.opacity = '0'; setTimeout(()=>t.remove(),350); }, 2000);
-}
+// Tangkap klik tombol hapus (.btn-delete-resep) untuk menampilkan modal konfirmasi
+// Ini mencegah submit langsung yang tidak disengaja dan bekerja konsisten di berbagai browser.
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.btn-delete-resep');
+  if (!btn) return;
+  e.preventDefault();
+  // find the enclosing form
+  const form = btn.closest('form.form-confirm-delete');
+  if (!form) return;
 
-// --- Grid / Table toggle + search filtering ---
+  try {
+    const confirmed = await showConfirmModal({
+      title: 'Hapus resep',
+      message: 'Yakin ingin menghapus resep ini?',
+      okLabel: 'Hapus',
+      cancelLabel: 'Batal',
+    });
+    if (!confirmed) return;
+    // submit form secara programatis
+    form.submit();
+  } catch (err) {
+    console.error('Error confirming delete (button):', err);
+  }
+});
+
+// Cadangan: Tangkap submit untuk konfirmasi hapus (form dengan class .form-confirm-delete)
+document.addEventListener('submit', async (e) => {
+  const form = e.target;
+  if (!form || !form.classList || !form.classList.contains('form-confirm-delete')) return;
+  // Jika form dipicu oleh handler tombol kami, itu sudah terkonfirmasi; namun kami tetap menampilkan konfirmasi sebagai langkah keamanan.
+  e.preventDefault();
+  try {
+    const confirmed = await showConfirmModal({
+      title: 'Hapus resep',
+      message: 'Yakin ingin menghapus resep ini?',
+      okLabel: 'Hapus',
+      cancelLabel: 'Batal',
+    });
+    if (!confirmed) return;
+    // Kirim form secara normal
+    form.submit();
+  } catch (err) {
+    console.error('Error confirming delete (submit):', err);
+  }
+});
+
+// --- Toggle Grid / Table + filter pencarian ---
 document.addEventListener('DOMContentLoaded', ()=>{
   const root = document.querySelector('.admin-resep-list');
   if (!root) return;
@@ -58,7 +97,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const table = root.querySelector('.tabel.admin-table');
   const totalEl = root.querySelector('.resep-meta .total strong');
 
-  // set initial view based on class or localStorage
+  // atur tampilan awal berdasarkan class atau localStorage
   const saved = localStorage.getItem('resepView');
   const initial = saved || (root.classList.contains('view-grid') ? 'grid' : 'table');
   setView(initial);
@@ -74,7 +113,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     btnTable.classList.toggle('active', v==='table');
   }
 
-  // debounce helper
+  // helper debounce untuk menunda pemanggilan fungsi
   function debounce(fn, ms=200){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); } }
 
   function updateCounts(visibleCount){
@@ -85,7 +124,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     q = (q||'').trim().toLowerCase();
     let visible = 0;
 
-    // filter cards
+    // saring kartu
     if (grid) {
       const cards = Array.from(grid.querySelectorAll('.resep-card'));
       cards.forEach(card => {
@@ -96,7 +135,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       });
     }
 
-    // filter table rows
+    // saring baris tabel
     if (table) {
       const rows = Array.from(table.querySelectorAll('tbody tr'));
       rows.forEach(row => {
@@ -104,16 +143,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const match = !q || text.indexOf(q) !== -1;
         row.style.display = match ? '' : 'none';
         if (match && (!grid || grid.querySelectorAll('.resep-card[style*="display: none"]').length === 0)) {
-          // if both exist, counting handled by grid/cards; but if table-only, count matches
+          // jika keduanya ada, penghitungan ditangani oleh grid/kartu; jika hanya tabel, hitung baris yang cocok
         }
       });
-      // if currently showing table, visible should be rows matching
+      // jika saat ini menampilkan tabel, visible adalah baris yang cocok
       if (root.classList.contains('view-table')){
         visible = Array.from(table.querySelectorAll('tbody tr')).filter(r=> r.style.display !== 'none').length;
       }
     }
 
-    // if grid visible, visible is handled above
+    // Jika grid terlihat, visibilitas ditangani di atas.
     if (root.classList.contains('view-grid') && grid){
       visible = Array.from(grid.querySelectorAll('.resep-card')).filter(c => c.style.display !== 'none').length;
     }
@@ -124,7 +163,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const onInput = debounce((e)=> filterItems(e.target.value), 200);
   if (input) input.addEventListener('input', onInput);
 
-  // initialize counts
+  // inisialisasi hitungan
   const initialVisible = root.classList.contains('view-table') && table ? table.querySelectorAll('tbody tr').length : (grid ? grid.querySelectorAll('.resep-card').length : 0);
   updateCounts(initialVisible);
 });

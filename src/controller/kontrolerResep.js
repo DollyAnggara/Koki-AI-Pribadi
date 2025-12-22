@@ -64,13 +64,25 @@ const dapatkanResepById = async (req, res) => {
 const buatResepBaru = async (req, res) => {
   try {
     const data = req.body;
+
+    // Jika user mengirimkan nilai kalori eksplisit, gunakan itu sebagai nutrisiPerPorsi.kalori
+    if (data.kalori !== undefined && data.kalori !== null && String(data.kalori).trim() !== "") {
+      const k = parseFloat(String(data.kalori).replace(',', '.'));
+      if (!isNaN(k)) {
+        data.nutrisiPerPorsi = data.nutrisiPerPorsi || {};
+        data.nutrisiPerPorsi.kalori = k;
+      }
+    }
+
     if (data.daftarBahan && data.daftarBahan.length) {
+      // If nutrisiPerPorsi.kalori was already provided above, keep it; otherwise compute from bahan
       const nutr = layananNutrisi.hitungNutrisiResep(
         data.daftarBahan,
         data.porsi || 1
       ) || { nutrisiPerPorsi: { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 } };
-      data.nutrisiPerPorsi = nutr.nutrisiPerPorsi || { kalori: 0, protein: 0, lemak: 0, karbohidrat: 0 };
+      data.nutrisiPerPorsi = Object.assign({}, nutr.nutrisiPerPorsi || {}, data.nutrisiPerPorsi || {});
     }
+
     // If created by a regular user, mark as pending for admin moderation
     if (req.session && req.session.user && req.session.user.role !== 'admin') {
       data.status = 'pending';
@@ -294,18 +306,18 @@ const masakResep = async (req, res) => {
       return amountCanon;
     };
 
-    // load user's pantry
+    // memuat dapur pengguna
     const pantry = await Bahan.find({ pemilik: userId, statusAktif: true }).sort({ jumlahTersedia: -1 });
 
     const missing = [];
     const recipeBahan = resep.daftarBahan || [];
 
-    // Determine portion scaling
+    // Tentukan skala porsi
     const requestedPorsi = Number(req.body.porsi || 1) || 1;
     const basePorsi = Number(resep.porsi || 1) || 1;
     const scale = requestedPorsi / basePorsi;
 
-    // First pass: detect shortages
+    // Lintasan pertama: deteksi kekurangan
     for (const b of recipeBahan) {
       const nama = b.namaBahan || b.nama || '';
       const reqJumlahRaw = (Number(b.jumlah) || 0) * scale;
@@ -315,7 +327,6 @@ const masakResep = async (req, res) => {
       const matches = pantry.filter((p) => rx.test(p.namaBahan || ''));
 
       if (!reqJumlahRaw || reqJumlahRaw === 0) {
-        // presence check
         if (!matches.length) missing.push({ namaBahan: nama, alasan: 'Tidak ada di pantry' });
         continue;
       }
@@ -344,26 +355,26 @@ const masakResep = async (req, res) => {
     }
 
     if (missing.length) {
-      // If caller requested a preview, return missing list without failing the request
+      // Jika pemanggil meminta preview, kembalikan daftar kekurangan tanpa gagal permintaan
       if (req.body && req.body.preview) {
         return res.json({ sukses: true, missing });
       }
       return res.status(400).json({ sukses: false, pesan: 'Bahan tidak mencukupi', missing });
     }
 
-    // If preview mode requested, and there are no missing ingredients, do NOT alter pantry.
+    // Jika mode preview diminta, dan tidak ada bahan yang kurang, JANGAN ubah pantry.
     if (req.body && req.body.preview) {
-      // Return simulated success and list of ingredients that would be consumed
+      // Mengembalikan keberhasilan simulasi dan daftar bahan-bahan yang akan dikonsumsi.
       const simulated = recipeBahan.map(b => ({ namaBahan: b.namaBahan || b.nama || '', jumlah: (Number(b.jumlah)||0) * scale, satuan: b.satuan || '' }));
       return res.json({ sukses: true, pesan: 'Preview masak — stok tidak dikurangi', simulated, preview: true });
     }
 
-    // Second pass: perform decrements (apply same portion scaling as first pass)
+    // Lintasan kedua: lakukan pengurangan (terapkan skala porsi yang sama seperti lintasan pertama)
     for (const b of recipeBahan) {
       const nama = b.namaBahan || b.nama || '';
-      const reqJumlahRaw = (Number(b.jumlah) || 0) * scale; // APPLY SCALE HERE
+      const reqJumlahRaw = (Number(b.jumlah) || 0) * scale; // TERAPKAN SKALA DI SINI
       const reqSatuan = b.satuan || '';
-      if (!reqJumlahRaw || reqJumlahRaw === 0) continue; // nothing to decrement
+      if (!reqJumlahRaw || reqJumlahRaw === 0) continue; // tidak ada yang dikurangi
 
       const reqCanon = toCanonical(Number(reqJumlahRaw) || 0, reqSatuan);
       let remaining = reqCanon.amount;
@@ -374,7 +385,7 @@ const masakResep = async (req, res) => {
       for (const m of matches) {
         if (remaining <= 0) break;
         const availCanon = toCanonical(Number(m.jumlahTersedia || 0), m.satuan);
-        if (!availCanon.unit || !reqCanon.unit || availCanon.unit !== reqCanon.unit) continue; // skip incompatible
+        if (!availCanon.unit || !reqCanon.unit || availCanon.unit !== reqCanon.unit) continue; 
         const take = Math.min(availCanon.amount, remaining);
         const deltaInPantryUnit = canonicalToPantry(take, m.satuan);
         const newJumlah = Number(m.jumlahTersedia || 0) - deltaInPantryUnit;
@@ -383,7 +394,7 @@ const masakResep = async (req, res) => {
         remaining -= take;
       }
     }
-    // remove any items that became empty or already expired
+    // hapus bahan yang habis atau sudah kadaluarsa
     let hapusCount = 0;
     try {
       const hapusResult = await Bahan.deleteMany({ pemilik: userId, $or: [ { jumlahTersedia: { $lte: 0 } }, { tanggalKadaluarsa: { $lt: new Date() } } ] });

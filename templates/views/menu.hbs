@@ -5,15 +5,17 @@
       <p>Rencanakan menu Anda dan dapatkan daftar belanja otomatis!</p>
       <div class="form-grup" style="margin-top:12px; display:flex; gap:8px; align-items:center;">
         <label for="pilihanDiet" style="margin:0; font-weight:600;">Preferensi / Diet:</label>
-        <select id="pilihanDiet" class="form-control" style="max-width:260px;">
+        <select id="pilihanDiet" class="form-control" style="max-width:220px;">
           <option value="">(Tidak ada)</option>
-          <option value="kalori_1500">Target kalori harian: 1500 kcal</option>
-          <option value="kalori_1800">Target kalori harian: 1800 kcal</option>
-          <option value="kalori_2000">Target kalori harian: 2000 kcal</option>
           <option value="vegetarian">Vegetarian</option>
         </select>
+
+        <label for="inputTargetKalori" style="margin:0; font-weight:600;">Target kalori harian:</label>
+        <input type="number" id="inputTargetKalori" class="form-control" style="max-width:140px;" placeholder="kkal" min="0" />
+
         <button class="tombol-kirim" id="tombolGenerateMenu">🤖 Generate Menu dengan AI</button>
       </div>
+      <div style="margin-top:6px;color:var(--warna-teks-sekunder);font-size:0.9rem;">Masukkan angka untuk target kalori harian (mis. <strong>1800</strong>). Kosongkan jika tidak ingin membatasi kalori.</div> 
       <div id="menuMingguanContainer" style="margin-top:12px;"></div>
       <div id="kaloriInfo" style="margin-top:8px;color:var(--warna-teks-sekunder);"></div>
       <button class="tombol-kirim" style="margin-top:12px; display:none;" id="tombolSimpanRencana">💾 Simpan Rencana Mingguan</button>

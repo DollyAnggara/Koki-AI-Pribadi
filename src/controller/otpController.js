@@ -19,7 +19,7 @@ const sendOtp = async (req, res) => {
     try {
       const info = await emailService.kirimOtpEmail(email, code);
 
-      // Mask recipient email for logs (do not log the OTP itself)
+      // Samarkan alamat email penerima untuk log (jangan catat OTP itu sendiri).
       const maskedEmail = String(email).replace(/^(.{2}).+(@.+)$/, "$1***$2");
       console.log(
         `✅ OTP email sent to ${maskedEmail}. messageId=${
@@ -29,7 +29,7 @@ const sendOtp = async (req, res) => {
         )}`
       );
 
-      // Persist a brief, non-sensitive log entry (no OTP, no secrets)
+      // Simpan entri log singkat yang tidak sensitif (tanpa OTP, tanpa rahasia)
       const fs = require("fs").promises;
       const path = require("path");
       (async () => {
@@ -53,7 +53,7 @@ const sendOtp = async (req, res) => {
       });
     } catch (err) {
       console.error("❌ Gagal kirim OTP via SMTP:", err);
-      // Print code to console for developer convenience, but return error to client so it's clear sending failed
+      // Cetak kode ke konsol untuk kemudahan pengembang, tetapi kembalikan error ke klien agar jelas pengiriman gagal
       console.log(`OTP for ${email}: ${code} (valid 5 min)`);
       return res.status(500).json({
         sukses: false,

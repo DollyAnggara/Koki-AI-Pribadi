@@ -1,12 +1,12 @@
 /**
  * src/routes/pages.js
- * Render per-page views (separate .hbs files for each main page)
+ * Render per-page views (file .hbs terpisah untuk setiap halaman utama)
  */
 const express = require("express");
 const router = express.Router();
 const Resep = require("../models/Resep");
 
-// Middleware: require auth for pages
+// Middleware: membutuhkan autentikasi
 function requireAuth(req, res, next) {
   if (!req.session || !req.session.user) return res.redirect("/login");
   next();
@@ -27,7 +27,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
       r.nutrisiPerPorsi && (r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal)
         ? r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal
         : null;
-    // Build human-friendly displays to avoid dumping raw objects in templates
+    // Bangun tampilan yang ramah pengguna untuk menghindari menampilkan objek mentah di template
     const daftarRaw = r.daftarBahan || r.bahan || r.ingredients || [];
     const langkahRaw = r.langkah || r.steps || r.instruksi || [];
 
@@ -58,7 +58,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
       return s;
     });
 
-    // If user logged in, compute which ingredients are missing from their pantry
+    // Jika pengguna login, hitung bahan yang hilang dari pantry mereka
     let missingIngredients = [];
     try {
       if (
@@ -89,7 +89,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
           return { amount: jumlah || 0, unit: u || "" };
         };
 
-        // load user's active pantry items once
+        // memuat item pantry aktif pengguna sekali
         const pantry = await Bahan.find({ pemilik: userId, statusAktif: true });
 
         for (const b of daftarRaw || []) {
@@ -100,7 +100,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
           const reqSatuan =
             b && typeof b === "object" ? b.satuan || b.unit || "" : "";
 
-          // Find pantry matches by name contains (case-insensitive)
+          // Temukan padanan bahan makanan berdasarkan nama yang cocok 
           const rx = new RegExp(
             (nama || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
             "i"
@@ -108,7 +108,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
           const matches = pantry.filter((p) => rx.test(p.namaBahan || ""));
 
           if (!reqJumlahRaw || reqJumlahRaw === 0) {
-            // No quantity specified — just check presence
+            // Tidak ada jumlah yang ditentukan — cukup periksa ketersediaannya.
             if (!matches.length)
               missingIngredients.push({
                 namaBahan: nama,
@@ -117,7 +117,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
             continue;
           }
 
-          // Quantified: sum available canonical amount
+          // jumlah total yang tersedia
           const reqCanon = toCanonical(Number(reqJumlahRaw) || 0, reqSatuan);
           let sumAvailable = 0;
           for (const m of matches) {
@@ -131,11 +131,11 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
               availableCanon.unit === reqCanon.unit
             )
               sumAvailable += availableCanon.amount;
-            // if units differ (e.g., pantry in kg and request in gram) toCanonical handles it
+            // Jika satuan berbeda (misalnya, bahan makanan dalam kg dan permintaan dalam gram), Canonical akan menanganinya.
           }
           if (sumAvailable < (reqCanon.amount || 0)) {
             const needed = (reqCanon.amount || 0) - sumAvailable;
-            // convert needed back to request unit for display
+            // Konversi diperlukan kembali untuk meminta unit untuk ditampilkan.
             let displayAmount = needed;
             let displayUnit = reqCanon.unit;
             if (displayUnit === "gram" && displayAmount >= 1000) {
@@ -170,11 +170,11 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
         kalori: kalori ? Math.round(kalori) : "-",
         daftarBahan: daftarRaw,
         langkah: langkahRaw,
-        // formatted arrays for clean rendering
+        // array yang diformat untuk rendering yang bersih
         daftarBahanDisplay,
         langkahDisplay,
         missingIngredients,
-        // raw JSON for client-side use (safe copy)
+        // JSON mentah untuk penggunaan sisi klien (salinan aman)
         daftarBahanJSON: JSON.stringify(daftarRaw || []),
         missingIngredientsJSON: JSON.stringify(missingIngredients || []),
       },
@@ -193,14 +193,14 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
 
 router.get("/resep", requireAuth, async (req, res) => {
   try {
-    // show approved recipes to regular users; admins see all
+    // tampilkan resep yang disetujui untuk pengguna biasa; admin melihat semua
     const isAdmin =
       req.session && req.session.user && req.session.user.role === "admin";
     const baseFilter = isAdmin ? {} : { status: "approved" };
 
     const daftarResep = await Resep.find(baseFilter).limit(50);
 
-    // compute counts for diagnostics
+    // hitung jumlah untuk diagnostik
     const [total, approvedCount, pendingCount, rejectedCount] =
       await Promise.all([
         Resep.countDocuments({}),
@@ -213,7 +213,7 @@ router.get("/resep", requireAuth, async (req, res) => {
       `[GET /resep] isAdmin=${isAdmin} returned=${daftarResep.length} total=${total} approved=${approvedCount} pending=${pendingCount} rejected=${rejectedCount}`
     );
 
-    // Map fields to view-friendly shape used by templates
+    // Pemetaan bidang ke bentuk yang ramah tampilan yang digunakan oleh template
     const resepUntukView = daftarResep.map((r) => {
       const waktu = (r.waktuPersiapanMenit || 0) + (r.waktuMemasakMenit || 0);
       const kalori =
@@ -283,7 +283,7 @@ router.get("/bahan", requireAuth, async (req, res) => {
   }
 });
 
-// pantry page (optional route)
+// halaman pantry (rute opsional)
 router.get("/pantry", requireAuth, (req, res) => {
   res.render("pantry", { judul: "Pantry - Koki AI Pribadi" });
 });

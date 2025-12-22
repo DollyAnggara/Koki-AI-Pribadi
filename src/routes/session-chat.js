@@ -10,30 +10,30 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-// Create new chat session
+// Membuat sesi chat baru
 router.post("/buat", requireAuth, sessionChatController.buatSessionChat);
 
-// Get all sessions
+// Ambil semua sesi
 router.get("/daftar", requireAuth, sessionChatController.ambilSemuaSessionChat);
 
-// Get session detail
+// Ambil detail sesi
 router.get(
   "/:idSession",
   requireAuth,
   sessionChatController.ambilDetailSessionChat
 );
 
-// Update session name
+// Update nama sesi
 router.put(
   "/:idSession/nama",
   requireAuth,
   sessionChatController.perbaruiNamaSession
 );
 
-// Delete session
+// Hapus sesi
 router.delete("/:idSession", requireAuth, sessionChatController.hapusSession);
 
-// Add message to session
+// Tambah pesan ke sesi
 router.post(
   "/:idSession/pesan",
   requireAuth,

@@ -152,7 +152,6 @@
               name="daftarBahan"
               id="daftarBahanHiddenEdit"
               style="display: none;"
-              required
             >{{resep.daftarBahanText}}</textarea>
 
             <p class="admin-form-help">Tambahkan bahan dengan nama, jumlah, dan satuan yang sesuai.</p>
@@ -187,7 +186,7 @@
 
         <!-- Actions -->
         <div style="grid-column: 1 / -1; display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
-          <a href="/admin/resep" class="admin-btn admin-btn-secondary">
+          <a href="/admin/resep" class="admin-btn admin-btn-secondary tombol-nav">
             Batal
           </a>
           <button type="submit" class="admin-btn admin-btn-primary">
@@ -345,6 +344,7 @@
 
     // Render
     renderDaftarBahanEdit();
+    updateDaftarBahanHiddenEdit();
 
     // Focus back
     document.getElementById('inputNamaBahanEdit').focus();
@@ -383,6 +383,7 @@
   function hapusBahanEdit(id) {
     daftarBahanEdit = daftarBahanEdit.filter((b) => b.id !== id);
     renderDaftarBahanEdit();
+    updateDaftarBahanHiddenEdit();
   }
 
   function updateDaftarBahanHiddenEdit() {

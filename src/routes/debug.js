@@ -11,7 +11,7 @@ router.post("/deepseek", async (req, res) => {
       .status(400)
       .json({ sukses: false, pesan: "DEEPSEEK_API_KEY not configured" });
 
-  // Require Deepseek utils only when the provider is configured.
+  // Require util Deepseek hanya saat provider dikonfigurasi.
   let panggilDeepseek, pingUrl;
   try {
     ({ panggilDeepseek, pingUrl } = require("../utils/layananDeepseek"));
@@ -40,7 +40,7 @@ router.post("/deepseek", async (req, res) => {
     if (req.body.model) extra.model = req.body.model;
 
     const opts = { maxTokens, timeoutMs, includeRaw, temperature, extra };
-    // Ping diagnostic: /api/debug/deepseek?ping=1
+    // Ping diagnostik: /api/debug/deepseek?ping=1
     if (req.query.ping === "1" || req.query.ping === "true") {
       const diag = await pingUrl(timeoutMs);
       return res.json({ sukses: true, ping: diag });
@@ -62,7 +62,7 @@ router.post("/deepseek", async (req, res) => {
   }
 });
 
-// GET /api/debug/db-stats - development helper to check counts
+// GET /api/debug/db-stats - helper development untuk memeriksa jumlah
 router.get("/db-stats", async (req, res) => {
   try {
     const [penggunaCount, resepCount, bahanCount] = await Promise.all([
@@ -80,7 +80,7 @@ router.get("/db-stats", async (req, res) => {
   }
 });
 
-// GET /api/debug/session - returns current session user info (for debugging)
+// GET /api/debug/session - mengembalikan info user session saat ini (untuk debugging)
 router.get("/session", (req, res) => {
   try {
     if (!req.session || !req.session.user)
@@ -97,7 +97,7 @@ router.get("/session", (req, res) => {
   }
 });
 
-// POST /api/debug/impersonate-admin - DEV ONLY: set current session to admin user
+// POST /api/debug/impersonate-admin - HANYA DEV: set session saat ini ke pengguna admin
 router.post('/impersonate-admin', async (req,res) => {
   try {
     if (process.env.DEBUG_IMPERSONATE !== '1') return res.status(403).json({ sukses:false, pesan:'Impersonation disabled' });
@@ -108,7 +108,7 @@ router.post('/impersonate-admin', async (req,res) => {
   } catch(err){ console.error('Impersonate failed', err); return res.status(500).json({ sukses:false, pesan:'Gagal impersonate' }); }
 });
 
-// GET /api/debug/bahan - returns all bahan for current session user (for debugging)
+// GET /api/debug/bahan - mengembalikan semua bahan untuk user session saat ini (untuk debugging)
 router.get("/bahan", async (req, res) => {
   try {
     if (!req.session || !req.session.user)

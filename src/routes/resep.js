@@ -12,7 +12,7 @@ router.post('/', kontrolerResep.buatResepBaru);
 router.put('/:id', kontrolerResep.perbaruiResep);
 router.delete('/:id', kontrolerResep.hapusResep);
 
-// require session for cook operation
+// memerlukan sesi untuk operasi memasak
 function requireSession(req, res, next) {
   if (!req.session || !req.session.user) return res.status(401).json({ sukses: false, pesan: 'Autentikasi diperlukan' });
   next();

@@ -2,15 +2,15 @@
  * server.js (root) - entry point ringan
  */
 console.log("🛠️ Menjalankan server (debug)...");
-// Catch unhandled errors so we get a clear log instead of a silent exit
+// Tangkap unhandled errors agar kita mendapat log yang jelas alih-alih silent exit
 process.on("unhandledRejection", (reason) => {
   console.error("❌ Unhandled Rejection:", reason);
-  // Do NOT exit automatically on unhandled rejections from external APIs (e.g. auth failures).
-  // Log and keep process alive; investigate if this becomes frequent.
+  // JANGAN keluar otomatis pada unhandled rejections dari external APIs (mis. auth failures).
+  // Catat dan biarkan process tetap hidup; periksa jika ini menjadi sering.
 });
 process.on("uncaughtException", (err) => {
   console.error("❌ Uncaught Exception:", err);
-  // For truly uncaught exceptions, exit so the process can be restarted in production.
+  // Untuk uncaught exceptions yang benar-benar terjadi, exit agar process dapat di-restart di production.
   process.exit(1);
 });
 try {
@@ -28,5 +28,5 @@ try {
     });
 } catch (err) {
   console.error("❌ Gagal menjalankan server (sync):", err);
-  // do not exit the process here so we can inspect synchronous errors
+  // jangan exit process di sini agar kita dapat memeriksa synchronous errors
 }

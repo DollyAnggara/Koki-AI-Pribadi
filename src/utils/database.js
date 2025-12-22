@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-// Connect with retry/backoff so transient Atlas propagation or network issues are retried
+// Terhubung dengan fitur coba ulang/tunda agar propagasi Atlas sementara atau masalah jaringan dapat dicoba ulang
 const hubungkanDatabase = async (options = {}) => {
   const uri = process.env.MONGO_URI || "mongodb://localhost:27017/koki_ai_pribadi";
   const maxRetries = options.maxRetries ?? 5;

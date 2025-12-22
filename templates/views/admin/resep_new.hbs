@@ -37,6 +37,7 @@
               name="namaResep"
               placeholder="Contoh: Nasi Goreng Spesial"
               required
+              value="{{formData.namaResep}}"
             />
           </div>
         </div>
@@ -52,7 +53,7 @@
               name="deskripsi"
               rows="3"
               placeholder="Deskripsi singkat tentang resep ini..."
-            ></textarea>
+            >{{formData.deskripsi}}</textarea>
             <p class="admin-form-help">Ceritakan apa yang membuat resep ini
               istimewa</p>
           </div>
@@ -62,7 +63,7 @@
         <div style="grid-column: span 1;">
           <div class="admin-form-group">
             <label>Porsi</label>
-            <input type="number" name="porsi" value="1" min="1" />
+            <input type="number" name="porsi" value="{{formData.porsi}}" min="1" />
           </div>
         </div>
         <div style="grid-column: span 1;">
@@ -73,13 +74,28 @@
               name="waktuPersiapan"
               min="0"
               placeholder="15"
+              value="{{formData.waktuPersiapan}}"
             />
           </div>
         </div>
         <div style="grid-column: span 1;">
           <div class="admin-form-group">
             <label>Waktu Memasak (menit)</label>
-            <input type="number" name="waktuMemasak" min="0" placeholder="30" />
+            <input type="number" name="waktuMemasak" min="0" placeholder="30" value="{{formData.waktuMemasak}}" />
+          </div>
+        </div>
+        <div style="grid-column: span 1;">
+          <div class="admin-form-group">
+            <label>Kalori (kkal) <span style="color: var(--admin-text-light);">(opsional)</span></label>
+            <input
+              type="number"
+              name="kalori"
+              min="0"
+              step="0.1"
+              placeholder="Contoh: 250"
+              value="{{formData.kalori}}"
+            />
+            <p class="admin-form-help">Nilai kalori per porsi resep</p>
           </div>
         </div>
 
@@ -146,8 +162,7 @@
               name="daftarBahan"
               id="daftarBahanHidden"
               style="display: none;"
-              required
-            ></textarea>
+            >{{formData.daftarBahan}}</textarea>
 
             <p class="admin-form-help">Tambahkan bahan dengan nama, jumlah, dan
               satuan yang sesuai.</p>
@@ -163,7 +178,7 @@
               rows="6"
               placeholder="Satu langkah per baris&#10;Contoh:&#10;Kupas dan potong wortel menjadi dadu kecil&#10;Panaskan minyak di wajan&#10;Tumis wortel hingga empuk"
               required
-            ></textarea>
+            >{{formData.langkah}}</textarea>
             <p class="admin-form-help">Satu langkah per baris. Jelaskan dengan
               detail.</p>
           </div>
@@ -173,7 +188,7 @@
         <div
           style="grid-column: 1 / -1; display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;"
         >
-          <a href="/admin/resep" class="admin-btn admin-btn-secondary">
+          <a href="/admin/resep" class="admin-btn admin-btn-secondary tombol-nav">
             Batal
           </a>
           <button type="submit" class="admin-btn admin-btn-primary">

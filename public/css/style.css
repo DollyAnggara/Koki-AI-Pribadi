@@ -1,4 +1,6 @@
-/* Koki AI Pribadi - main stylesheet (cleaned from provided design) */
+/* ============================================
+   MAIN STYLESHEET
+   ============================================ */
 :root {
   --warna-primer: #e74c3c;
   --warna-sekunder: #3498db;
@@ -100,8 +102,6 @@ body.modal-open {
 }
 
 /* Navigasi */
-
-/* Public navigation shown on the landing (home) page - center horizontally */
 .navigasi-publik {
   background: transparent;
   padding: 14px 10px;
@@ -114,7 +114,7 @@ body.modal-open {
   z-index: 1000;
 }
 
-/* Main app navigation (authenticated) */
+/* Main app navigation */
 .navigasi-utama {
   background: transparent;
   padding: 14px 10px;
@@ -137,12 +137,12 @@ body.modal-open {
   background: #fff;
   color: var(--warna-teks);
   box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
-  text-decoration: none; /* prevent underline on anchors */
-  display: inline-flex; /* ensure icon + text align */
+  text-decoration: none; 
+  display: inline-flex;
   align-items: center;
 }
 
-/* Anchor-specific safety (some browsers/user styles) */
+
 .tombol-nav:link,
 .tombol-nav:visited {
   text-decoration: none;
@@ -314,7 +314,7 @@ body.modal-open {
   font-size: 1.1rem;
 }
 
-/* Admin resep list: center header, buttons and show total above table */
+/* Admin resep list */
 .admin-resep-list .admin-top {
   display: flex;
   flex-direction: column;
@@ -433,7 +433,6 @@ body.modal-open {
   }
 }
 
-/* Admin table helpers (kept as fallback but hidden in card layout) */
 .table-wrap {
   overflow: auto;
   border-radius: 12px;

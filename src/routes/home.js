@@ -8,7 +8,7 @@ const router = express.Router();
 const Resep = require("../models/Resep");
 
 router.get("/", async (req, res) => {
-  // If user is not authenticated, show the public landing page (intro)
+  // Jika pengguna belum terautentikasi, tampilkan halaman publik (landing/intro)
   if (!req.session || !req.session.user) {
     return res.render("landing", {
       judul: "Selamat Datang - Koki AI Pribadi",
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
     });
   }
 
-  // Authenticated users see the beranda dashboard
+  // Pengguna yang terautentikasi melihat dashboard beranda
   try {
     const penggunaId =
       req.session.user && (req.session.user._id || req.session.user.id);
@@ -24,11 +24,11 @@ router.get("/", async (req, res) => {
     // Fetch recent recipes for display
     const daftarResep = await Resep.find().limit(12);
 
-    // Lazy-require models to avoid circular requires at module load time
+    // Require model secara malas untuk menghindari circular require saat modul dimuat
     const Bahan = require("../models/Bahan");
     const Pengguna = require("../models/Pengguna");
 
-    // Compute dashboard stats (per-user where applicable)
+    // Hitung statistik dashboard (per-pengguna bila berlaku)
     const totalBahan = penggunaId
       ? await Bahan.countDocuments({ pemilik: penggunaId, statusAktif: true })
       : 0;
@@ -46,7 +46,7 @@ router.get("/", async (req, res) => {
       resepFavorit = pengguna ? (pengguna.resepFavorit || []).length : 0;
     }
 
-    // Render the standalone 'beranda' view with stats
+    // Render view 'beranda' terpisah beserta statistik
     res.render("beranda", {
       judul: "Beranda - Koki AI Pribadi",
       resep: daftarResep,
@@ -69,7 +69,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Public informational pages
+// Halaman publik informatif
 router.get("/about", (req, res) => {
   return res.render("about", {
     judul: "Tentang - Koki AI Pribadi",
@@ -86,13 +86,13 @@ router.get("/contact", (req, res) => {
   });
 });
 
-// Keep /beranda route working explicitly
+// Pertahankan rute /beranda agar tetap berfungsi secara eksplisit
 router.get("/beranda", async (req, res) => {
-  // Redirect to root which contains same logic (root requires auth and renders beranda)
+  // Redirect ke root yang mengandung logika sama (root memerlukan auth dan merender beranda)
   return res.redirect("/");
 });
 
-// Optional explicit route so links to /beranda work
+// Rute eksplisit opsional agar tautan ke /beranda bekerja
 router.get("/beranda", (req, res) => res.redirect("/"));
 
 module.exports = router;

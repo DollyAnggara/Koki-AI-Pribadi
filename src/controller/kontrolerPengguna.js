@@ -17,7 +17,7 @@ const registrasiPengguna = async (req, res) => {
         });
     email = String(email).trim().toLowerCase();
 
-    // simple email format check
+    // cek format email sederhana
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email))
       return res
@@ -48,7 +48,7 @@ const registrasiPengguna = async (req, res) => {
     return res.redirect("/login?success=1");
   } catch (err) {
     console.error("❌ Gagal registrasi:", err);
-    // handle duplicate key error more clearly
+    // tangani duplicate key error dengan lebih jelas
     if (err && err.code === 11000) {
       const field = Object.keys(err.keyValue || {})[0] || "field";
       const pesan = `Nilai ${field} sudah terdaftar`;
@@ -102,8 +102,8 @@ const loginPengguna = async (req, res) => {
         .json({ sukses: false, pesan: "Email atau kata sandi salah" });
     }
 
-    // Successful login
-    // Attach to session for browser form submissions
+    // Login berhasil
+    // Lampirkan ke session untuk form submissions pada browser
     if (!req.is("application/json")) {
       req.session.user = {
         _id: pengguna._id,
@@ -113,12 +113,12 @@ const loginPengguna = async (req, res) => {
         role: pengguna.role || 'user'
       };
 
-      // "Remember me" support: if the form included the remember field, make session persistent
-      // and set a long-lived cookie with the remembered email so the client can pre-fill the login form.
+      // Dukungan "Remember me": jika form menyertakan field remember, buat session persisten
+      // dan set cookie jangka panjang dengan email yang diingat agar client dapat mengisi otomatis form login.
       if (req.body && req.body.remember) {
         const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
         req.session.cookie.maxAge = maxAge;
-        // store a non-httpOnly cookie so client-side JS can read it to pre-fill the email
+        // simpan cookie non-httpOnly sehingga JS client dapat membacanya untuk pre-fill email
         res.cookie("rememberEmail", pengguna.email, {
           maxAge,
           httpOnly: false,
@@ -130,13 +130,13 @@ const loginPengguna = async (req, res) => {
           sameSite: "Lax",
         });
       } else {
-        // default: session cookie (expires on browser close) and clear any existing remember cookies
+        // default: cookie session (berakhir saat browser ditutup) dan hapus cookie remember yang ada
         req.session.cookie.maxAge = null;
         res.clearCookie("rememberEmail");
         res.clearCookie("rememberMe");
       }
 
-      // Redirect admin users to explicit admin dashboard route, others to home
+      // Redirect pengguna admin ke rute dashboard admin, lainnya ke home
       if (pengguna.role === 'admin') return res.redirect('/admin/dashboard');
       return res.redirect("/?welcome=1");
     }

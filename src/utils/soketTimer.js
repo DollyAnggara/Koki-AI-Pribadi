@@ -1,7 +1,7 @@
 // sudah berisi inisialisasi namespace /memasak dan /notifikasi (lihat versi lengkap sebelumnya)
 const timerAktif = new Map();
 const sesiMemasak = new Map();
-// Removed direct Deepseek dependency; use layananChatBot abstraction which may use Deepseek or OpenRouter
+// Menghapus dependensi Deepseek langsung; gunakan abstraksi layananChatBot yang dapat menggunakan Deepseek atau OpenRouter
 const layananChatBot = require("./layananChatBot");
 const SessionChat = require("../models/SessionChat");
 
@@ -10,7 +10,7 @@ const inisialisasiSoketTimer = (io) => {
   nsMemasak.on("connection", (socket) => {
     console.log("Socket /memasak terhubung:", socket.id);
 
-    // When a client connects, send current active timers so UI can restore after refresh
+    // Saat client terhubung, kirim timer aktif saat ini agar UI dapat memulihkan setelah refresh
     try {
       for (const [id, t] of Array.from(timerAktif.entries())) {
         nsMemasak.to(socket.id).emit("update_timer", {
@@ -28,14 +28,14 @@ const inisialisasiSoketTimer = (io) => {
     }
 
     socket.on("pesan_chat", async (data) => {
-      // data should be { pesan: string, idSession: string (optional), idPengguna: string }
+      // data harus berupa { pesan: string, idSession: string (opsional), idPengguna: string }
       try {
         const userMsg =
           data && data.pesan ? String(data.pesan).trim().toLowerCase() : "";
         const idSession = data?.idSession;
         const idPengguna = data?.idPengguna;
 
-        // Detect simple greetings and respond immediately without calling AI
+        // Deteksi sapaan sederhana dan respon langsung tanpa memanggil AI
         const greetings = {
           halo: "Halo! 👋 Saya Koki AI, asisten memasak Anda. Apa yang ingin Anda masak hari ini?",
           hi: "Hai! 👋 Saya Koki AI. Ada yang bisa saya bantu untuk memasak?",
@@ -54,7 +54,7 @@ const inisialisasiSoketTimer = (io) => {
             "I'm doing great, thanks! 😄 How can I help you cook today?",
         };
 
-        // Check for greeting match (exact match or greeting only with optional punctuation)
+        // Periksa kecocokan sapaan (exact match atau sapaan saja dengan tanda baca opsional)
         let isGreeting = false;
         let greetingResponse = "";
 
@@ -71,10 +71,10 @@ const inisialisasiSoketTimer = (io) => {
           }
         }
 
-        // If it's a greeting, respond directly
+        // Jika ini sapaan, respon langsung
         if (isGreeting) {
           socket.emit("respons_koki", { pesan: greetingResponse });
-          // Save greeting to session if provided
+          // Simpan greeting ke session jika disediakan
           if (idSession && idPengguna) {
             try {
               await SessionChat.findOneAndUpdate(
@@ -103,18 +103,18 @@ const inisialisasiSoketTimer = (io) => {
           return;
         }
 
-        // For non-greeting messages, use AI
+        // Untuk pesan selain sapaan, gunakan AI
         socket.emit("koki_mengetik", { status: true });
 
         const prompt = `Anda adalah asisten memasak bernama Koki AI. Jawablah pertanyaan pengguna dengan jelas, ringkas, dan berfokus pada langkah praktis atau resep. Jika diperlukan, sertakan estimasi waktu dan bahan.\nPengguna: ${userMsg}`;
 
-        // Call configured chat provider through layananChatBot abstraction
+        // Panggil penyedia chat yang terkonfigurasi melalui abstraksi layananChatBot
         const result = await layananChatBot.prosesPercakapan(socket.id, prompt);
         const text = String(result.pesan || result).trim();
         if (text) {
           socket.emit("respons_koki", { pesan: text });
 
-          // Save user message and AI response to session
+          // Simpan pesan pengguna dan respons AI ke session
           if (idSession && idPengguna) {
             try {
               await SessionChat.findOneAndUpdate(
@@ -141,7 +141,7 @@ const inisialisasiSoketTimer = (io) => {
             "Maaf, Koki AI belum berhasil menjawab—coba lagi sebentar.";
           socket.emit("respons_koki", { pesan: pesanError });
 
-          // Save error response
+          // Simpan respons error
           if (idSession && idPengguna) {
             try {
               await SessionChat.findOneAndUpdate(
@@ -169,16 +169,16 @@ const inisialisasiSoketTimer = (io) => {
           }
         }
       } catch (err) {
-        // Log full details server-side for debugging (do not expose to clients)
+        // Catat detail lengkap di server untuk debugging (jangan ekspos ke client)
         console.error(
           "Chat service error:",
           err && err.stack ? err.stack : err
         );
 
-        // Provide a brief, non-sensitive hint to the user
+        // Beri hint singkat yang tidak sensitif kepada pengguna
         let hint = "";
         if (err && err.status === 401) {
-          // Authentication failures are common and actionable
+          // Kegagalan autentikasi umum terjadi dan perlu tindakan
           hint = " (masalah autentikasi layanan AI — hubungi administrator.)";
         } else if (err && typeof err.status === "number") {
           hint = ` (gangguan layanan eksternal: kode ${err.status})`;
@@ -189,7 +189,7 @@ const inisialisasiSoketTimer = (io) => {
           pesan: pesanError,
         });
 
-        // Save error to session if provided
+        // Simpan error ke session jika disediakan
         if (data?.idSession && data?.idPengguna) {
           try {
             await SessionChat.findOneAndUpdate(
@@ -221,9 +221,9 @@ const inisialisasiSoketTimer = (io) => {
       try {
         const { idTimer, durasiDetik, namaTimer } = data || {};
         if (!idTimer || !durasiDetik) return;
-        // prevent duplicate timers
+        // cegah duplicate timers
         if (timerAktif.has(idTimer)) {
-          // if exists, stop existing first
+          // jika sudah ada, hentikan yang ada terlebih dahulu
           const t = timerAktif.get(idTimer);
           if (t.intervalId) clearInterval(t.intervalId);
           timerAktif.delete(idTimer);

@@ -27,15 +27,15 @@ const hitungNutrisiResep = (daftarBahan, jumlahPorsi = 1) => {
 
   for (const b of daftarBahan) {
     if (!b) continue;
-    // try to find nutrition data per 100g
+    // mencoba mencari data nutrisi per 100g.
     const nutr100 = b.nutrisiPer100g || b.nutrisi || b.nutrisi100 || {};
 
-    // compute weight in grams if possible
+    // hitung berat dalam gram jika memungkinkan
     let beratGram = null;
     if (typeof b.beratGram === 'number') beratGram = b.beratGram;
     else beratGram = convertToGram(b.jumlah, b.satuan);
 
-    // if we have nutrition per 100g and either jumlah or beratGram, we can add
+    // jika kita memiliki nutrisi per 100g dan jumlah atau beratGram, kita dapat menambahkan
     if (
       (nutr100 && (nutr100.kalori || nutr100.kcal || nutr100.protein || nutr100.lemak || nutr100.karbohidrat)) &&
       (beratGram !== null)
@@ -49,7 +49,7 @@ const hitungNutrisiResep = (daftarBahan, jumlahPorsi = 1) => {
     }
   }
 
-  // If nothing contributed (no per-100g data), return zeros but keep function predictable
+  // Jika tidak ada yang berkontribusi (tidak ada data per-100g), kembalikan nol tetapi tetap buat fungsi dapat diprediksi
   const perPorsi = {
     kalori: Math.round(total.kalori / jumlahPorsi) || 0,
     protein: Math.round(total.protein * 10) / 10 || 0,

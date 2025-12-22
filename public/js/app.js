@@ -18,14 +18,14 @@ const CHAT_STORAGE_KEY = `koki_chat_${idSesiChat}`;
 
 let daftarTimerAktif = new Map();
 let idTimerCounter = 1;
-// Track IDs recently stopped locally to avoid re-creating cards when server emits update immediately after stop
+// Lacak ID yang baru saja dihentikan secara lokal untuk menghindari pembuatan ulang kartu saat server mengirim update segera setelah berhenti
 let suppressedTimerCreates = new Set();
 
 function inisialisasiSocket() {
   soketMemasak = io("http://localhost:3000/memasak");
 
   soketMemasak.on("connect", () => {
-    // If we already showed a connect notification together with welcome, skip showing again
+    // Jika sudah menampilkan notifikasi koneksi bersama pesan sambutan, lewati menampilkan lagi
     try {
       const alreadyShown = sessionStorage.getItem("koki_connect_shown");
       if (alreadyShown === "1") {
@@ -34,7 +34,7 @@ function inisialisasiSocket() {
         );
         sessionStorage.removeItem("koki_connect_shown");
       } else {
-        // Show connect notification only if it was set very recently after login
+        // Tampilkan notifikasi koneksi hanya jika baru saja diset setelah login
         const ts = parseInt(sessionStorage.getItem("koki_show_connect_ts"), 10);
         if (ts && Date.now() - ts <= 5000) {
           console.log(
@@ -50,7 +50,7 @@ function inisialisasiSocket() {
         "✅ Terhubung ke server memasak (silent, error reading flag)"
       );
     }
-    // Always clear the temporary keys to avoid showing later on navigation
+    // Selalu bersihkan kunci sementara agar tidak tampil lagi saat navigasi
     try {
       sessionStorage.removeItem("koki_show_connect_ts");
       sessionStorage.removeItem("koki_connect_shown");
@@ -71,7 +71,7 @@ function inisialisasiSocket() {
     updateTampilanTimer(data.idTimer, data)
   );
   soketMemasak.on("timer_selesai", (data) => {
-    // Use explicit modal for timer completion so it appears centered with proper title
+    // Gunakan modal eksplisit untuk notifikasi timer agar muncul terpusat dengan judul yang sesuai
     tampilkanNotifikasi(`⏰ ${data.namaTimer} sudah selesai!`, "peringatan", {
       modal: true,
       title: `Timer selesai!`,
@@ -107,7 +107,7 @@ function waitForTransitionEnd(el, timeout = 800) {
       }
     };
     el.addEventListener("transitionend", onEnd);
-    // fallback
+    // fallback (cadangan jika event transitionend tidak terpanggil)
     setTimeout(() => {
       if (!done) {
         done = true;
@@ -121,9 +121,9 @@ function waitForTransitionEnd(el, timeout = 800) {
 async function fadeOut(el) {
   if (!el) return;
   el.classList.add("page-fade");
-  // ensure starting visible state
+  // pastikan status awal terlihat
   el.classList.remove("page-hidden");
-  // force reflow to ensure the class change is applied
+  // paksa reflow agar perubahan kelas diterapkan
   void el.offsetWidth;
   el.classList.add("page-hidden");
   await waitForTransitionEnd(el, 900);
@@ -132,9 +132,9 @@ async function fadeOut(el) {
 async function fadeIn(el) {
   if (!el) return;
   el.classList.add("page-fade");
-  // ensure starting hidden state
+  // pastikan status awal tersembunyi
   el.classList.add("page-hidden");
-  // force reflow
+  // paksa reflow
   void el.offsetWidth;
   el.classList.remove("page-hidden");
   await waitForTransitionEnd(el, 900);
@@ -145,15 +145,16 @@ function inisialisasiNavigasi() {
   const panels = document.querySelectorAll(".panel");
   const main =
     document.querySelector("main.kontainer-utama") ||
-    document.querySelector("main");
-  // fallback target to animate if main isn't present (some pages like auth use different layout)
+    document.querySelector("main") ||
+    document.querySelector(".admin-container");
+  // Target cadangan untuk animasi jika target utama tidak ada (beberapa halaman seperti halaman otentikasi menggunakan tata letak yang berbeda)
   const fadeTarget =
     main ||
     document.querySelector("#app") ||
     document.body ||
     document.documentElement;
 
-  // initial enter animation: ensure page-fade class present and animate in
+  // Animasi masuk awal: pastikan kelas page-fade ada dan animasikan masuk.
   if (fadeTarget) {
     fadeTarget.classList.add("page-fade");
     if (!fadeTarget.classList.contains("page-hidden")) {
@@ -164,19 +165,19 @@ function inisialisasiNavigasi() {
     }
   }
 
-  // If navigation uses links (page-per-view), mark active link by pathname
+  // Jika navigasi menggunakan tautan (halaman per tampilan), tandai tautan aktif dengan jalur file.
   tombolNav.forEach((tombol) => {
     if (tombol.tagName === "A") {
-      // mark active
+      // tandai aktif
       try {
         const urlPath = new URL(tombol.href).pathname;
         if (urlPath === location.pathname) tombol.classList.add("aktif");
         else tombol.classList.remove("aktif");
       } catch (e) {}
 
-      // on click: fade-out + navigate using transitionend for accuracy
+      // saat klik: fade-out + navigasi menggunakan transitionend untuk akurasi
       tombol.addEventListener("click", async (e) => {
-        // allow normal browser behaviors: ctrl/meta clicks, middle-click, target="_blank"
+        // izinkan perilaku browser normal: klik ctrl/meta, klik tengah, target="_blank"
         if (e.defaultPrevented) return;
         if (
           e.button !== 0 ||
@@ -187,7 +188,7 @@ function inisialisasiNavigasi() {
           e.altKey
         )
           return;
-        // only intercept same-origin navigations
+        // hanya mencegat navigasi same-origin
         try {
           const url = new URL(tombol.href);
           if (url.origin !== location.origin) return;
@@ -242,7 +243,7 @@ function inisialisasiChat() {
         });
       });
     } else {
-      // No history: show initial welcome message and save it
+      // Tidak ada riwayat: tampilkan pesan sambutan awal dan simpan
       const welcome =
         "Halo! 👋 Saya Koki AI, asisten memasak virtual Anda. Apa yang ingin Anda masak hari ini?";
       tambahPesanChat(welcome, "koki", { save: true });
@@ -267,7 +268,7 @@ function inisialisasiChat() {
   });
 }
 
-// Minimal, safe markdown-like renderer for chat messages
+// Renderer markdown-like minimal dan aman untuk pesan chat
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -295,12 +296,12 @@ function renderChatMarkdown(text) {
   if (!text) return "";
   text = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-  // Fix accidental in-word newlines like "a\nir" -> "air" but avoid touching
-  // formatting markers (lists, bullets, headings). Use Unicode letters to be safe.
+  // Perbaiki newline tidak sengaja di dalam kata seperti "a\nir" -> "air" tetapi hindari merubah format
+  // Penanda format (list, bullets, headings). Gunakan huruf Unicode agar aman.
   try {
     text = text.replace(/([\p{L}])\n([\p{L}])/gu, "$1$2");
   } catch (e) {
-    // If Unicode property escapes not supported, fallback to simple ASCII letters
+    // Jika Unicode property escapes tidak didukung, fallback ke huruf ASCII sederhana
     text = text.replace(/([A-Za-z])\n([A-Za-z])/g, "$1$2");
   }
 
@@ -564,7 +565,7 @@ function buatTimerBaru(nama, durasiDetik) {
 }
 
 function ensureTimerCardExists(idTimer, data) {
-  // If we just manually stopped this timer, don't recreate it when server emits an update
+  // Jika kita baru saja menghentikan timer secara manual, jangan membuat ulang ketika server mengirim update
   if (suppressedTimerCreates.has(idTimer)) return;
   if (document.getElementById(`kartu_${idTimer}`)) return;
   const kontainerTimer = document.getElementById("daftarTimer");
@@ -601,7 +602,7 @@ function updateTampilanTimer(idTimer, data) {
   if (progress && typeof data.persentase !== "undefined")
     progress.style.width = `${data.persentase}%`;
 
-  // toggle controls based on paused state
+  // sesuaikan kontrol berdasarkan status 'paused'
   if (data.paused) {
     if (tombolJeda) tombolJeda.classList.add("hidden");
     if (tombolLanjut) tombolLanjut.classList.remove("hidden");
@@ -659,7 +660,7 @@ function inisialisasiUploadGambar() {
   });
 }
 
-// Initialize add-bahan button functionality
+// Inisialisasi fungsi tombol tambah bahan
 function inisialisasiTambahBahan() {
   const btn = document.getElementById("tombolTambahBahan");
   if (!btn) return;
@@ -874,7 +875,7 @@ async function hapusBahanItem(idBahan) {
   }
 }
 
-// Initialize edit modal event listeners
+// Inisialisasi pendengar event modal edit
 function inisialisasiModalEditBahan() {
   const btnTutup = document.getElementById("tombol-tutup-modal-edit");
   const btnBatal = document.getElementById("tombol-batal-edit");
@@ -893,7 +894,7 @@ function inisialisasiModalEditBahan() {
     btnSimpan.addEventListener("click", simpanPerubahanBahan);
   }
 
-  // Close modal when clicking outside the modal content
+  // Tutup modal saat klik di luar konten modal
   if (modal) {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
@@ -966,9 +967,9 @@ function renderResepList(items) {
       nama
     )}</div>\n        <div class="meta-resep"><span>⏱️ ${waktu} menit</span><span>🔥 ${kalori} kkal</span></div>\n      </div>\n      <div class="detail-resep" id="detail_${idResep}" style="display:none;margin-top:8px;"></div>`;
 
-    // clicking the card (except on internal buttons) navigates to the recipe detail page
+    // klik kartu (kecuali pada tombol internal) menavigasi ke halaman detail resep
     div.addEventListener("click", (e) => {
-      if (e.target.closest("button") || e.target.tagName === "A") return; // ignore button/link clicks
+      if (e.target.closest("button") || e.target.tagName === "A") return; // abaikan klik tombol/tautan
       if (!idResep) return;
       window.location.href = `/resep/${idResep}`;
     });
@@ -1042,6 +1043,12 @@ function inisialisasiTambahResep() {
     const porsi = Number(inputPorsi.value) || 1;
     const waktuPersiapan = Number(inputWaktuPersiapan.value) || 0;
     const waktuMemasak = Number(inputWaktuMemasak.value) || 0;
+    const kaloriPerPorsi = (() => {
+      const v = (document.getElementById('inputKaloriResep') || {}).value;
+      if (!v || String(v).trim() === '') return null;
+      const n = parseFloat(String(v).replace(',', '.'));
+      return Number.isFinite(n) ? n : null;
+    })();
 
     // Gunakan daftarBahanForm atau fallback ke textarea jika kosong
     let daftarBahan = [];
@@ -1070,7 +1077,7 @@ function inisialisasiTambahResep() {
 
           // prefer space-separated format: 'Nama [jumlah] [satuan]'
           const toks = line.split(/\s+/).filter(Boolean);
-          // single token -> name only
+          // token tunggal -> hanya nama
           if (toks.length === 1)
             return { namaBahan: toks[0], jumlah: 0, satuan: "" };
 
@@ -1094,7 +1101,7 @@ function inisialisasiTambahResep() {
             return { namaBahan: nama, jumlah, satuan: "" };
           }
 
-          // fallback: treat entire line as name
+          // fallback: anggap seluruh baris sebagai nama
           return { namaBahan: line, jumlah: 0, satuan: "" };
         })
         .filter((b) => b.namaBahan);
@@ -1122,6 +1129,9 @@ function inisialisasiTambahResep() {
       daftarBahan,
       langkah,
     };
+
+    // Sertakan kalori jika user mengisi (kalori per porsi)
+    if (kaloriPerPorsi !== null) payload.kalori = kaloriPerPorsi;
 
     try {
       tombolSimpan.disabled = true;
@@ -1238,8 +1248,8 @@ function tampilkanHasilIdentifikasi(data) {
 }
 
 function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
-  // Only render a centered modal when explicitly requested (options.modal === true).
-  // Otherwise warnings (type 'peringatan') will be shown as a toast to avoid unexpected modal popups on unrelated pages.
+  // Hanya tampilkan modal terpusat jika diminta secara eksplisit (options.modal === true).
+  // Jika tidak, peringatan (tipe 'peringatan') akan ditampilkan sebagai toast untuk menghindari popup modal yang tidak diinginkan pada halaman lain.
   if (options.modal) {
     const modalCont = document.getElementById("kontainerModalNotifikasi");
     if (!modalCont) return;
@@ -1251,7 +1261,7 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
     const card = document.createElement("div");
     card.className = "modal-card";
 
-    // Icon + title
+    // Ikon + judul
     const icon = document.createElement("div");
     icon.className = "modal-icon";
     icon.setAttribute("aria-hidden", "true");
@@ -1307,7 +1317,7 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
     // lock background scroll while modal is visible
     document.body.classList.add("modal-open");
 
-    // If not persistent, auto-hide after timeout
+    // Jika tidak persisten, sembunyikan otomatis setelah timeout
     if (!options.persistent) {
       setTimeout(() => {
         try {
@@ -1323,7 +1333,7 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
     return;
   }
 
-  // Otherwise, show as toast in top-right
+  // Jika tidak, tampilkan sebagai toast di kanan atas
   const kontainer = document.getElementById("kontainerToasts");
   if (!kontainer) return;
   const notifikasi = document.createElement("div");
@@ -1334,10 +1344,200 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
   pesanEl.innerHTML = pesan;
   notifikasi.appendChild(pesanEl);
 
-  // auto-remove after timeout
+  // hapus otomatis setelah timeout
   setTimeout(() => notifikasi.remove(), options.timeout || 5000);
 
   kontainer.appendChild(notifikasi);
+}
+
+/**
+ * Show a confirm modal and return a Promise<boolean> that resolves to true when confirmed.
+ * options: { title, message, okLabel, cancelLabel }
+ */
+function showConfirmModal({ title = "Konfirmasi", message = "", okLabel = "Ya", cancelLabel = "Batal" } = {}) {
+  return new Promise((resolve) => {
+    const modalCont = document.getElementById("kontainerModalNotifikasi");
+    if (!modalCont) return resolve(false);
+    modalCont.innerHTML = "";
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop";
+    const card = document.createElement("div");
+    card.className = "modal-card modal-card--panjang";
+
+    const icon = document.createElement("div");
+    icon.className = "modal-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "⚠️";
+    const titleEl = document.createElement("h3");
+    titleEl.className = "modal-title";
+    titleEl.textContent = title;
+
+    const konten = document.createElement("div");
+    konten.className = "modal-konten";
+    const msg = document.createElement("p");
+    msg.innerHTML = message;
+    konten.appendChild(msg);
+
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
+    const btnCancel = document.createElement("button");
+    btnCancel.className = "notifikasi-secondary";
+    btnCancel.textContent = cancelLabel;
+    const btnOk = document.createElement("button");
+    btnOk.className = "notifikasi-oke";
+    btnOk.textContent = okLabel;
+
+    actions.appendChild(btnCancel);
+    actions.appendChild(btnOk);
+
+    card.appendChild(icon);
+    card.appendChild(titleEl);
+    card.appendChild(konten);
+    card.appendChild(actions);
+
+    modalCont.appendChild(backdrop);
+    modalCont.appendChild(card);
+    modalCont.classList.add("active");
+    modalCont.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+
+    function cleanup() {
+      modalCont.classList.remove("active");
+      modalCont.setAttribute("aria-hidden", "true");
+      modalCont.innerHTML = "";
+      document.body.classList.remove("modal-open");
+      document.removeEventListener("keydown", onKey);
+    }
+
+    function onKey(e) {
+      if (e.key === "Escape") {
+        cleanup();
+        resolve(false);
+      }
+    }
+
+    btnCancel.addEventListener("click", () => {
+      cleanup();
+      resolve(false);
+    });
+
+    backdrop.addEventListener("click", () => {
+      cleanup();
+      resolve(false);
+    });
+
+    btnOk.addEventListener("click", () => {
+      cleanup();
+      resolve(true);
+    });
+
+    document.addEventListener("keydown", onKey);
+  });
+}
+
+/**
+ * Show a prompt modal with a textarea and return Promise<string|null> (null when cancelled)
+ */
+function showPromptModal({ title = "Input", message = "", placeholder = "", okLabel = "Kirim", cancelLabel = "Batal" } = {}) {
+  return new Promise((resolve) => {
+    const modalCont = document.getElementById("kontainerModalNotifikasi");
+    if (!modalCont) return resolve(null);
+    modalCont.innerHTML = "";
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop";
+    const card = document.createElement("div");
+    card.className = "modal-card modal-card--panjang";
+
+    const icon = document.createElement("div");
+    icon.className = "modal-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "✍️";
+    const titleEl = document.createElement("h3");
+    titleEl.className = "modal-title";
+    titleEl.textContent = title;
+
+    const konten = document.createElement("div");
+    konten.className = "modal-konten";
+    const msg = document.createElement("p");
+    msg.innerHTML = message;
+
+    const textarea = document.createElement("textarea");
+    textarea.className = "form-input";
+    textarea.placeholder = placeholder;
+    textarea.style.width = "100%";
+    textarea.style.minHeight = "100px";
+    textarea.style.marginTop = "10px";
+
+    konten.appendChild(msg);
+    konten.appendChild(textarea);
+
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
+    const btnCancel = document.createElement("button");
+    btnCancel.className = "notifikasi-secondary";
+    btnCancel.textContent = cancelLabel;
+    const btnOk = document.createElement("button");
+    btnOk.className = "notifikasi-oke";
+    btnOk.textContent = okLabel;
+
+    actions.appendChild(btnCancel);
+    actions.appendChild(btnOk);
+
+    card.appendChild(icon);
+    card.appendChild(titleEl);
+    card.appendChild(konten);
+    card.appendChild(actions);
+
+    modalCont.appendChild(backdrop);
+    modalCont.appendChild(card);
+    modalCont.classList.add("active");
+    modalCont.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+
+    textarea.focus();
+
+    function cleanup() {
+      modalCont.classList.remove("active");
+      modalCont.setAttribute("aria-hidden", "true");
+      modalCont.innerHTML = "";
+      document.body.classList.remove("modal-open");
+      document.removeEventListener("keydown", onKey);
+    }
+
+    function onKey(e) {
+      if (e.key === "Escape") {
+        cleanup();
+        resolve(null);
+      }
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        // Ctrl+Enter untuk kirim
+        e.preventDefault();
+        const val = textarea.value.trim();
+        cleanup();
+        resolve(val);
+      }
+    }
+
+    btnCancel.addEventListener("click", () => {
+      cleanup();
+      resolve(null);
+    });
+
+    backdrop.addEventListener("click", () => {
+      cleanup();
+      resolve(null);
+    });
+
+    btnOk.addEventListener("click", () => {
+      const val = textarea.value.trim();
+      cleanup();
+      resolve(val);
+    });
+
+    document.addEventListener("keydown", onKey);
+  });
 }
 
 function formatWaktu(detik) {
@@ -1369,7 +1569,7 @@ function playBunyi() {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = "square";
-      // small frequency variation for more natural alarm sound
+      // variasi frekuensi kecil untuk suara alarm yang lebih natural
       osc.frequency.value = 800 + Math.floor(Math.random() * 400);
       gain.gain.value = 0;
       osc.connect(gain);
@@ -1378,7 +1578,7 @@ function playBunyi() {
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(0.6, now + 0.01);
       osc.start(now);
-      // stop after beepMs
+      // berhenti setelah durasi beepMs
       setTimeout(() => {
         try {
           gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
@@ -1390,7 +1590,7 @@ function playBunyi() {
       beeper.oscillators.push({ osc, gain });
     }
 
-    // start immediately and then loop
+    // mulai segera lalu ulangi terus
     playBeep();
     beeper.intervalId = setInterval(playBeep, beepMs + gapMs);
 
@@ -1408,7 +1608,7 @@ function stopBunyi() {
     if (!currentBunyi) return;
     const { audioCtx, intervalId, oscillators } = currentBunyi;
     if (intervalId) clearInterval(intervalId);
-    // stop remaining oscillators gracefully
+    // hentikan oscillator yang tersisa dengan aman
     oscillators.forEach(({ osc, gain }) => {
       try {
         gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
@@ -1429,9 +1629,9 @@ function stopBunyi() {
   }
 }
 
-// Global delegated handler for .tombol-mulai to reliably open the Masak confirmation modal
+// Penangan delegasi global untuk .tombol-mulai agar konsisten membuka modal konfirmasi Masak
 (function () {
-  // Ensure handler only attached once
+  // Pastikan handler hanya dilampirkan sekali
   if (window.__masakDelegateAttached) return;
   window.__masakDelegateAttached = true;
 
@@ -1459,7 +1659,7 @@ function stopBunyi() {
       const konten = document.createElement("div");
       konten.className = "modal-konten";
 
-      // Use page-level porsi (read from #inputPorsi) and show missing items area at top
+      // Gunakan porsi di tingkat halaman (baca dari #inputPorsi) dan tampilkan area bahan yang hilang di bagian atas
       const pagePorsi =
         Number(document.getElementById("inputPorsi")?.value || basePorsi) ||
         basePorsi;
@@ -1469,10 +1669,10 @@ function stopBunyi() {
       missingDiv.style.marginBottom = "10px";
       konten.appendChild(missingDiv);
 
-      // Remove the separate ul list for all ingredients
-      // Now only show missing items from server
+      // Hapus daftar <ul> terpisah untuk semua bahan
+      // Sekarang hanya tampilkan bahan yang hilang dari server
 
-      // preview missing ingredients using server
+      // preview bahan yang hilang menggunakan server
       (async () => {
         try {
           const resp = await fetch("/api/resep/" + resepId + "/masak", {
@@ -1482,7 +1682,7 @@ function stopBunyi() {
           });
           const data = await resp.json();
 
-          // Show all ingredients first
+          // Tampilkan semua bahan terlebih dahulu
           let html =
             '<div><strong>🥘 Bahan resep:</strong><ul class="konfirmasi-daftar-bahan">';
           (daftarBahan || []).forEach((b) => {
@@ -1499,7 +1699,7 @@ function stopBunyi() {
           });
           html += "</ul></div>";
 
-          // Then show missing items if any
+          // Kemudian tampilkan bahan yang hilang jika ada
           if (data && data.missing && data.missing.length) {
             html +=
               '<div><strong>🛒 Bahan yang perlu dibeli:</strong><ul class="konfirmasi-daftar-bahan">';
@@ -1548,7 +1748,7 @@ function stopBunyi() {
       modalCont.setAttribute("aria-hidden", "false");
       document.body.classList.add("modal-open");
 
-      // center the card within the modal container for better visual alignment
+      // posisikan kartu modal di tengah container agar tampilan lebih rapi
       card.style.margin = "0 auto";
       card.style.maxWidth = "720px";
 
@@ -1562,7 +1762,7 @@ function stopBunyi() {
         btnClose.click();
       });
 
-      // single-click: perform preview (no stock change) immediately
+      // klik tunggal: lakukan preview segera (tanpa mengubah stok)
       btnMasak.addEventListener("click", async () => {
         try {
           btnMasak.disabled = true;
@@ -1618,7 +1818,7 @@ function stopBunyi() {
             return;
           }
 
-          // success: stock was reduced
+          // sukses: stok berhasil dikurangi
           konten.innerHTML = `<div style="color:var(--warna-sukses)"><strong>✅ ${escapeHtml(
             data.pesan || "Berhasil"
           )}</strong></div>`;
@@ -1661,7 +1861,7 @@ function stopBunyi() {
   document.addEventListener("click", (ev) => {
     const btn = ev.target.closest && ev.target.closest(".tombol-mulai");
     if (!btn) return;
-    // only trigger if this button has recipe data attributes
+    // hanya jalankan jika tombol ini memiliki atribut data resep
     const resepId = btn.dataset.resepId;
     const daftar = btn.dataset.daftarBahan
       ? JSON.parse(btn.dataset.daftarBahan)
@@ -1788,7 +1988,7 @@ async function loadDaftarBahan() {
       `;
       ul.appendChild(li);
 
-      // Attach event listeners to edit and delete buttons
+      // Lampirkan pendengar event untuk tombol edit dan hapus
       const btnEdit = li.querySelector(".btn-edit-bahan");
       const btnHapus = li.querySelector(".btn-hapus-bahan");
 
@@ -1800,8 +2000,19 @@ async function loadDaftarBahan() {
 
       if (btnHapus) {
         btnHapus.addEventListener("click", async () => {
-          if (confirm(`Apakah Anda yakin ingin menghapus "${b.namaBahan}"?`)) {
+          try {
+            const confirmed = await showConfirmModal({
+              title: "Hapus bahan",
+              message: `Apakah Anda yakin ingin menghapus "${escapeHtml(
+                b.namaBahan || b.nama || b.name || ""
+              )}"?`,
+              okLabel: "Hapus",
+              cancelLabel: "Batal",
+            });
+            if (!confirmed) return;
             await hapusBahanItem(b._id);
+          } catch (e) {
+            console.error("Gagal hapus bahan:", e);
           }
         });
       }
@@ -1934,7 +2145,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
       currentRencanaId = data.data._id;
       tampilkanNotifikasi("Rencana tersimpan", "sukses");
-      // show saved calory summary if available
+      // tampilkan ringkasan kalori tersimpan jika tersedia
       if (data.data && data.data.totalKaloriMingguan) {
         renderKaloriInfo(
           { perHari: [], totalMingguan: data.data.totalKaloriMingguan },
@@ -1943,10 +2154,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       // load daftar belanja
       await loadDaftarBelanjaRencana(currentRencanaId);
-      // show both buttons (Konfirmasi visible even before any checkbox is ticked)
+      // tampilkan kedua tombol (Konfirmasi terlihat bahkan sebelum checkbox dicentang)
       const btnKonf = document.getElementById("tombolKonfirmasi");
       if (btnKonf) btnKonf.style.display = "inline-block";
-      // show 'Kirim ke Email' button so user can send the saved rencana
+      // tampilkan tombol 'Kirim ke Email' agar pengguna dapat mengirim rencana tersimpan
       const btnKirim = document.getElementById("tombolKirimEmail");
       if (btnKirim) btnKirim.style.display = "inline-block";
     } catch (err) {
@@ -1962,7 +2173,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!data.sukses) return;
       const daftar = data.data || [];
       if (!daftar.length) {
-        // No shopping items remain — show empty message and hide action buttons
+        // Tidak ada item belanja tersisa — tampilkan pesan kosong dan sembunyikan tombol aksi
         const ul = document.getElementById("daftarBelanja");
         if (ul)
           ul.innerHTML =
@@ -1976,7 +2187,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       renderDaftarBelanja(daftar);
 
-      // show kirim + konfirmasi buttons when a rencana exists (Konfirmasi stays visible even if nothing is checked)
+      // tampilkan tombol kirim + konfirmasi saat rencana ada (Konfirmasi tetap terlihat meski tidak ada yang dicentang)
       const btnKirim = document.getElementById("tombolKirimEmail");
       if (btnKirim)
         btnKirim.style.display = currentRencanaId ? "inline-block" : "none";
@@ -1996,7 +2207,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (typeof n === "undefined" || n === null) return "";
       const num = Number(n);
       if (Number.isInteger(num)) return String(num);
-      // show up to 2 decimals, trim trailing zeros
+      // tampilkan hingga 2 desimal, hapus nol di ujung
       let s = (Math.round(num * 100) / 100).toFixed(2);
       s = s.replace(/\.00$/, "");
       s = s.replace(/\.(\d)0$/, ".$1");
@@ -2037,7 +2248,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const onCheckChange = async () => {
         // (Konfirmasi button is always visible when a rencana exists; no show/hide on checkbox change)
 
-        if (!currentRencanaId) return; // only update server if rencana exists
+        if (!currentRencanaId) return; // hanya update server jika rencana ada
         try {
           const res = await fetch(
             `${API_URL}/menu/${currentRencanaId}/daftar-belanja/${idx}`,
@@ -2094,7 +2305,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       storageSelect.value =
         it.lokasiPenyimpanan || recommend(it.namaBahan || it.nama || "");
       label.appendChild(storageSelect);
-      // NOTE: move the checkbox to its own column on the right so rows stay aligned
+      // CATATAN: pindahkan checkbox ke kolom sendiri di kanan agar baris tetap sejajar
       const checkboxWrapper = document.createElement("div");
       checkboxWrapper.className = "checkbox-wrap";
       checkboxWrapper.style.display = "inline-flex";
@@ -2102,7 +2313,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       checkboxWrapper.style.justifyContent = "center";
       checkboxWrapper.appendChild(checkbox);
 
-      // expiry display for chosen storage (note: expiry is a separate column so it doesn't affect layout)
+      // tampilan kadaluarsa untuk tempat penyimpanan yang dipilih (catatan: kolom kadaluarsa terpisah sehingga tidak mengganggu tata letak)
       const expirySpan = document.createElement("small");
       expirySpan.className = "expiry-note";
       const updateExpiry = () => {
@@ -2197,7 +2408,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     try {
-      // bulk add to pantry
+      // tambah massal ke pantry
       const main = document.querySelector("main.kontainer-utama");
       const idPengguna = main ? main.dataset.userId : null;
       const res = await fetch(`${API_URL}/bahan/tambah-banyak`, {
@@ -2244,16 +2455,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       .join(" • ");
     let txt = `Kalori: ${hariStr} — Total minggu: ${kaloriSummary.totalMingguan} kkal`;
     if (targetKaloriHarian) {
-      // indicate whether average per-day meets target
-      const avgPerDay = Math.round(
-        kaloriSummary.totalMingguan / (kaloriSummary.perHari.length || 7)
-      );
-      const ok =
-        Math.abs(avgPerDay - targetKaloriHarian) <=
-        Math.round(targetKaloriHarian * 0.15); // within 15%
-      txt += ` • Target harian: ${targetKaloriHarian} kkal (${
-        ok ? "OK" : "Tidak sesuai"
-      })`;
+      // Tampilkan target harian tanpa indikator kecocokan
+      txt += ` • Target harian: ${targetKaloriHarian} kkal`;
     }
     el.textContent = txt;
   }
@@ -2325,11 +2528,17 @@ document.addEventListener("DOMContentLoaded", async () => {
           btnGen.textContent = "🔄 Meng-generate...";
           const pilihanDietEl = document.getElementById("pilihanDiet");
           const pilihanDiet = pilihanDietEl ? pilihanDietEl.value : "";
-          // map simple presets to target calories
-          let targetKaloriHarian = null;
-          if (pilihanDiet === "kalori_1500") targetKaloriHarian = 1500;
-          if (pilihanDiet === "kalori_1800") targetKaloriHarian = 1800;
-          if (pilihanDiet === "kalori_2000") targetKaloriHarian = 2000;
+          // baca input target kalori jika user mengisi (nilai ini menjadi satu-satunya sumber untuk target kalori)
+          const inputTargetEl = document.getElementById("inputTargetKalori");
+          let nilaiTargetKalori = null;
+          if (inputTargetEl) {
+            const v = parseInt(inputTargetEl.value, 10);
+            if (!Number.isNaN(v) && v > 0) nilaiTargetKalori = v;
+          }
+
+          // gunakan nilai dari input (kosongkan untuk tanpa batas)
+          const targetKaloriHarian = nilaiTargetKalori;
+
           const res = await fetch(`${API_URL}/menu/generate-saran`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2339,14 +2548,17 @@ document.addEventListener("DOMContentLoaded", async () => {
               targetKaloriHarian,
             }),
           });
+        
           const data = await res.json();
           if (!data.sukses)
             return tampilkanNotifikasi(
               data.pesan || "Gagal generate menu",
               "error"
             );
+          // Jika server mengembalikan keterangan/penjelasan (mis. preferensi tidak dapat dipenuhi), tampilkan peringatan
+          if (data.keterangan) tampilkanNotifikasi(data.keterangan, "peringatan");
           renderMenuMingguan(data.data.menuMingguan);
-          // show calorie info if server sent it
+          // tampilkan info kalori jika server mengirimkannya
           if (data.data && data.data.kaloriSummary)
             renderKaloriInfo(data.data.kaloriSummary, targetKaloriHarian);
           // Perubahan: tidak melakukan preview daftar belanja otomatis — daftar akan dikirim ke email saja setelah menyimpan rencana.
@@ -2364,12 +2576,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // --- Pantry Challenge ---
-  // current recommendation source: 'kadaluarsa' (we intentionally restrict to expiring items only)
+  // sumber rekomendasi saat ini: 'kadaluarsa' (kami sengaja membatasi ke item yang akan kadaluarsa saja)
   let currentRecommendationSource = "kadaluarsa";
 
   async function loadPantryChallenge() {
     // default: use server-side default (3 days)
-    // ensure pantry cache is loaded so we can mark matches when showing recipes
+    // pastikan cache pantry terisi sehingga kita bisa menandai kecocokan saat menampilkan resep
     await loadPantryItems();
 
     // clear previous recommendations to avoid stale display
@@ -2404,7 +2616,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.__lastKadaluarsaItems = bahan;
       renderBahanHampir(bahan);
 
-      // Primary: recommend based on expiring items only
+      // Utama: rekomendasi berdasarkan item yang akan kadaluarsa saja
       const daftarNamaKadaluarsa = bahan
         .map((b) => b.namaBahan)
         .filter(Boolean)
@@ -2426,7 +2638,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // If no expiring ingredients at all, show message and stop (no pantry fallback)
+      // Jika tidak ada bahan yang akan kadaluarsa sama sekali, tampilkan pesan dan hentikan (tidak ada fallback pantry)
       currentRecommendationSource = "kadaluarsa";
       if (msgEl) msgEl.textContent = "Tidak ada bahan hampir kadaluarsa.";
       return;
@@ -2484,7 +2696,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Try to find recipes that specifically match expiring ingredients
+  // Coba cari resep yang secara khusus cocok dengan bahan yang akan kadaluarsa
   async function cariResepBerdasarkanBahanKadaluarsa(daftarNamaKadaluarsa) {
     try {
       const res = await fetch(`${API_URL}/resep/cari-dengan-bahan`, {
@@ -2498,7 +2710,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const data = await res.json();
       if (!data.sukses || !Array.isArray(data.data) || data.data.length === 0)
         return false;
-      // Filter results to only those that include at least one of the expiring ingredients
+      // Filter hasil hanya untuk resep yang mengandung minimal satu bahan yang akan kadaluarsa
       const expLower = daftarNamaKadaluarsa.map((x) => String(x).toLowerCase());
       // stricter matching: use normalized whole-word/token matching to avoid substrings (eg 'bayam' vs 'ayam')
       const filtered = data.data.filter((entry) => {
@@ -2538,7 +2750,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, 0);
         return Object.assign({}, entry, { expMatches });
       });
-      // Sort by expMatches desc, then by estimatedMatch/persen
+      // Urutkan berdasarkan expMatches menurun, lalu estimatedMatch/persen
       enhanced.sort(
         (a, b) =>
           b.expMatches - a.expMatches ||
@@ -2547,7 +2759,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
       // Render but annotate name with expiring match count inside renderRekomendasi we will use presentCount; for now pass entries as-is
       renderRekomendasi(enhanced);
-      // add small note
+      // tambahkan catatan kecil
       const titleEl = document.getElementById("rekomendasiTitle");
       if (titleEl)
         titleEl.textContent = `Rekomendasi berdasarkan bahan hampir kadaluarsa (menyesuaikan yang paling cocok)`;
@@ -2558,7 +2770,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Pantry cache of ingredient names (lowercase)
+  // Cache pantry untuk nama bahan (huruf kecil)
   let pantryIngredientNames = new Set();
 
   async function loadPantryItems() {
@@ -2713,7 +2925,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     el.innerHTML = html;
   }
 
-  // Toggle detail (fetch first time, then show/hide)
+  // Toggle detail (ambil pertama kali, lalu tampilkan/sembunyikan)
   async function toggleResepDetail(id, holder, card) {
     if (!id || !holder) return;
     // if already visible, hide
@@ -2741,7 +2953,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    // show
+    // tampilkan
     holder.style.display = "block";
     if (card) card.classList.add("expanded");
   }
@@ -2756,7 +2968,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // If recommending specifically for kadaluarsa, show only recipes that explicitly contain at least one expiring ingredient
+    // Jika merekomendasikan khusus untuk kadaluarsa, tampilkan hanya resep yang secara eksplisit mengandung minimal satu bahan yang akan kadaluarsa
     if (currentRecommendationSource === "kadaluarsa") {
       // build normalized expiring tokens from the global last kadaluarsa fetch
       const expItems = (window.__lastKadaluarsaItems || [])
@@ -2940,7 +3152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function inisialisasiPantryChallenge() {
     const btn = document.getElementById("tombolRefreshPantry");
     if (btn) btn.addEventListener("click", () => loadPantryChallenge());
-    // Try load automatically when on pantry page
+    // Coba muat otomatis saat berada di halaman pantry
     const onPantry =
       document.getElementById("rekomendasiPantry") ||
       document.getElementById("bahanHampirKadaluarsa");
@@ -2951,7 +3163,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Load initial recipe list if on recipe page
   setTimeout(() => loadDaftarResep(), 0);
 
-  // Delegate clicks for server-rendered recipe cards (if any) so clicking card navigates to detail page
+  // Delegasikan klik untuk kartu resep yang dirender server (jika ada) agar klik kartu menavigasi ke halaman detail
   const daftarResepEl = document.getElementById("daftarResep");
   if (daftarResepEl) {
     daftarResepEl.addEventListener("click", (e) => {
@@ -2964,11 +3176,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Show welcome notification only when redirected after successful login
+  // Tampilkan notifikasi selamat datang hanya saat dialihkan setelah login berhasil
   try {
     const params = new URLSearchParams(window.location.search);
     if (params.get("welcome") === "1") {
-      // show then remove param from URL to prevent re-showing on refresh
+      // tampilkan lalu hapus param dari URL untuk mencegah muncul lagi saat refresh
       setTimeout(
         () =>
           tampilkanNotifikasi(
@@ -2984,11 +3196,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           sessionStorage.setItem("koki_connect_shown", "1");
         } catch (e) {}
       }, 620);
-      // Allow socket 'connect' to also show if it connects very shortly after login (fallback)
+      // Izinkan socket 'connect' juga menampilkan notifikasi jika terhubung sebentar setelah login (cadangan)
       try {
         sessionStorage.setItem("koki_show_connect_ts", String(Date.now()));
       } catch (e) {}
-      // remove 'welcome' query param without reloading
+      // hapus param 'welcome' dari URL tanpa memuat ulang
       params.delete("welcome");
       const newUrl =
         window.location.pathname +
@@ -3060,7 +3272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.warn("Remember me: failed to access storage", e);
     }
 
-    // On submit, persist or clear creds in localStorage based on checkbox
+    // Saat submit, simpan atau hapus kredensial di localStorage berdasarkan checkbox
     loginForm.addEventListener("submit", () => {
       try {
         if (rememberCheckbox && rememberCheckbox.checked) {
@@ -3081,9 +3293,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnLogout) {
     btnLogout.addEventListener("click", async (e) => {
       e.preventDefault();
-      const confirmed = confirm("Yakin ingin keluar?");
-      if (!confirmed) return;
       try {
+        const confirmed = await showConfirmModal({
+          title: "Keluar",
+          message: "Yakin ingin keluar?",
+          okLabel: "Ya, keluar",
+          cancelLabel: "Batal",
+        });
+        if (!confirmed) return;
         btnLogout.disabled = true;
         const url = btnLogout.dataset.logoutUrl || "/api/pengguna/logout";
         const resp = await fetch(url, {
@@ -3145,7 +3362,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               errEl.style.display = "none";
               errEl.textContent = "";
             }
-            form.submit(); // submit now that OTP is verified
+            form.submit(); // kirim karena OTP diverifikasi
           } else {
             if (errEl) {
               errEl.style.display = "block";
@@ -3371,7 +3588,7 @@ function inisialisasiBahanResepBaru() {
 
   tombolTambah.addEventListener("click", tambahBahanKeResep);
 
-  // Allow Enter key to add bahan
+  // Izinkan Enter untuk menambah bahan
   const inputNama = document.getElementById("inputNamaBahanResep");
   if (inputNama) {
     inputNama.addEventListener("keypress", (e) => {
@@ -3386,12 +3603,62 @@ function inisialisasiBahanResepBaru() {
   const form = document.querySelector("form[action='/admin/resep']");
   if (form) {
     form.addEventListener("submit", (e) => {
-      updateDaftarBahanHidden();
-      if (daftarBahanResepBaru.length === 0) {
-        e.preventDefault();
-        tampilkanNotifikasi("Tambahkan minimal satu bahan", "error");
+      try {
+        // Pastikan hidden textarea terisi dari daftar internal
+        updateDaftarBahanHidden();
+        const hidden = document.getElementById("daftarBahanHidden");
+        // Debug: log ketika submit pada halaman admin untuk membantu troubleshooting
+        console.log("[admin.resep] Submit form admin: daftarBahanResepBaru.length=", daftarBahanResepBaru.length, "hidden.value=", hidden ? hidden.value : null);
+
+        // Pastikan daftar bahan benar-benar terisi (cek juga hidden.value karena form bisa di-render ulang oleh server)
+        if (daftarBahanResepBaru.length === 0 || !hidden || !hidden.value || !hidden.value.trim()) {
+          e.preventDefault();
+          tampilkanNotifikasi("Tambahkan minimal satu bahan", "error");
+          return;
+        }
+
+        // tampilkan pemberitahuan singkat bahwa pengiriman sedang diproses (akan diarahkan jika berhasil)
+        tampilkanNotifikasi("Mengirim resep...", "info");
+      } catch (err) {
+        console.error("[admin.resep] Error saat submit form:", err);
       }
     });
+  }
+
+  // Jika halaman di-render ulang oleh server dengan nilai daftarBahan pada hidden textarea,
+  // isi ulang state internal agar admin melihat daftar bahan yang sudah diisi.
+  const hiddenInit = document.getElementById("daftarBahanHidden");
+  if (hiddenInit && hiddenInit.value && daftarBahanResepBaru.length === 0) {
+    const lines = hiddenInit.value
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const isNumeric = (s) => /^(\d+(?:[.,]\d+)?)$/.test(String(s));
+
+    daftarBahanResepBaru = lines.map((line) => {
+      const parts = line.split(/\s+/).filter(Boolean);
+      let nama = line;
+      let jumlah = 0;
+      let satuan = "";
+
+      if (parts.length >= 2) {
+        const last = parts[parts.length - 1];
+        const secondLast = parts[parts.length - 2];
+        if (isNumeric(secondLast)) {
+          jumlah = Number(String(secondLast).replace(',', '.'));
+          satuan = last;
+          nama = parts.slice(0, parts.length - 2).join(' ');
+        } else if (isNumeric(last)) {
+          jumlah = Number(String(last).replace(',', '.'));
+          nama = parts.slice(0, parts.length - 1).join(' ');
+        }
+      }
+
+      return { id: Date.now() + Math.random(), nama, jumlah, satuan };
+    });
+
+    renderDaftarBahanResep();
   }
 }
 
@@ -3425,8 +3692,9 @@ function tambahBahanKeResep() {
   document.getElementById("inputJumlahBahanResep").value = "";
   document.getElementById("inputSatuanBahanResep").value = "gram";
 
-  // Render list
+  // Render list and update hidden value
   renderDaftarBahanResep();
+  updateDaftarBahanHidden();
 
   // Focus back to nama input
   document.getElementById("inputNamaBahanResep").focus();
@@ -3466,6 +3734,7 @@ function renderDaftarBahanResep() {
 function hapusBahanDariResep(id) {
   daftarBahanResepBaru = daftarBahanResepBaru.filter((b) => b.id !== id);
   renderDaftarBahanResep();
+  updateDaftarBahanHidden();
 }
 
 function updateDaftarBahanHidden() {

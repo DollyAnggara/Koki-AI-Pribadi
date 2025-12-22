@@ -14,7 +14,7 @@ const requestReset = async (req, res) => {
 
     const pengguna = await Pengguna.findOne({ email });
     if (!pengguna) {
-      // For privacy, still return success for forms but show a message
+      // Demi privasi, tetap tampilkan status berhasil untuk formulir tetapi tampilkan pesan.
       if (!req.is('application/json')) return res.render('forgot', { layout: 'auth', error: null, success: 'Jika email terdaftar, tautan reset telah dikirim.' });
       return res.json({ sukses: true, pesan: 'Jika email terdaftar, tautan reset telah dikirim.' });
     }

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const kontrolerAdmin = require('../controller/kontrolerAdmin');
 
-// middleware: require admin role
+// middleware: memerlukan peran admin
 function requireAdmin(req, res, next) {
   if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
     if (req.accepts('html')) return res.redirect('/login?error=akses%20ditolak');
@@ -11,8 +11,8 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Admin UI pages
-// Redirect root to explicit dashboard route for clarity
+// Halaman UI Admin
+// Redirect root ke route dashboard eksplisit untuk kejelasan
 router.get('/', requireAdmin, (req, res) => res.redirect('/admin/dashboard'));
 router.get('/dashboard', requireAdmin, kontrolerAdmin.dashboardPage);
 router.get('/resep', requireAdmin, kontrolerAdmin.listResepPage);

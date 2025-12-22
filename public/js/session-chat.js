@@ -1,4 +1,4 @@
-// Session Chat Management
+// Manajemen Session Chat
 let idSessionAktif = localStorage.getItem("idSessionAktif");
 let daftarSessionChat = [];
 
@@ -79,7 +79,7 @@ function renderDaftarSession() {
     )
     .join("");
 
-  // Event listeners untuk session items
+  // Event listeners untuk item session
   daftarSessionEl.querySelectorAll(".item-session").forEach((item) => {
     item.addEventListener("click", (e) => {
       if (e.target.closest(".btn-hapus-session")) return;
@@ -93,9 +93,15 @@ function renderDaftarSession() {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const sessionId = btn.dataset.id;
-      if (confirm("Apakah Anda yakin ingin menghapus sesi ini?")) {
-        hapusSessionChat(sessionId);
-      }
+      (async () => {
+        const confirmed = await showConfirmModal({
+          title: "Hapus sesi",
+          message: "Apakah Anda yakin ingin menghapus sesi ini?",
+          okLabel: "Hapus",
+          cancelLabel: "Batal",
+        });
+        if (confirmed) hapusSessionChat(sessionId);
+      })();
     });
   });
 }
@@ -128,7 +134,7 @@ async function loadSessionChat(sessionId) {
         });
       }
 
-      // Clear chat history dan load dari database
+      // membersihkan chat history dan load dari database
       clearChatHistory();
       const areaPesan = document.getElementById("areaPesan");
       if (areaPesan) {
@@ -145,7 +151,7 @@ async function loadSessionChat(sessionId) {
           });
         });
       } else {
-        // No history: show welcome message
+        // tidak ada history, tampilkan pesan selamat datang
         const welcome =
           "Halo! 👋 Saya Koki AI, asisten memasak virtual Anda. Apa yang ingin Anda masak hari ini?";
         tambahPesanChat(welcome, "koki", {
@@ -301,7 +307,7 @@ window.tambahPesanChat = function (
     timestamp: opts.timestamp,
   });
 
-  // NOTE: Jangan simpan ke database di frontend
+  // CATATAN: Jangan simpan ke database di frontend
   // Backend (soketTimer.js) sudah menangani saving untuk user messages
   // Frontend hanya butuh save ke local chatHistory untuk display
 };

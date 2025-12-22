@@ -1,6 +1,6 @@
 /**
  * src/routes/otp.js
- * Placeholder route OTP (sudah ada di struktur Anda)
+ * Placeholder route OTP
  */
 
 const express = require('express');
@@ -11,7 +11,7 @@ const otpController = require('../controller/otpController');
 router.post('/send', otpController.sendOtp);
 // Verifikasi OTP
 router.post('/verify', otpController.verifyOtp);
-// Test koneksi SMTP (POST saja untuk menghindari caching di browser)
+// Test koneksi SMTP 
 router.post('/test', otpController.testSmtp);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 // nodemailer wrapper (sama seperti sebelumnya) - fungsi kirimEmailMenuMingguan & kirimNotifikasiKadaluarsa
 const nodemailer = require("nodemailer");
-// If dotenv hasn't been loaded by the app by the time this module is required,
-// try to load it here so the module is more robust when required directly.
+// Jika dotenv belum dimuat oleh app saat modul ini di-require,
+// coba muat di sini agar modul lebih tahan saat di-require langsung.
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
   try {
     require("dotenv").config();
@@ -10,7 +10,7 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
   }
 }
 
-// diagnostic info: show masked user and whether pass is set (do not print secrets)
+// info diagnostik: tampilkan user yang dimask dan apakah pass ter-set (jangan cetak secret)
 const _rawUser =
   process.env.EMAIL_USER || process.env.EMAIL_USERNAME || process.env.EMAIL;
 const _rawPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
@@ -19,7 +19,7 @@ const _maskedUser = _rawUser
   : "<not set>";
 console.log(`🔍 Email env: user=${_maskedUser}, passSet=${!!_rawPass}`);
 const ensureEmailConfig = () => {
-  // Support alternate env names and provide helpful debug output when missing
+  // Dukung nama env alternatif dan berikan output debug yang membantu jika hilang
   const user =
     process.env.EMAIL_USER || process.env.EMAIL_USERNAME || process.env.EMAIL;
   const pass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
@@ -31,7 +31,7 @@ const ensureEmailConfig = () => {
     return false;
   }
 
-  // Normalize to the expected keys for the rest of the module
+  // Normalisasi ke kunci yang diharapkan untuk sisa modul
   process.env.EMAIL_USER =
     process.env.EMAIL_USER || process.env.EMAIL_USERNAME || process.env.EMAIL;
   process.env.EMAIL_PASS = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
@@ -95,7 +95,7 @@ const kirimEmailMenuMingguan = async (penerima, rencana) => {
   };
 
   if (rencana && Array.isArray(rencana.daftarBelanja)) {
-    // build a clear two-column style: name left, amount right (no truncation or '...')
+    // Buat gaya dua kolom yang jelas: nama di kiri, jumlah di kanan (tanpa pemotongan atau '...')
     daftarHtml += '<h3>Daftar Belanja</h3><ul style="padding:0;list-style:none;margin:0;">';
     for (const it of rencana.daftarBelanja) {
       const jumlahText = (it.jumlah || '') ? `<strong style="float:right;">${it.jumlah} ${it.satuan || ''}</strong>` : '';
@@ -136,7 +136,7 @@ const kirimEmailMenuMingguan = async (penerima, rencana) => {
       return 'Rak Dapur';
     };
     rencana.daftarBelanja.forEach((it) => {
-      // plain-text: show full name and amount on one line (no truncation)
+    // tampilkan nama lengkap dan jumlah pada satu baris (tidak dipotong)
       textParts.push(`${it.namaBahan} - ${it.jumlah || ''} ${it.satuan || ''}`);
     });
   }
@@ -157,7 +157,7 @@ const kirimNotifikasiKadaluarsa = async (penerima, daftar) => {
       "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
     );
   const transporter = buatTransporter();
-  // Implement sending logic here
+  // Implementasikan logika pengiriman di sini
   return transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: penerima,
@@ -178,7 +178,7 @@ const kirimOtpEmail = async (penerima, kode) => {
   const subject = `${appName} - Kode OTP Anda`;
   const text = `Halo,\n\nKode OTP Anda: ${kode}\nKode ini berlaku selama 5 menit.\n\nJika Anda tidak meminta kode ini, abaikan email ini.\n\nSalam,\n${appName}`;
 
-  // Simple, mobile-friendly HTML template with inline styles
+
   const html = `<!doctype html>
   <html>
   <body style="margin:0;padding:20px;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;color:#222;background:#f6f9fc;">

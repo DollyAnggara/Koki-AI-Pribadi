@@ -12,7 +12,7 @@ router.post('/login', kontrolerPengguna.loginPengguna);
 router.post('/lupa', require('../controller/resetController').requestReset);
 router.post('/reset', require('../controller/resetController').performReset);
 router.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/login')); });
-// POST logout endpoint for ajax/logout with confirmation
+// Endpoint POST /logout untuk ajax/logout dengan konfirmasi
 router.post('/logout', (req, res) => { req.session.destroy(err => { if (err) return res.status(500).json({ sukses:false, pesan:'Gagal logout' }); res.json({ sukses:true, pesan:'Keluar berhasil' }); }); });
 router.get('/:id', kontrolerPengguna.dapatkanProfil);
 router.put('/:id', kontrolerPengguna.perbaruiProfil);

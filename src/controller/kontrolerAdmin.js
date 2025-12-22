@@ -115,6 +115,7 @@ const newResepPage = (req, res) => {
 const createResep = async (req, res) => {
   try {
     const body = req.body || {};
+    console.log('🔍 [admin.createResep] Body received:', JSON.stringify(body, null, 2));
     // normalize minimal fields and parse multiline textareas
     const daftarBahanRaw =
       typeof body.daftarBahan === "string"
@@ -129,7 +130,39 @@ const createResep = async (req, res) => {
     // Parse bahan strings ke objects
     const daftarBahan = daftarBahanRaw.map(parseBahanString);
 
-    const langkah =
+    // Basic validation: minimal satu bahan
+    if (!Array.isArray(daftarBahan) || daftarBahan.length === 0) {
+      console.warn('⚠️ [admin.createResep] Gagal: tidak ada bahan diterima dari form');
+      const formData = {
+        namaResep: body.namaResep || "",
+        deskripsi: body.deskripsi || "",
+        kategori: body.kategori || "",
+        porsi: body.porsi || "",
+        waktuPersiapan: body.waktuPersiapan || "",
+        waktuMemasak: body.waktuMemasak || "",
+        kalori: body.kalori || "",
+        daftarBahan:
+          typeof body.daftarBahan === "string"
+            ? body.daftarBahan
+            : Array.isArray(body.daftarBahan)
+            ? body.daftarBahan.join("\n")
+            : "",
+        langkah:
+          typeof body.langkah === "string"
+            ? body.langkah
+            : Array.isArray(body.langkah)
+            ? body.langkah.join("\n")
+            : "",
+      };
+
+      return res.status(400).render("admin/resep_new", {
+        judul: "Tambah Resep Baru",
+        error: "Tambahkan minimal satu bahan",
+        formData,
+      });
+    }
+
+    const langkahRaw =
       typeof body.langkah === "string"
         ? body.langkah
             .split(/\r?\n/)
@@ -138,6 +171,9 @@ const createResep = async (req, res) => {
         : Array.isArray(body.langkah)
         ? body.langkah
         : [];
+
+    // normalize langkah ke bentuk array objek sesuai schema
+    const langkah = parseLangkahArray(langkahRaw);
 
     const r = new Resep({
       namaResep: body.namaResep || "Untitled",
@@ -159,13 +195,49 @@ const createResep = async (req, res) => {
             : null
           : undefined,
     });
+
+    // Jika user mengisi nilai kalori saat membuat resep, simpan ke nutrisiPerPorsi.kalori
+    if (body.kalori !== undefined && body.kalori !== null && String(body.kalori).trim() !== "") {
+      const kaloriValue = parseFloat(body.kalori);
+      if (!isNaN(kaloriValue)) {
+        r.nutrisiPerPorsi = r.nutrisiPerPorsi || {};
+        r.nutrisiPerPorsi.kalori = kaloriValue;
+      }
+    }
+
     await r.save();
     return res.redirect("/admin/resep");
   } catch (err) {
     console.error("❌ Gagal buat resep (admin):", err);
+    const pesan = err && err.message ? err.message : "Gagal menyimpan resep";
+
+    // Siapkan formData agar input tidak hilang ketika server me-render ulang halaman karena error
+    const formData = {
+      namaResep: body?.namaResep || "",
+      deskripsi: body?.deskripsi || "",
+      kategori: body?.kategori || "",
+      porsi: body?.porsi || "",
+      waktuPersiapan: body?.waktuPersiapan || "",
+      waktuMemasak: body?.waktuMemasak || "",
+      kalori: body?.kalori || "",
+      daftarBahan:
+        typeof body?.daftarBahan === "string"
+          ? body.daftarBahan
+          : Array.isArray(body?.daftarBahan)
+          ? body.daftarBahan.join("\n")
+          : "",
+      langkah:
+        typeof body?.langkah === "string"
+          ? body.langkah
+          : Array.isArray(body?.langkah)
+          ? body.langkah.join("\n")
+          : "",
+    };
+
     return res.status(500).render("admin/resep_new", {
       judul: "Tambah Resep Baru",
-      error: "Gagal menyimpan resep",
+      error: pesan,
+      formData,
     });
   }
 };

@@ -8,15 +8,15 @@
           <p>Lihat, edit, dan kelola semua resep di situs Anda</p>
         </div>
         <div class="admin-header-actions">
-          <a href="/admin/resep/new" class="admin-btn admin-btn-primary">
+          <a href="/admin/resep/new" class="admin-btn admin-btn-primary tombol-nav">
             <span>➕</span>
             Tambah Resep
           </a>
-          <a href="/admin/resep/pending" class="admin-btn admin-btn-warning">
+          <a href="/admin/resep/pending" class="admin-btn admin-btn-warning tombol-nav">
             <span>⏳</span>
             Pending ({{stats.pendingCount}})
           </a>
-          <a href="/admin/dashboard" class="admin-btn admin-btn-secondary">
+          <a href="/admin/dashboard" class="admin-btn admin-btn-secondary tombol-nav">
             <span>←</span>
             Kembali
           </a>
@@ -98,7 +98,7 @@
                   <td style="text-align: right; white-space: nowrap;">
                     <a
                       href="/admin/resep/{{this._id}}/edit"
-                      class="admin-btn admin-btn-secondary admin-btn-small"
+                      class="admin-btn admin-btn-secondary admin-btn-small tombol-nav"
                     >
                       ✏️ Edit
                     </a>
@@ -106,10 +106,11 @@
                       method="post"
                       action="/admin/resep/{{this._id}}/delete"
                       style="display:inline"
-                      onsubmit="return confirm('Hapus resep ini?');"
+                      class="form-confirm-delete"
                     >
                       <button
-                        class="admin-btn admin-btn-danger admin-btn-small"
+                        type="button"
+                        class="admin-btn admin-btn-danger admin-btn-small btn-delete-resep"
                       >
                         🗑️ Hapus
                       </button>
@@ -127,6 +128,7 @@
                   <p style="margin: 8px 0 0 0; font-size: 0.9rem;">
                     <a
                       href="/admin/resep/new"
+                      class="tombol-nav"
                       style="color: var(--admin-accent); text-decoration: none; font-weight: 600;"
                     >Buat resep pertama Anda</a>
                   </p>

@@ -16,10 +16,11 @@
         <h3 class="kartu-judul">Tambah Resep Baru</h3>
         <div class="form-grup"><input id="inputNamaResep" class="form-input" placeholder="Nama Resep" required></div>
         <div class="form-grup"><textarea id="inputDeskripsi" class="form-input" placeholder="Deskripsi (opsional)" rows="2"></textarea></div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <input id="inputPorsi" type="number" min="1" class="form-input" placeholder="Porsi" style="width:80px;">
           <input id="inputWaktuPersiapan" type="number" min="0" class="form-input" placeholder="Waktu persiapan (menit)" style="width:180px;">
           <input id="inputWaktuMemasak" type="number" min="0" class="form-input" placeholder="Waktu memasak (menit)" style="width:180px;">
+          <input id="inputKaloriResep" type="number" min="0" step="0.1" class="form-input" placeholder="Kalori per porsi (kkal)" style="width:180px;">
         </div>
         <div class="form-grup">
           <label><strong>Bahan</strong></label>
