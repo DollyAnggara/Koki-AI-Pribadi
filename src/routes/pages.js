@@ -16,12 +16,10 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
   try {
     const r = await Resep.findById(req.params.id);
     if (!r)
-      return res
-        .status(404)
-        .render("resep_detail", {
-          judul: "Resep Tidak Ditemukan",
-          error: "Resep tidak ditemukan",
-        });
+      return res.status(404).render("resep_detail", {
+        judul: "Resep Tidak Ditemukan",
+        error: "Resep tidak ditemukan",
+      });
     const waktu = (r.waktuPersiapanMenit || 0) + (r.waktuMemasakMenit || 0);
     const kalori =
       r.nutrisiPerPorsi && (r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal)
@@ -34,7 +32,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
     const daftarBahanDisplay = (daftarRaw || []).map((it) => {
       if (!it) return "";
       if (typeof it === "string") return it;
-      // object-like
+      // mirip objek
       const nama = it.namaBahan || it.nama || it.name || it.item || "";
       const jumlah = it.jumlah || it.qty || it.jumlahTersedia || "";
       const satuan = it.satuan || it.unit || "";
@@ -100,7 +98,7 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
           const reqSatuan =
             b && typeof b === "object" ? b.satuan || b.unit || "" : "";
 
-          // Temukan padanan bahan makanan berdasarkan nama yang cocok 
+          // Temukan padanan bahan makanan berdasarkan nama yang cocok
           const rx = new RegExp(
             (nama || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
             "i"
@@ -181,13 +179,11 @@ router.get("/resep/:id", requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error("Gagal render detail resep:", err);
-    res
-      .status(500)
-      .render("resep_detail", {
-        judul: "Resep",
-        resep: null,
-        error: "Gagal memuat resep",
-      });
+    res.status(500).render("resep_detail", {
+      judul: "Resep",
+      resep: null,
+      error: "Gagal memuat resep",
+    });
   }
 });
 

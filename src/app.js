@@ -12,8 +12,8 @@ const exphbs = require("express-handlebars");
 const cron = require("node-cron");
 require("dotenv").config();
 
-// Determine available chat providers (Deepseek or OpenRouter)
-// Warn only when neither provider is configured
+// Tentukan penyedia chat yang tersedia (Deepseek atau OpenRouter)
+// Peringatan hanya jika tidak ada penyedia yang dikonfigurasi
 const hasDeepseek = !!process.env.DEEPSEEK_API_KEY;
 const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
 if (!hasDeepseek && !hasOpenRouter) {
@@ -27,12 +27,12 @@ if (!hasDeepseek && !hasOpenRouter) {
   });
 }
 
-// utils
+// utilitas
 const hubungkanDatabase = require("./utils/database");
 const soketTimer = require("./utils/soketTimer");
 const layananEmail = require("./utils/emailService");
 
-// routes
+// rute
 const ruteHome = require("./routes/home");
 const rutePages = require("./routes/pages");
 const ruteResep = require("./routes/resep");
@@ -70,24 +70,24 @@ const jalankanServer = async () => {
   // inisialisasi soket
   soketTimer.inisialisasiSoketTimer(io);
 
-  // middleware
+  // perantara middleware
   aplikasi.use(express.json({ limit: "50mb" }));
   aplikasi.use(express.urlencoded({ extended: true, limit: "50mb" }));
   aplikasi.use(cors());
 
-  // session (server-side) — used to track authenticated user
+  // sesi (sisi-server) — digunakan untuk melacak pengguna yang diautentikasi
   const session = require("express-session");
   aplikasi.use(
     session({
       secret: process.env.SESSION_SECRET || "keyboard cat",
       resave: false,
       saveUninitialized: false,
-      cookie: { maxAge: 24 * 60 * 60 * 1000 }, // 1 day
+      cookie: { maxAge: 24 * 60 * 60 * 1000 }, // 1 hari
     })
   );
 
-  // Make session user available in templates and flag admins
-  // Refresh role from DB when it differs from the session copy (keeps sessions up-to-date)
+  // Buat pengguna sesi tersedia di template dan tandai admin
+  // Segarkan peran dari DB jika berbeda dari salinan sesi (menjaga sesi tetap terkini)
   aplikasi.use(async (req, res, next) => {
     try {
       if (req.session && req.session.user) {
@@ -99,7 +99,7 @@ const jalankanServer = async () => {
             req.session.user.role = u.role;
           }
         } catch (err) {
-          // non-fatal: continue without blocking the request
+          // tidak fatal: lanjutkan tanpa memblokir permintaan
           console.warn(
             "Could not refresh user role from DB:",
             err && err.message ? err.message : err
@@ -116,10 +116,10 @@ const jalankanServer = async () => {
     next();
   });
 
-  // static files
+  // file statis
   aplikasi.use(express.static(path.join(__dirname, "..", "public")));
 
-  // view engine: gunakan folder src/templates sebagai root views
+  // mesin tampilan: gunakan folder src/templates sebagai root views
   aplikasi.engine(
     "hbs",
     exphbs.engine({
@@ -135,7 +135,7 @@ const jalankanServer = async () => {
   aplikasi.set("view engine", "hbs");
   aplikasi.set("views", path.join(__dirname, "..", "templates", "views"));
 
-  // expose DB connection status to handlers & templates
+  // ekspos status koneksi DB ke penanganan & template
   aplikasi.use((req, res, next) => {
     req.app.locals.dbConnected =
       typeof dbConnected !== "undefined" ? dbConnected : false;
@@ -143,7 +143,7 @@ const jalankanServer = async () => {
     next();
   });
 
-  // block API endpoints when DB is unavailable (allow /api/status)
+  // blokir endpoint API saat DB tidak tersedia (izinkan /api/status)
   aplikasi.use("/api", (req, res, next) => {
     if (!req.app.locals.dbConnected && req.path !== "/status") {
       return res.status(503).json({
@@ -155,22 +155,22 @@ const jalankanServer = async () => {
     next();
   });
 
-  // mount routes
+  // pasang rute
   aplikasi.use("/", ruteHome);
-  // Page routes: separate views per page
+  // Rute halaman: tampilan terpisah per halaman
   aplikasi.use("/", rutePages);
   aplikasi.use("/api/resep", ruteResep);
   aplikasi.use("/api/bahan", ruteBahan);
   aplikasi.use("/api/pengguna", rutePengguna);
   aplikasi.use("/api/menu", ruteMenu);
   aplikasi.use("/api/otp", ruteOtp);
-  // Debug/test endpoints for development (deepseek test)
+  // Endpoint debug/test untuk pengembangan (tes deepseek)
   aplikasi.use("/api/debug", ruteDebug);
   aplikasi.use("/api/kontak", ruteKontak);
-  // Session chat endpoints
+  // Endpoint chat sesi
   aplikasi.use("/api/session-chat", ruteSessionChat);
 
-  // admin routes (UI + actions)
+  // rute admin (UI + aksi)
   const ruteAdmin = require("./routes/admin");
   aplikasi.use("/admin", ruteAdmin);
 
@@ -182,7 +182,7 @@ const jalankanServer = async () => {
     });
   });
 
-  // Auth pages
+  // Halaman autentikasi
   aplikasi.get("/login", (req, res) => {
     let successMessage = null;
     if (req.query.success === "1" || req.query.registered === "1")
@@ -204,7 +204,7 @@ const jalankanServer = async () => {
     });
   });
 
-  // Forgot / Reset pages
+  // Halaman Lupa Sandi / Reset
   aplikasi.get("/forgot", (req, res) =>
     res.render("forgot", { layout: "auth" })
   );
@@ -246,7 +246,7 @@ const jalankanServer = async () => {
     { timezone: "Asia/Jakarta" }
   );
 
-  // 404 handler (render the 404 partial via the 404 view and use auth layout)
+  // penanganan 404 (render partial 404 melalui tampilan 404 dan gunakan tata letak auth)
   aplikasi.use((req, res) => {
     if (req.accepts("html"))
       return res
@@ -257,7 +257,7 @@ const jalankanServer = async () => {
       .json({ sukses: false, pesan: "Endpoint tidak ditemukan" });
   });
 
-  // global error
+  // kesalahan global
   aplikasi.use((err, req, res, next) => {
     console.error("❌ Error global:", err);
     res
@@ -269,10 +269,10 @@ const jalankanServer = async () => {
   await new Promise((resolve) => {
     serverHttp.listen(PORT, () => {
       console.log(`🚀 Server: http://localhost:${PORT}`);
-      console.log("📡 Socket.io namespaces: /memasak, /notifikasi");
+      console.log("📡 Namespace Socket.io: /memasak, /notifikasi");
 
-      // Masked env summary for quick diagnostics
-      const mask = (v) => (v ? "[set]" : "[not set]");
+      // Ringkasan env tersembunyi untuk diagnostik cepat
+      const mask = (v) => (v ? "[diatur]" : "[tidak diatur]");
       console.log("🔐 Env summary:", {
         MONGO_URI: mask(process.env.MONGO_URI),
         DEEPSEEK_API_KEY: mask(process.env.DEEPSEEK_API_KEY),

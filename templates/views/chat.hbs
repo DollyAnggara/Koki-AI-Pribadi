@@ -62,20 +62,20 @@
 </main>
 
 <script>
-  // Use the app's Socket.io chat rather than calling external APIs from the browser
-  // (keeps API keys secret and reuses server-side Deepseek integration)
+  // Gunakan chat Socket.io aplikasi daripada memanggil API eksternal dari browser
+  // (menjaga kunci API tetap rahasia dan menggunakan kembali integrasi Deepseek sisi-server)
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('inputPesan');
     if (input) input.focus();
 
-    // Allow Ctrl+Enter to submit quickly
+    // Izinkan Ctrl+Enter untuk mengirim dengan cepat
     input?.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'Enter') {
         document.getElementById('formChat')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       }
     });
 
-    // Minor UX: show placeholder guidance
+    // UX minor: tampilkan panduan placeholder
     const placeholder = input?.getAttribute('placeholder') || '';
     input?.setAttribute('placeholder', placeholder);
   });

@@ -215,7 +215,7 @@ const inisialisasiSoketTimer = (io) => {
         socket.emit("koki_mengetik", { status: false });
       }
     });
-    // timer events: mulai_timer, jeda_timer, lanjutkan_timer, hentikan_timer
+    // event timer: mulai_timer, jeda_timer, lanjutkan_timer, hentikan_timer
 
     socket.on("mulai_timer", (data) => {
       try {
@@ -270,7 +270,7 @@ const inisialisasiSoketTimer = (io) => {
         };
 
         timer.intervalId = setInterval(tick, 1000);
-        // send initial update
+        // kirim update awal
         sendUpdate();
         timerAktif.set(idTimer, timer);
       } catch (err) {
@@ -324,7 +324,7 @@ const inisialisasiSoketTimer = (io) => {
         });
       };
       t.intervalId = setInterval(tick, 1000);
-      // immediate update
+      // update langsung
       nsMemasak.emit("update_timer", {
         idTimer: t.idTimer,
         formatWaktu: formatWaktu(t.sisa),
@@ -342,7 +342,7 @@ const inisialisasiSoketTimer = (io) => {
       if (!t) return;
       if (t.intervalId) clearInterval(t.intervalId);
       timerAktif.delete(idTimer);
-      // notify clients that timer was stopped
+      // beri tahu klien bahwa timer telah dihentikan
       nsMemasak.emit("update_timer", {
         idTimer,
         formatWaktu: formatWaktu(0),
@@ -352,7 +352,7 @@ const inisialisasiSoketTimer = (io) => {
       });
     });
 
-    // helper to format seconds into H:MM:SS or MM:SS
+    // helper untuk memformat detik menjadi H:MM:SS atau MM:SS
     function formatWaktu(sec) {
       sec = Math.max(0, parseInt(sec, 10) || 0);
       const h = Math.floor(sec / 3600);
