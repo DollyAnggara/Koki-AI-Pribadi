@@ -14,13 +14,11 @@ const dashboardPage = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Gagal render dashboard admin:", err);
-    return res
-      .status(500)
-      .render("admin/resep_list", {
-        judul: "Manajemen Resep",
-        resep: [],
-        error: "Gagal ambil data",
-      });
+    return res.status(500).render("admin/resep_list", {
+      judul: "Manajemen Resep",
+      resep: [],
+      error: "Gagal ambil data",
+    });
   }
 };
 
@@ -81,13 +79,11 @@ const listResepPage = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Gagal ambil resep untuk admin:", err);
-    return res
-      .status(500)
-      .render("admin/resep_list", {
-        judul: "Manajemen Resep",
-        resep: [],
-        error: "Gagal ambil data",
-      });
+    return res.status(500).render("admin/resep_list", {
+      judul: "Manajemen Resep",
+      resep: [],
+      error: "Gagal ambil data",
+    });
   }
 };
 
@@ -104,13 +100,11 @@ const listPending = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Gagal ambil resep pending:", err);
-    return res
-      .status(500)
-      .render("admin/resep_pending", {
-        judul: "Konfirmasi Resep (Pending)",
-        resep: [],
-        error: "Gagal ambil data",
-      });
+    return res.status(500).render("admin/resep_pending", {
+      judul: "Konfirmasi Resep (Pending)",
+      resep: [],
+      error: "Gagal ambil data",
+    });
   }
 };
 
@@ -122,7 +116,7 @@ const createResep = async (req, res) => {
   try {
     const body = req.body || {};
     // normalize minimal fields and parse multiline textareas
-    const daftarBahan =
+    const daftarBahanRaw =
       typeof body.daftarBahan === "string"
         ? body.daftarBahan
             .split(/\r?\n/)
@@ -131,6 +125,9 @@ const createResep = async (req, res) => {
         : Array.isArray(body.daftarBahan)
         ? body.daftarBahan
         : [];
+
+    // Parse bahan strings ke objects
+    const daftarBahan = daftarBahanRaw.map(parseBahanString);
 
     const langkah =
       typeof body.langkah === "string"
@@ -166,14 +163,88 @@ const createResep = async (req, res) => {
     return res.redirect("/admin/resep");
   } catch (err) {
     console.error("❌ Gagal buat resep (admin):", err);
-    return res
-      .status(500)
-      .render("admin/resep_new", {
-        judul: "Tambah Resep Baru",
-        error: "Gagal menyimpan resep",
-      });
+    return res.status(500).render("admin/resep_new", {
+      judul: "Tambah Resep Baru",
+      error: "Gagal menyimpan resep",
+    });
   }
 };
+
+// Helper function untuk parse string bahan menjadi object
+function parseBahanString(line) {
+  if (!line || typeof line !== "string") {
+    return { namaBahan: "", jumlah: 0, satuan: "" };
+  }
+
+  line = line.trim();
+  if (!line) {
+    return { namaBahan: "", jumlah: 0, satuan: "" };
+  }
+
+  // Handle format: "nama jumlah satuan"
+  const parts = line.split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return { namaBahan: "", jumlah: 0, satuan: "" };
+  }
+
+  // Check if last two tokens are number + unit
+  const isNumeric = (s) => /^(\d+(?:[.,]\d+)?)$/.test(String(s));
+
+  if (parts.length >= 2) {
+    const secondLast = parts[parts.length - 2];
+    const last = parts[parts.length - 1];
+
+    if (isNumeric(secondLast)) {
+      // Pattern: "Nama ... <jumlah> <satuan>"
+      const jumlah = Number(String(secondLast).replace(",", "."));
+      const satuan = last;
+      const nama = parts.slice(0, parts.length - 2).join(" ");
+      return { namaBahan: nama, jumlah, satuan };
+    }
+
+    if (isNumeric(last)) {
+      // Pattern: "Nama ... <jumlah>" (no unit)
+      const jumlah = Number(String(last).replace(",", "."));
+      const nama = parts.slice(0, parts.length - 1).join(" ");
+      return { namaBahan: nama, jumlah, satuan: "" };
+    }
+  }
+
+  // Fallback: treat entire line as name
+  return { namaBahan: line, jumlah: 0, satuan: "" };
+}
+
+// Helper function untuk parse array langkah strings menjadi array objects
+function parseLangkahArray(langkahArray) {
+  if (!Array.isArray(langkahArray)) {
+    return [];
+  }
+
+  return langkahArray
+    .map((langkah, index) => {
+      // Skip empty strings
+      if (typeof langkah === "string" && langkah.trim()) {
+        return {
+          nomorUrut: index + 1,
+          deskripsi: langkah.trim(),
+          durasiMenit: undefined,
+          tips: undefined,
+        };
+      }
+      // If already an object, ensure it has required fields
+      if (typeof langkah === "object" && langkah) {
+        return {
+          nomorUrut: langkah.nomorUrut || index + 1,
+          deskripsi: langkah.deskripsi || "",
+          durasiMenit: langkah.durasiMenit,
+          tips: langkah.tips,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean); // Remove null entries
+}
 
 const editResepPage = async (req, res) => {
   try {
@@ -192,6 +263,14 @@ const editResepPage = async (req, res) => {
     r.waktuPersiapan = r.waktuPersiapanMenit || "";
     r.waktuMemasak = r.waktuMemasakMenit || "";
 
+    // kalori dari nutrisiPerPorsi
+    if (
+      r.nutrisiPerPorsi &&
+      (r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal)
+    ) {
+      r.kalori = r.nutrisiPerPorsi.kalori || r.nutrisiPerPorsi.kcal;
+    }
+
     // daftarBahan can be stored as array of objects or as text; normalize to newline string
     if (Array.isArray(r.daftarBahan) && r.daftarBahan.length) {
       r.daftarBahanText = r.daftarBahan
@@ -203,10 +282,14 @@ const editResepPage = async (req, res) => {
           return parts.filter(Boolean).join(" ");
         })
         .join("\n");
+      // Also provide JSON for JavaScript initialization
+      r.daftarBahanJSON = JSON.stringify(r.daftarBahan);
     } else if (typeof r.daftarBahan === "string") {
       r.daftarBahanText = r.daftarBahan;
+      r.daftarBahanJSON = "[]";
     } else {
       r.daftarBahanText = "";
+      r.daftarBahanJSON = "[]";
     }
 
     // langkah as newline strings
@@ -232,55 +315,94 @@ const updateResep = async (req, res) => {
     const id = req.params.id;
     const data = req.body || {};
 
+    console.log(
+      "🔍 DEBUG - Semua data yang diterima dari form:",
+      JSON.stringify(data, null, 2)
+    );
+
     // parse fields and map to model names
-    const update = {
-      namaResep: data.namaResep || undefined,
-      deskripsi: data.deskripsi || undefined,
-      kategori: data.kategori || undefined,
-      porsi: data.porsi ? Number(data.porsi) : undefined,
-      waktuPersiapanMenit: data.waktuPersiapan
-        ? Number(data.waktuPersiapan)
-        : undefined,
-      waktuMemasakMenit: data.waktuMemasak
-        ? Number(data.waktuMemasak)
-        : undefined,
-      status: data.status || undefined,
-    };
+    const update = {};
+
+    if (data.namaResep) update.namaResep = data.namaResep;
+    if (data.deskripsi !== undefined) update.deskripsi = data.deskripsi;
+    if (data.kategori) update.kategori = data.kategori;
+    if (data.porsi) update.porsi = Number(data.porsi);
+    if (data.waktuPersiapan)
+      update.waktuPersiapanMenit = Number(data.waktuPersiapan);
+    if (data.waktuMemasak) update.waktuMemasakMenit = Number(data.waktuMemasak);
+    if (data.status) update.status = data.status;
+
+    // Handle kalori: simpan ke nutrisiPerPorsi menggunakan dot notation
+    console.log(
+      "🔍 DEBUG - data.kalori:",
+      data.kalori,
+      "type:",
+      typeof data.kalori,
+      "isEmpty:",
+      data.kalori === ""
+    );
+
+    if (
+      data.kalori !== undefined &&
+      data.kalori !== null &&
+      String(data.kalori).trim() !== ""
+    ) {
+      const kaloriValue = parseFloat(data.kalori);
+      console.log(
+        "📊 Kalori diterima:",
+        data.kalori,
+        "-> parseFloat:",
+        kaloriValue,
+        "isNaN:",
+        isNaN(kaloriValue)
+      );
+
+      if (!isNaN(kaloriValue)) {
+        // Gunakan dot notation untuk nested update
+        update["nutrisiPerPorsi.kalori"] = kaloriValue;
+        console.log("✅ Set nutrisiPerPorsi.kalori:", kaloriValue);
+      }
+    }
 
     // if status is set to approved, record approval metadata
     if (update.status === "approved") {
       update.approvedAt = new Date();
-      update.moderationBy = req.session.user ? req.session.user._id : undefined;
+      update.moderationBy = req.session?.user?._id;
     }
-    // parse daftarBahan and langkah from textarea to arrays of strings
+
+    // parse daftarBahan and langkah from textarea to arrays
     if (typeof data.daftarBahan === "string") {
-      update.daftarBahan = data.daftarBahan
+      const daftarBahanRaw = data.daftarBahan
         .split(/\r?\n/)
         .map((s) => s.trim())
         .filter(Boolean);
+      // Parse bahan strings ke objects menggunakan helper function
+      update.daftarBahan = daftarBahanRaw.map(parseBahanString);
     } else if (Array.isArray(data.daftarBahan)) {
-      update.daftarBahan = data.daftarBahan
+      const daftarBahanRaw = data.daftarBahan
         .map((s) => (typeof s === "string" ? s.trim() : s))
         .filter(Boolean);
+      update.daftarBahan = daftarBahanRaw.map(parseBahanString);
     }
 
+    // Parse langkah dari string atau array ke proper schema format
     if (typeof data.langkah === "string") {
-      update.langkah = data.langkah
+      const langkahRaw = data.langkah
         .split(/\r?\n/)
         .map((s) => s.trim())
         .filter(Boolean);
+      update.langkah = parseLangkahArray(langkahRaw);
     } else if (Array.isArray(data.langkah)) {
-      update.langkah = data.langkah
+      const langkahRaw = data.langkah
         .map((s) => (typeof s === "string" ? s.trim() : s))
         .filter(Boolean);
+      update.langkah = parseLangkahArray(langkahRaw);
     }
 
-    // remove undefined keys
-    Object.keys(update).forEach(
-      (k) => update[k] === undefined && delete update[k]
-    );
+    console.log("📝 Final update object:", JSON.stringify(update, null, 2));
 
-    await Resep.findByIdAndUpdate(id, update, { new: true });
+    const hasil = await Resep.findByIdAndUpdate(id, update, { new: true });
+    console.log("💾 Hasil update - nutrisiPerPorsi:", hasil?.nutrisiPerPorsi);
     return res.redirect("/admin/resep");
   } catch (err) {
     console.error("❌ Gagal update resep:", err);

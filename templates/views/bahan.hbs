@@ -46,7 +46,6 @@
               <select id="lokasiPenyimpananBahanBaru" class="form-input select-small">
                 <option value="rak_dapur">rak_dapur</option>
                 <option value="kulkas">kulkas</option>
-                <option value="freezer">freezer</option>
                 <option value="lainnya">lainnya</option>
               </select>
             </div>
@@ -73,5 +72,83 @@
     </div>
   </section>
 </main>
+
+<!-- Modal Edit Bahan -->
+<div id="modal-edit-bahan" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Edit Bahan</h2>
+      <button class="modal-close" id="tombol-tutup-modal-edit">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grup">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <input type="hidden" id="idBahanEdit">
+          
+          <div style="display:flex;flex-direction:column;">
+            <label for="namaBahanEdit"><strong>Nama bahan</strong></label>
+            <input type="text" class="form-input" id="namaBahanEdit" placeholder="Nama bahan">
+          </div>
+
+          <div style="display:flex;flex-direction:column;">
+            <label for="jumlahBahanEdit"><strong>Jumlah</strong></label>
+            <input type="number" class="form-input" id="jumlahBahanEdit" placeholder="Jumlah">
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="satuanBahanEdit"><strong>Satuan</strong></label>
+              <select id="satuanBahanEdit" class="form-input select-small">
+                <option value="gram">gram</option>
+                <option value="kg">kg</option>
+                <option value="liter">liter</option>
+                <option value="ml">ml</option>
+                <option value="butir">butir</option>
+                <option value="potong">potong</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="kategoriBahanEdit"><strong>Kategori</strong></label>
+              <select id="kategoriBahanEdit" class="form-input select-medium">
+                <option value="lainnya">lainnya</option>
+                <option value="sayur">sayur</option>
+                <option value="buah">buah</option>
+                <option value="daging">daging</option>
+                <option value="rempah">rempah</option>
+                <option value="bumbu">bumbu</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="lokasiPenyimpananEdit"><strong>Lokasi penyimpanan</strong></label>
+              <select id="lokasiPenyimpananEdit" class="form-input select-small">
+                <option value="rak_dapur">rak_dapur</option>
+                <option value="kulkas">kulkas</option>
+                <option value="lainnya">lainnya</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="tanggalPembelianEdit"><strong>Tanggal pembelian</strong></label>
+              <input type="date" id="tanggalPembelianEdit" class="form-input">
+            </div>
+
+            <div>
+              <label for="tanggalKadaluarsaEdit"><strong>Tanggal kadaluarsa</strong></label>
+              <input type="date" id="tanggalKadaluarsaEdit" class="form-input">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tombol-batal" id="tombol-batal-edit">Batal</button>
+      <button class="tombol-kirim" id="tombol-simpan-edit">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
 
 {{> footer}}

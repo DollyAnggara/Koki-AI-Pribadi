@@ -22,10 +22,60 @@
           <input id="inputWaktuMemasak" type="number" min="0" class="form-input" placeholder="Waktu memasak (menit)" style="width:180px;">
         </div>
         <div class="form-grup">
-          <label>Bahan (satu bahan per baris). Format yang disarankan: <strong>Nama [jumlah] [satuan]</strong> — cukup spasi sebagai pemisah. Jika perlu, format lama dengan titik koma juga masih didukung.</label>
-          <textarea id="inputBahan" class="form-input" placeholder="contoh: Wortel
-Garam
-atau: Wortel 200 gram" rows="4"></textarea>
+          <label><strong>Bahan</strong></label>
+          
+          <!-- Form Input Bahan -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 150px 80px; gap: 8px; margin-bottom: 12px;">
+            <input
+              type="text"
+              id="inputNamaBahanForm"
+              placeholder="Nama bahan"
+              style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;"
+            />
+            <input
+              type="number"
+              id="inputJumlahBahanForm"
+              placeholder="Jumlah"
+              min="0.1"
+              step="0.1"
+              style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;"
+            />
+            <select
+              id="inputSatuanBahanForm"
+              style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;"
+            >
+              <option value="gram">gram</option>
+              <option value="kg">kg</option>
+              <option value="liter">liter</option>
+              <option value="ml">ml</option>
+              <option value="butir">butir</option>
+              <option value="potong">potong</option>
+            </select>
+            <button
+              type="button"
+              id="tombolTambahBahanForm"
+              style="padding: 8px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 13px;"
+            >
+              Tambah
+            </button>
+          </div>
+
+          <!-- Daftar Bahan yang Ditambahkan -->
+          <div id="daftarBahanForm" style="background: #f8f9fa; padding: 10px; border-radius: 4px; min-height: 60px; border: 1px solid #e0e0e0; margin-bottom: 12px;">
+            <div id="bahanListContainerForm" style="display: flex; flex-direction: column; gap: 6px;">
+              <p style="color: #999; text-align: center; margin: 10px 0; font-size: 13px;">Belum ada bahan ditambahkan</p>
+            </div>
+          </div>
+
+          <!-- Hidden Input untuk Form Submission -->
+          <textarea
+            id="inputBahan"
+            class="form-input"
+            style="display: none;"
+            required
+          ></textarea>
+
+          <p style="color: var(--warna-teks-sekunder); font-size: 12px; margin-top: 8px;">Cukup isi nama bahan, jumlah, dan satuan. Klik "Tambah" untuk menambahkan ke daftar.</p>
         </div>
         <div class="form-grup">
           <label>Langkah (satu per baris)</label>

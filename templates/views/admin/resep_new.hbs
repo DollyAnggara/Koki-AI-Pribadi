@@ -87,14 +87,70 @@
         <div style="grid-column: 1 / -1;">
           <div class="admin-form-group">
             <label>Bahan <span style="color: #e74c3c;">*</span></label>
+
+            <!-- Form Input Bahan -->
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr 200px 100px; gap: 12px; margin-bottom: 16px;"
+            >
+              <input
+                type="text"
+                id="inputNamaBahanResep"
+                placeholder="Nama bahan"
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+              />
+              <input
+                type="number"
+                id="inputJumlahBahanResep"
+                placeholder="Jumlah"
+                min="0.1"
+                step="0.1"
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+              />
+              <select
+                id="inputSatuanBahanResep"
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+              >
+                <option value="gram">gram</option>
+                <option value="kg">kg</option>
+                <option value="liter">liter</option>
+                <option value="ml">ml</option>
+                <option value="butir">butir</option>
+                <option value="potong">potong</option>
+              </select>
+              <button
+                type="button"
+                id="tombolTambahBahanResep"
+                style="padding: 10px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;"
+              >
+                Tambah
+              </button>
+            </div>
+
+            <!-- Daftar Bahan yang Ditambahkan -->
+            <div
+              id="daftarBahanResep"
+              style="background: #f8f9fa; padding: 12px; border-radius: 6px; min-height: 100px; border: 1px solid #e0e0e0;"
+            >
+              <div
+                id="bahanListContainer"
+                style="display: flex; flex-direction: column; gap: 8px;"
+              >
+                <p
+                  style="color: #999; text-align: center; margin: 20px 0;"
+                >Belum ada bahan ditambahkan</p>
+              </div>
+            </div>
+
+            <!-- Hidden Input untuk Form Submission -->
             <textarea
               name="daftarBahan"
-              rows="6"
-              placeholder="Satu bahan per baris&#10;Contoh:&#10;Wortel 200 gram&#10;Garam 1 sendok teh&#10;Minyak 2 sendok makan"
+              id="daftarBahanHidden"
+              style="display: none;"
               required
             ></textarea>
-            <p class="admin-form-help">Satu bahan per baris. Format
-              jumlah/satuan opsional.</p>
+
+            <p class="admin-form-help">Tambahkan bahan dengan nama, jumlah, dan
+              satuan yang sesuai.</p>
           </div>
         </div>
 

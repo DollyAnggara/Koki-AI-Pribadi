@@ -20,10 +20,9 @@
   padding: 0;
 }
 
-html,
-body,
-#app {
+html {
   height: 100%;
+  width: 100%;
 }
 
 body {
@@ -31,6 +30,16 @@ body {
   background: var(--warna-latar);
   color: var(--warna-teks);
   line-height: 1.6;
+}
+
+#app {
+  min-height: 100%;
+  width: 100%;
+}
+
+body.modal-open {
+  overflow: hidden;
+  width: 100%;
 }
 
 /* Header */
@@ -1685,16 +1694,30 @@ body {
   margin-bottom: 6px;
 }
 
-/* Shopping list / pantry list layout (fixed columns to avoid jumping) */
+/* New item-bahan layout with edit/delete buttons */
+.daftar-bahan-kadaluarsa {
+  list-style: none;
+}
+
 .daftar-bahan-kadaluarsa li.item-bahan {
-  display: grid;
-  grid-template-columns: 1fr 160px 220px 48px; /* name | storage | expiry | checkbox */
-  column-gap: 12px;
+  display: flex;
   align-items: center;
-  padding: 10px 12px;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f9f9f9;
+  border: 1px solid #eee;
   border-radius: 8px;
+  margin-bottom: 10px;
+  gap: 16px;
+}
+
+.daftar-bahan-kadaluarsa li.item-bahan.kosong {
+  text-align: center;
+  color: var(--warna-teks-sekunder);
+  font-style: italic;
+  padding: 20px;
   background: #fafafa;
-  margin-bottom: 8px;
+  justify-content: center;
 }
 
 .daftar-bahan-kadaluarsa li.item-bahan span:first-child {
@@ -1719,7 +1742,6 @@ body {
 
 /* expiry note column styling */
 .daftar-bahan-kadaluarsa li.item-bahan small.expiry-note {
-  justify-self: end;
   color: var(--warna-teks-sekunder);
   font-size: 0.9rem;
   white-space: nowrap;
@@ -1727,27 +1749,39 @@ body {
   text-overflow: ellipsis;
 }
 
-/* storage label & suggestion removed (no visible helper text) */
-
-/* kept styles removed to avoid leftover UI elements */
+/* ensure checkbox wrapper aligns right in its column */
+.daftar-bahan-kadaluarsa li.item-bahan .checkbox-wrap {
+  justify-self: center;
+}
 
 @media (width <= 700px) {
   .daftar-bahan-kadaluarsa li.item-bahan {
-    grid-template-columns: 1fr 140px 1fr;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
-  .daftar-bahan-kadaluarsa li.item-bahan small.expiry-note {
-    justify-self: start;
+  .bahan-mid {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
+    order: 3;
+  }
+
+  .bahan-actions {
+    width: 100%;
+    gap: 8px;
+    order: 4;
+  }
+
+  .btn-edit-bahan,
+  .btn-hapus-bahan {
+    flex: 1;
   }
 }
 
 .daftar-langkah-resep {
   margin: 8px 0 0 18px;
-}
-
-/* ensure checkbox wrapper aligns right in its column */
-.daftar-bahan-kadaluarsa li.item-bahan .checkbox-wrap {
-  justify-self: center;
 }
 
 .daftar-langkah-resep li {
@@ -1964,7 +1998,7 @@ body {
 }
 
 .tombol-kirim {
-  padding: 10px 16px;
+  padding: 14px 20px;
   background: var(--warna-primer);
   color: #fff;
   border: none;
@@ -2278,9 +2312,10 @@ a.tombol-kirim:visited {
 #daftar-bahan-saya li.item-bahan {
   display: grid;
 
-  /* make metadata more readable: larger mid/right columns and allow short wrap (up to 2 lines) */
-  grid-template-columns: 1fr minmax(260px, 420px) minmax(180px, 260px); /* name | pembelian+ditambahkan | kadaluarsa */
-  gap: 16px;
+  /* Layout: nama (min 160px) | metadata (1fr) | actions (auto) - ensures metadata column aligns */
+  grid-template-columns: minmax(200px, auto) 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 8px 8px;
   align-items: start;
   padding: 12px;
   background: var(--warna-latar);
@@ -2292,6 +2327,23 @@ a.tombol-kirim:visited {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#daftar-bahan-saya li.item-bahan .bahan-mid {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+#daftar-bahan-saya li.item-bahan .bahan-actions {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  justify-self: stretch;
 }
 
 .bahan-name {
@@ -2433,14 +2485,76 @@ a.tombol-kirim:visited {
 
 @media (width <= 900px) {
   #daftar-bahan-saya li.item-bahan {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     grid-auto-rows: auto;
     gap: 12px;
+    align-items: stretch;
   }
 
-  .bahan-right {
+  #daftar-bahan-saya li.item-bahan .bahan-left {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #daftar-bahan-saya li.item-bahan .bahan-mid {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #daftar-bahan-saya li.item-bahan .bahan-actions {
+    grid-column: 1;
+    grid-row: 3;
+    flex-direction: row;
+    align-items: center;
     justify-self: start;
-    text-align: left;
+  }
+
+  .btn-edit-bahan,
+  .btn-hapus-bahan {
+    flex: 1;
+    min-width: auto;
+    padding: 10px 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (width <= 600px) {
+  #daftar-bahan-saya li.item-bahan {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .bahan-left .bahan-name {
+    font-size: 0.95rem;
+  }
+
+  .bahan-satuan {
+    font-size: 0.85rem;
+  }
+
+  .bahan-mid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 0.8rem;
+  }
+
+  .meta-label {
+    font-size: 0.7rem;
+  }
+
+  .meta-val {
+    font-size: 0.8rem;
+  }
+
+  .bahan-actions {
+    gap: 6px;
+  }
+
+  .btn-edit-bahan,
+  .btn-hapus-bahan {
+    padding: 8px 6px;
+    font-size: 0.8rem;
   }
 }
 
@@ -3218,4 +3332,330 @@ body.is-admin .tombol-timer {
 
 .forgot-link a:hover {
   text-decoration: underline;
+}
+/* Styles untuk fitur edit dan delete bahan */
+.bahan-left {
+  flex: 1;
+}
+
+.bahan-name {
+  font-weight: 600;
+  color: var(--warna-teks);
+  margin-bottom: 6px;
+}
+
+.bahan-satuan {
+  font-size: 0.9rem;
+  color: var(--warna-teks-sekunder);
+  font-weight: normal;
+}
+
+.bahan-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bahan-mid {
+  display: flex;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+.meta-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.meta-label {
+  font-size: 0.75rem;
+  color: var(--warna-teks-sekunder);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.meta-val {
+  color: var(--warna-teks);
+  font-size: 0.9rem;
+}
+
+.bahan-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  justify-content: flex-start;
+  align-items: center;
+  overflow: visible;
+}
+
+.btn-edit-bahan,
+.btn-hapus-bahan {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #f0f0f0;
+  color: var(--warna-teks);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all var(--transition-duration) ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: fit-content;
+}
+
+.btn-edit-bahan:hover {
+  background: var(--warna-sekunder);
+  color: #fff;
+}
+
+.btn-hapus-bahan:hover {
+  background: var(--warna-primer);
+  color: #fff;
+}
+
+.item-bahan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  gap: 16px;
+}
+
+.item-bahan.kosong {
+  text-align: center;
+  color: var(--warna-teks-sekunder);
+  font-style: italic;
+  padding: 20px;
+  background: #fafafa;
+}
+
+/* Modal Edit Bahan */
+.modal {
+  display: none !important;
+  position: fixed;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  backdrop-filter: blur(2px);
+}
+
+.modal[style*="display: flex"] {
+  display: flex !important;
+}
+
+.modal.active {
+  display: flex !important;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  position: relative;
+  z-index: 10000;
+  pointer-events: all;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-body .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-body .form-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-body .form-row select,
+.modal-body select.select-small,
+.modal-body select.select-medium {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color var(--transition-duration) ease;
+}
+
+.modal-body select:focus {
+  outline: none;
+  border-color: var(--warna-sekunder);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+  font-size: 1.5rem;
+  color: var(--warna-teks);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--warna-teks-sekunder);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-duration) ease;
+}
+
+.modal-close:hover {
+  color: var(--warna-primer);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px;
+  border-top: 1px solid #eee;
+}
+
+.tombol-batal {
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f5f5f5;
+  color: var(--warna-teks);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-duration) ease;
+}
+
+.tombol-batal:hover {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.modal-body .form-input,
+.modal-body select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color var(--transition-duration) ease;
+}
+
+.modal-body .form-input:focus,
+.modal-body select:focus {
+  outline: none;
+  border-color: var(--warna-sekunder);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.modal-body label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  color: var(--warna-teks);
+  font-weight: 500;
+}
+
+.modal-body > .form-grup > div > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+/* Responsive design for mobile */
+@media (width <= 768px) {
+  .item-bahan {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .bahan-mid {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
+    order: 3;
+  }
+
+  .bahan-actions {
+    width: 100%;
+    gap: 8px;
+    order: 4;
+  }
+
+  .btn-edit-bahan,
+  .btn-hapus-bahan {
+    flex: 1;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .tombol-batal,
+  .tombol-kirim {
+    width: 100%;
+  }
 }

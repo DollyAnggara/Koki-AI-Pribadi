@@ -761,6 +761,148 @@ function inisialisasiTambahBahan() {
   });
 }
 
+// Modal Edit Bahan Functions
+function bukaModalEditBahan(bahan) {
+  document.getElementById("idBahanEdit").value = bahan._id || "";
+  document.getElementById("namaBahanEdit").value = bahan.namaBahan || "";
+  document.getElementById("jumlahBahanEdit").value = bahan.jumlahTersedia || 0;
+  document.getElementById("satuanBahanEdit").value = bahan.satuan || "gram";
+  document.getElementById("kategoriBahanEdit").value =
+    bahan.kategoriBahan || "lainnya";
+  document.getElementById("lokasiPenyimpananEdit").value =
+    bahan.lokasiPenyimpanan || "rak_dapur";
+
+  // Format dates for input[type="date"]
+  if (bahan.tanggalPembelian) {
+    const tglPembelian = new Date(bahan.tanggalPembelian);
+    document.getElementById("tanggalPembelianEdit").value = tglPembelian
+      .toISOString()
+      .split("T")[0];
+  }
+
+  if (bahan.tanggalKadaluarsa) {
+    const tglKadaluarsa = new Date(bahan.tanggalKadaluarsa);
+    document.getElementById("tanggalKadaluarsaEdit").value = tglKadaluarsa
+      .toISOString()
+      .split("T")[0];
+  }
+
+  const modal = document.getElementById("modal-edit-bahan");
+  if (modal) {
+    modal.style.display = "flex";
+    // Disable body scroll when modal is open
+    document.body.style.overflow = "hidden";
+    document.body.classList.add("modal-open");
+  }
+}
+
+function tutupModalEditBahan() {
+  const modal = document.getElementById("modal-edit-bahan");
+  if (modal) {
+    modal.style.display = "none";
+    // Re-enable body scroll when modal is closed
+    document.body.style.overflow = "";
+    document.body.classList.remove("modal-open");
+  }
+}
+
+async function simpanPerubahanBahan() {
+  try {
+    const idBahan = document.getElementById("idBahanEdit").value;
+    if (!idBahan) {
+      tampilkanNotifikasi("ID bahan tidak ditemukan", "error");
+      return;
+    }
+
+    const nama = document.getElementById("namaBahanEdit").value.trim();
+    if (!nama) {
+      tampilkanNotifikasi("Nama bahan tidak boleh kosong", "error");
+      return;
+    }
+
+    const payload = {
+      namaBahan: nama,
+      jumlahTersedia:
+        parseInt(document.getElementById("jumlahBahanEdit").value) || 0,
+      satuan: document.getElementById("satuanBahanEdit").value,
+      kategoriBahan: document.getElementById("kategoriBahanEdit").value,
+      lokasiPenyimpanan: document.getElementById("lokasiPenyimpananEdit").value,
+      tanggalPembelian:
+        document.getElementById("tanggalPembelianEdit").value || undefined,
+      tanggalKadaluarsa:
+        document.getElementById("tanggalKadaluarsaEdit").value || undefined,
+    };
+
+    const resp = await fetch(`/api/bahan/${idBahan}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "same-origin",
+    });
+
+    const data = await resp.json();
+    if (resp.ok && data.sukses) {
+      tampilkanNotifikasi("Bahan berhasil diperbarui", "sukses");
+      tutupModalEditBahan();
+      await loadDaftarBahan();
+    } else {
+      tampilkanNotifikasi(data.pesan || "Gagal memperbarui bahan", "error");
+    }
+  } catch (err) {
+    console.error("Error updating bahan:", err);
+    tampilkanNotifikasi("Gagal memperbarui bahan", "error");
+  }
+}
+
+async function hapusBahanItem(idBahan) {
+  try {
+    const resp = await fetch(`/api/bahan/${idBahan}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+    });
+
+    const data = await resp.json();
+    if (resp.ok && data.sukses) {
+      tampilkanNotifikasi("Bahan berhasil dihapus", "sukses");
+      await loadDaftarBahan();
+    } else {
+      tampilkanNotifikasi(data.pesan || "Gagal menghapus bahan", "error");
+    }
+  } catch (err) {
+    console.error("Error deleting bahan:", err);
+    tampilkanNotifikasi("Gagal menghapus bahan", "error");
+  }
+}
+
+// Initialize edit modal event listeners
+function inisialisasiModalEditBahan() {
+  const btnTutup = document.getElementById("tombol-tutup-modal-edit");
+  const btnBatal = document.getElementById("tombol-batal-edit");
+  const btnSimpan = document.getElementById("tombol-simpan-edit");
+  const modal = document.getElementById("modal-edit-bahan");
+
+  if (btnTutup) {
+    btnTutup.addEventListener("click", tutupModalEditBahan);
+  }
+
+  if (btnBatal) {
+    btnBatal.addEventListener("click", tutupModalEditBahan);
+  }
+
+  if (btnSimpan) {
+    btnSimpan.addEventListener("click", simpanPerubahanBahan);
+  }
+
+  // Close modal when clicking outside the modal content
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        tutupModalEditBahan();
+      }
+    });
+  }
+}
+
 // --- Recipe search: client-side loader and renderer ---
 function escapeHtml(str) {
   return String(str)
@@ -846,6 +988,8 @@ function inisialisasiPencarianResep() {
 }
 
 // --- Tambah Resep: form handling ---
+let daftarBahanForm = []; // Array untuk menyimpan bahan yang diinput
+
 function inisialisasiTambahResep() {
   const btn = document.getElementById("tombolTambahResep");
   const form = document.getElementById("formTambahResep");
@@ -859,6 +1003,23 @@ function inisialisasiTambahResep() {
   const inputLangkah = document.getElementById("inputLangkah");
   const tombolSimpan = document.getElementById("tombolSimpanResep");
   const tombolBatal = document.getElementById("tombolBatalResep");
+  const tombolTambahBahanForm = document.getElementById(
+    "tombolTambahBahanForm"
+  );
+
+  // Setup bahan input form
+  if (tombolTambahBahanForm) {
+    tombolTambahBahanForm.addEventListener("click", tambahBahanKeFormResep);
+    const inputNamaBahan = document.getElementById("inputNamaBahanForm");
+    if (inputNamaBahan) {
+      inputNamaBahan.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          tambahBahanKeFormResep();
+        }
+      });
+    }
+  }
 
   btn.addEventListener("click", (e) => {
     e.preventDefault();
@@ -869,6 +1030,8 @@ function inisialisasiTambahResep() {
   tombolBatal.addEventListener("click", (e) => {
     e.preventDefault();
     form.style.display = "none";
+    daftarBahanForm = [];
+    renderDaftarBahanForm();
   });
 
   tombolSimpan.addEventListener("click", async (e) => {
@@ -879,52 +1042,68 @@ function inisialisasiTambahResep() {
     const porsi = Number(inputPorsi.value) || 1;
     const waktuPersiapan = Number(inputWaktuPersiapan.value) || 0;
     const waktuMemasak = Number(inputWaktuMemasak.value) || 0;
-    const bahanLines = (inputBahan.value || "")
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-    const daftarBahan = bahanLines
-      .map((line) => {
-        // backward-compatible semicolon format: 'nama;jumlah;satuan'
-        if (line.indexOf(";") !== -1) {
-          const parts = line.split(";").map((s) => s.trim());
-          return {
-            namaBahan: parts[0] || "",
-            jumlah: Number(parts[1]) || 0,
-            satuan: parts[2] || "",
-          };
-        }
 
-        // prefer space-separated format: 'Nama [jumlah] [satuan]'
-        const toks = line.split(/\s+/).filter(Boolean);
-        // single token -> name only
-        if (toks.length === 1)
-          return { namaBahan: toks[0], jumlah: 0, satuan: "" };
+    // Gunakan daftarBahanForm atau fallback ke textarea jika kosong
+    let daftarBahan = [];
+    if (daftarBahanForm.length > 0) {
+      daftarBahan = daftarBahanForm.map((b) => ({
+        namaBahan: b.nama,
+        jumlah: b.jumlah,
+        satuan: b.satuan,
+      }));
+    } else {
+      const bahanLines = (inputBahan.value || "")
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      daftarBahan = bahanLines
+        .map((line) => {
+          // backward-compatible semicolon format: 'nama;jumlah;satuan'
+          if (line.indexOf(";") !== -1) {
+            const parts = line.split(";").map((s) => s.trim());
+            return {
+              namaBahan: parts[0] || "",
+              jumlah: Number(parts[1]) || 0,
+              satuan: parts[2] || "",
+            };
+          }
 
-        // detect numeric token (integer or decimal, supports comma as decimal separator)
-        const isNumeric = (s) => /^\d+(?:[.,]\d+)?$/.test(String(s));
-        const last = toks[toks.length - 1];
-        const secondLast = toks[toks.length - 2];
+          // prefer space-separated format: 'Nama [jumlah] [satuan]'
+          const toks = line.split(/\s+/).filter(Boolean);
+          // single token -> name only
+          if (toks.length === 1)
+            return { namaBahan: toks[0], jumlah: 0, satuan: "" };
 
-        if (isNumeric(secondLast)) {
-          // pattern: 'Nama ... <jumlah> <satuan>'
-          const jumlah = Number(String(secondLast).replace(",", ".")) || 0;
-          const satuan = last || "";
-          const nama = toks.slice(0, toks.length - 2).join(" ") || toks[0];
-          return { namaBahan: nama, jumlah, satuan };
-        }
+          // detect numeric token (integer or decimal, supports comma as decimal separator)
+          const isNumeric = (s) => /^\d+(?:[.,]\d+)?$/.test(String(s));
+          const last = toks[toks.length - 1];
+          const secondLast = toks[toks.length - 2];
 
-        if (isNumeric(last)) {
-          // pattern: 'Nama ... <jumlah>' (no unit)
-          const jumlah = Number(String(last).replace(",", ".")) || 0;
-          const nama = toks.slice(0, toks.length - 1).join(" ") || toks[0];
-          return { namaBahan: nama, jumlah, satuan: "" };
-        }
+          if (isNumeric(secondLast)) {
+            // pattern: 'Nama ... <jumlah> <satuan>'
+            const jumlah = Number(String(secondLast).replace(",", ".")) || 0;
+            const satuan = last || "";
+            const nama = toks.slice(0, toks.length - 2).join(" ") || toks[0];
+            return { namaBahan: nama, jumlah, satuan };
+          }
 
-        // fallback: treat entire line as name
-        return { namaBahan: line, jumlah: 0, satuan: "" };
-      })
-      .filter((b) => b.namaBahan);
+          if (isNumeric(last)) {
+            // pattern: 'Nama ... <jumlah>' (no unit)
+            const jumlah = Number(String(last).replace(",", ".")) || 0;
+            const nama = toks.slice(0, toks.length - 1).join(" ") || toks[0];
+            return { namaBahan: nama, jumlah, satuan: "" };
+          }
+
+          // fallback: treat entire line as name
+          return { namaBahan: line, jumlah: 0, satuan: "" };
+        })
+        .filter((b) => b.namaBahan);
+    }
+
+    if (daftarBahan.length === 0) {
+      return tampilkanNotifikasi("Tambahkan minimal satu bahan", "error");
+    }
+
     const langkahLines = (inputLangkah.value || "")
       .split("\n")
       .map((l) => l.trim())
@@ -978,6 +1157,8 @@ function inisialisasiTambahResep() {
       inputWaktuMemasak.value = "";
       inputBahan.value = "";
       inputLangkah.value = "";
+      daftarBahanForm = [];
+      renderDaftarBahanForm();
       form.style.display = "none";
       // refresh list
       loadDaftarResep();
@@ -1288,25 +1469,8 @@ function stopBunyi() {
       missingDiv.style.marginBottom = "10px";
       konten.appendChild(missingDiv);
 
-      const ul = document.createElement("ul");
-      ul.className = "konfirmasi-daftar-bahan";
-      const renderList = (p) => {
-        ul.innerHTML = "";
-        (daftarBahan || []).forEach((b) => {
-          const nama = b.namaBahan || b.nama || b.name || String(b || "");
-          const jumlah = b.jumlah ? Number(b.jumlah || 0) * Number(p || 1) : "";
-          const satuan = b.satuan || "";
-          const li = document.createElement("li");
-          li.innerHTML = `<span class="bahan-nama">${escapeHtml(
-            nama
-          )}</span><span class="qty">${escapeHtml(
-            jumlah !== "" ? jumlah + " " + satuan : ""
-          )}</span>`;
-          ul.appendChild(li);
-        });
-      };
-      renderList(pagePorsi);
-      konten.appendChild(ul);
+      // Remove the separate ul list for all ingredients
+      // Now only show missing items from server
 
       // preview missing ingredients using server
       (async () => {
@@ -1317,8 +1481,27 @@ function stopBunyi() {
             body: JSON.stringify({ porsi: pagePorsi, preview: true }),
           });
           const data = await resp.json();
+
+          // Show all ingredients first
+          let html =
+            '<div><strong>🥘 Bahan resep:</strong><ul class="konfirmasi-daftar-bahan">';
+          (daftarBahan || []).forEach((b) => {
+            const nama = b.namaBahan || b.nama || b.name || String(b || "");
+            const jumlah = b.jumlah
+              ? Number(b.jumlah || 0) * Number(pagePorsi || 1)
+              : "";
+            const satuan = b.satuan || "";
+            html += `<li><span class="bahan-nama">${escapeHtml(
+              nama
+            )}</span><span class="qty">${escapeHtml(
+              jumlah !== "" ? jumlah + " " + satuan : ""
+            )}</span></li>`;
+          });
+          html += "</ul></div>";
+
+          // Then show missing items if any
           if (data && data.missing && data.missing.length) {
-            let html =
+            html +=
               '<div><strong>🛒 Bahan yang perlu dibeli:</strong><ul class="konfirmasi-daftar-bahan">';
             data.missing.forEach(
               (m) =>
@@ -1329,15 +1512,18 @@ function stopBunyi() {
                 )} ${escapeHtml(m.satuan || "")}</span></li>`)
             );
             html += "</ul></div>";
-            missingDiv.innerHTML = html;
-            missingDiv.style.display = "block";
           } else {
-            missingDiv.innerHTML =
-              '<div style="color:var(--warna-sukses)">Semua bahan tersedia</div>';
-            missingDiv.style.display = "block";
+            html +=
+              '<div style="color:var(--warna-sukses)">✓ Semua bahan tersedia</div>';
           }
+
+          missingDiv.innerHTML = html;
+          missingDiv.style.display = "block";
         } catch (e) {
           console.warn("preview masak failed", e);
+          missingDiv.innerHTML =
+            '<div style="color:var(--warna-peringatan)">Tidak dapat memuat preview bahan</div>';
+          missingDiv.style.display = "block";
         }
       })();
 
@@ -1590,8 +1776,35 @@ async function loadDaftarBahan() {
           <div class="bahan-badges">${kategoriTag} ${sisaBadge}</div>
         </div>
         <div class="bahan-mid">${tglPembelian}${added}${tglKadaluarsa}</div>
+        <div class="bahan-actions">
+          <button class="btn-edit-bahan" data-id="${
+            b._id
+          }" data-bahan='${JSON.stringify(b).replace(
+        /'/g,
+        "&apos;"
+      )}'>✏️ Edit</button>
+          <button class="btn-hapus-bahan" data-id="${b._id}">🗑️ Hapus</button>
+        </div>
       `;
       ul.appendChild(li);
+
+      // Attach event listeners to edit and delete buttons
+      const btnEdit = li.querySelector(".btn-edit-bahan");
+      const btnHapus = li.querySelector(".btn-hapus-bahan");
+
+      if (btnEdit) {
+        btnEdit.addEventListener("click", () => {
+          bukaModalEditBahan(b);
+        });
+      }
+
+      if (btnHapus) {
+        btnHapus.addEventListener("click", async () => {
+          if (confirm(`Apakah Anda yakin ingin menghapus "${b.namaBahan}"?`)) {
+            await hapusBahanItem(b._id);
+          }
+        });
+      }
     });
   } catch (err) {
     console.error("Failed to load bahan", err);
@@ -1606,6 +1819,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   inisialisasiTimer();
   inisialisasiUploadGambar();
   inisialisasiTambahBahan();
+  inisialisasiModalEditBahan();
   inisialisasiPencarianResep();
   inisialisasiTambahResep();
   inisialisasiMenu();
@@ -3063,4 +3277,202 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initialize stats animation now (if values already present) and ensure it will trigger on future updates
   initStatsCountUp();
+
+  // Initialize bahan input untuk halaman resep baru
+  inisialisasiBahanResepBaru();
 });
+
+// ==========================================
+// Bahan Input untuk Form Resep (User Biasa)
+// ==========================================
+
+function tambahBahanKeFormResep() {
+  const namaBahan = document.getElementById("inputNamaBahanForm").value.trim();
+  const jumlahBahan = document.getElementById("inputJumlahBahanForm").value;
+  const satuanBahan = document.getElementById("inputSatuanBahanForm").value;
+
+  if (!namaBahan) {
+    tampilkanNotifikasi("Masukkan nama bahan", "error");
+    return;
+  }
+
+  if (!jumlahBahan || parseFloat(jumlahBahan) <= 0) {
+    tampilkanNotifikasi("Masukkan jumlah bahan yang valid", "error");
+    return;
+  }
+
+  // Add to list
+  const bahan = {
+    id: Date.now(),
+    nama: namaBahan,
+    jumlah: parseFloat(jumlahBahan),
+    satuan: satuanBahan,
+  };
+
+  daftarBahanForm.push(bahan);
+
+  // Clear inputs
+  document.getElementById("inputNamaBahanForm").value = "";
+  document.getElementById("inputJumlahBahanForm").value = "";
+  document.getElementById("inputSatuanBahanForm").value = "gram";
+
+  // Render list
+  renderDaftarBahanForm();
+
+  // Focus back to nama input
+  document.getElementById("inputNamaBahanForm").focus();
+}
+
+function renderDaftarBahanForm() {
+  const container = document.getElementById("bahanListContainerForm");
+  if (!container) return;
+
+  if (daftarBahanForm.length === 0) {
+    container.innerHTML =
+      '<p style="color: #999; text-align: center; margin: 10px 0; font-size: 13px;">Belum ada bahan ditambahkan</p>';
+    return;
+  }
+
+  container.innerHTML = daftarBahanForm
+    .map(
+      (bahan) => `
+    <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 8px; border-radius: 4px; border-left: 3px solid #27ae60; font-size: 13px;">
+      <div style="flex: 1;">
+        <strong>${bahan.nama}</strong>
+        <span style="color: #666; margin-left: 8px;">${bahan.jumlah} ${bahan.satuan}</span>
+      </div>
+      <button
+        type="button"
+        onclick="hapusBahanDariFormResep(${bahan.id})"
+        style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px;"
+      >
+        Hapus
+      </button>
+    </div>
+  `
+    )
+    .join("");
+}
+
+function hapusBahanDariFormResep(id) {
+  daftarBahanForm = daftarBahanForm.filter((b) => b.id !== id);
+  renderDaftarBahanForm();
+}
+
+// ==========================================
+// Bahan Input untuk Resep Baru
+// ==========================================
+
+let daftarBahanResepBaru = [];
+
+function inisialisasiBahanResepBaru() {
+  const tombolTambah = document.getElementById("tombolTambahBahanResep");
+  if (!tombolTambah) return;
+
+  tombolTambah.addEventListener("click", tambahBahanKeResep);
+
+  // Allow Enter key to add bahan
+  const inputNama = document.getElementById("inputNamaBahanResep");
+  if (inputNama) {
+    inputNama.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        tambahBahanKeResep();
+      }
+    });
+  }
+
+  // Handle form submission to prepare daftarBahanHidden
+  const form = document.querySelector("form[action='/admin/resep']");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      updateDaftarBahanHidden();
+      if (daftarBahanResepBaru.length === 0) {
+        e.preventDefault();
+        tampilkanNotifikasi("Tambahkan minimal satu bahan", "error");
+      }
+    });
+  }
+}
+
+function tambahBahanKeResep() {
+  const namaBahan = document.getElementById("inputNamaBahanResep").value.trim();
+  const jumlahBahan = document.getElementById("inputJumlahBahanResep").value;
+  const satuanBahan = document.getElementById("inputSatuanBahanResep").value;
+
+  if (!namaBahan) {
+    tampilkanNotifikasi("Masukkan nama bahan", "error");
+    return;
+  }
+
+  if (!jumlahBahan || parseFloat(jumlahBahan) <= 0) {
+    tampilkanNotifikasi("Masukkan jumlah bahan yang valid", "error");
+    return;
+  }
+
+  // Add to list
+  const bahan = {
+    id: Date.now(),
+    nama: namaBahan,
+    jumlah: parseFloat(jumlahBahan),
+    satuan: satuanBahan,
+  };
+
+  daftarBahanResepBaru.push(bahan);
+
+  // Clear inputs
+  document.getElementById("inputNamaBahanResep").value = "";
+  document.getElementById("inputJumlahBahanResep").value = "";
+  document.getElementById("inputSatuanBahanResep").value = "gram";
+
+  // Render list
+  renderDaftarBahanResep();
+
+  // Focus back to nama input
+  document.getElementById("inputNamaBahanResep").focus();
+}
+
+function renderDaftarBahanResep() {
+  const container = document.getElementById("bahanListContainer");
+  if (!container) return;
+
+  if (daftarBahanResepBaru.length === 0) {
+    container.innerHTML =
+      '<p style="color: #999; text-align: center; margin: 20px 0;">Belum ada bahan ditambahkan</p>';
+    return;
+  }
+
+  container.innerHTML = daftarBahanResepBaru
+    .map(
+      (bahan) => `
+    <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #3498db;">
+      <div style="flex: 1;">
+        <strong>${bahan.nama}</strong>
+        <span style="color: #666; margin-left: 8px;">${bahan.jumlah} ${bahan.satuan}</span>
+      </div>
+      <button
+        type="button"
+        onclick="hapusBahanDariResep(${bahan.id})"
+        style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
+      >
+        Hapus
+      </button>
+    </div>
+  `
+    )
+    .join("");
+}
+
+function hapusBahanDariResep(id) {
+  daftarBahanResepBaru = daftarBahanResepBaru.filter((b) => b.id !== id);
+  renderDaftarBahanResep();
+}
+
+function updateDaftarBahanHidden() {
+  const hidden = document.getElementById("daftarBahanHidden");
+  if (hidden) {
+    hidden.value = daftarBahanResepBaru
+      .map((b) => `${b.nama} ${b.jumlah} ${b.satuan}`)
+      .join("\n");
+  }
+}

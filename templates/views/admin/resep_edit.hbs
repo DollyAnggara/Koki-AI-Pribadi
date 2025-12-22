@@ -69,18 +69,93 @@
             <input type="number" name="waktuMemasak" min="0" value="{{resep.waktuMemasak}}" />
           </div>
         </div>
+        <div style="grid-column: span 1;">
+          <div class="admin-form-group">
+            <label>Kalori (kkal) <span style="color: var(--admin-text-light);">(opsional)</span></label>
+            <input 
+              type="number" 
+              name="kalori" 
+              min="0" 
+              step="0.1"
+              placeholder="Contoh: 250"
+              value="{{resep.kalori}}"
+            />
+            <p class="admin-form-help">Nilai kalori per porsi resep</p>
+          </div>
+        </div>
 
         <!-- Bahan -->
         <div style="grid-column: 1 / -1;">
           <div class="admin-form-group">
             <label>Bahan <span style="color: #e74c3c;">*</span></label>
-            <textarea 
-              name="daftarBahan" 
-              rows="6" 
-              placeholder="Satu bahan per baris&#10;Contoh:&#10;Wortel 200 gram&#10;Garam 1 sendok teh"
+
+            <!-- Form Input Bahan -->
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr 200px 100px; gap: 12px; margin-bottom: 16px;"
+            >
+              <input
+                type="text"
+                id="inputNamaBahanEdit"
+                placeholder="Nama bahan"
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+              />
+              <input
+                type="number"
+                id="inputJumlahBahanEdit"
+                placeholder="Jumlah"
+                min="0.1"
+                step="0.1"
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+              />
+              <select
+                id="inputSatuanBahanEdit"
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+              >
+                <option value="gram">gram</option>
+                <option value="kg">kg</option>
+                <option value="liter">liter</option>
+                <option value="ml">ml</option>
+                <option value="butir">butir</option>
+                <option value="potong">potong</option>
+              </select>
+              <button
+                type="button"
+                id="tombolTambahBahanEdit"
+                style="padding: 10px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;"
+              >
+                Tambah
+              </button>
+            </div>
+
+            <!-- Daftar Bahan yang Ditambahkan -->
+            <div
+              id="daftarBahanEdit"
+              style="background: #f8f9fa; padding: 12px; border-radius: 6px; min-height: 100px; border: 1px solid #e0e0e0;"
+            >
+              <div
+                id="bahanListContainerEdit"
+                style="display: flex; flex-direction: column; gap: 8px;"
+              >
+                <p
+                  style="color: #999; text-align: center; margin: 20px 0;"
+                >Belum ada bahan ditambahkan</p>
+              </div>
+            </div>
+
+            <!-- Hidden Input untuk Form Submission -->
+            <!-- JSON data untuk inisialisasi bahan existing - embed dalam script tag -->
+            <script type="application/json" id="daftarBahanJSONData">
+{{{resep.daftarBahanJSON}}}
+            </script>
+            
+            <textarea
+              name="daftarBahan"
+              id="daftarBahanHiddenEdit"
+              style="display: none;"
               required
             >{{resep.daftarBahanText}}</textarea>
-            <p class="admin-form-help">Satu bahan per baris. Format jumlah/satuan opsional.</p>
+
+            <p class="admin-form-help">Tambahkan bahan dengan nama, jumlah, dan satuan yang sesuai.</p>
           </div>
         </div>
 
@@ -123,3 +198,199 @@
     </div>
   </div>
 </div>
+
+<script>
+  // State untuk menyimpan bahan yang ditambahkan
+  let daftarBahanEdit = [];
+
+  // Helper untuk parse string bahan menjadi object
+  function parseBahanString(line) {
+    if (!line || typeof line !== 'string') return { namaBahan: '', jumlah: 0, satuan: '' };
+    
+    line = line.trim();
+    if (!line) return { namaBahan: '', jumlah: 0, satuan: '' };
+
+    const parts = line.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { namaBahan: '', jumlah: 0, satuan: '' };
+
+    const isNumeric = (s) => /^(\d+(?:[.,]\d+)?)$/.test(String(s));
+    
+    if (parts.length >= 2) {
+      const secondLast = parts[parts.length - 2];
+      const last = parts[parts.length - 1];
+      
+      if (isNumeric(secondLast)) {
+        const jumlah = Number(String(secondLast).replace(',', '.'));
+        const satuan = last;
+        const nama = parts.slice(0, parts.length - 2).join(' ');
+        return { namaBahan: nama, jumlah, satuan };
+      }
+      
+      if (isNumeric(last)) {
+        const jumlah = Number(String(last).replace(',', '.'));
+        const nama = parts.slice(0, parts.length - 1).join(' ');
+        return { namaBahan: nama, jumlah, satuan: '' };
+      }
+    }
+
+    return { namaBahan: line, jumlah: 0, satuan: '' };
+  }
+
+  // Initialize dari daftarBahanJSON yang ada (priority) atau fallback ke daftarBahanText
+  document.addEventListener('DOMContentLoaded', () => {
+    let bahanLoaded = false;
+    
+    // Prioritas 1: Load dari JSON data terstruktur di script tag
+    const daftarBahanScriptTag = document.getElementById('daftarBahanJSONData');
+    if (daftarBahanScriptTag && daftarBahanScriptTag.textContent) {
+      try {
+        const bahanArray = JSON.parse(daftarBahanScriptTag.textContent);
+        console.log('✅ Parsed bahanArray dari script tag:', bahanArray);
+        if (Array.isArray(bahanArray) && bahanArray.length > 0) {
+          daftarBahanEdit = bahanArray.map(b => ({
+            id: Date.now() + Math.random(),
+            nama: b.namaBahan || '',
+            jumlah: b.jumlah || 0,
+            satuan: b.satuan || ''
+          }));
+          console.log('✅ daftarBahanEdit initialized:', daftarBahanEdit);
+          renderDaftarBahanEdit();
+          bahanLoaded = true;
+        }
+      } catch(e) {
+        console.error('❌ Gagal parse daftarBahanJSON dari script tag:', e);
+      }
+    }
+    
+    // Fallback: Load dari textarea daftarBahanText jika JSON belum berhasil
+    if (!bahanLoaded) {
+      const daftarBahanHiddenEdit = document.getElementById('daftarBahanHiddenEdit');
+      if (daftarBahanHiddenEdit && daftarBahanHiddenEdit.value) {
+        const bahanLines = daftarBahanHiddenEdit.value
+          .split(/\r?\n/)
+          .map(s => s.trim())
+          .filter(Boolean);
+        
+        daftarBahanEdit = bahanLines.map(line => {
+          const parsed = parseBahanString(line);
+          return {
+            id: Date.now() + Math.random(),
+            nama: parsed.namaBahan,
+            jumlah: parsed.jumlah,
+            satuan: parsed.satuan
+          };
+        });
+
+        renderDaftarBahanEdit();
+      }
+    }
+
+    // Setup event listeners
+    const tombolTambah = document.getElementById('tombolTambahBahanEdit');
+    if (tombolTambah) {
+      tombolTambah.addEventListener('click', tambahBahanEdit);
+      
+      const inputNama = document.getElementById('inputNamaBahanEdit');
+      if (inputNama) {
+        inputNama.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            tambahBahanEdit();
+          }
+        });
+      }
+    }
+
+    // Setup form submission
+    const form = document.querySelector('form[action*="/admin/resep/"]');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        updateDaftarBahanHiddenEdit();
+        if (daftarBahanEdit.length === 0) {
+          e.preventDefault();
+          alert('Tambahkan minimal satu bahan');
+        }
+      });
+    }
+  });
+
+  function tambahBahanEdit() {
+    const nama = document.getElementById('inputNamaBahanEdit').value.trim();
+    const jumlah = document.getElementById('inputJumlahBahanEdit').value;
+    const satuan = document.getElementById('inputSatuanBahanEdit').value;
+
+    if (!nama) {
+      alert('Masukkan nama bahan');
+      return;
+    }
+
+    if (!jumlah || parseFloat(jumlah) <= 0) {
+      alert('Masukkan jumlah bahan yang valid');
+      return;
+    }
+
+    const bahan = {
+      id: Date.now() + Math.random(),
+      nama: nama,
+      jumlah: parseFloat(jumlah),
+      satuan: satuan
+    };
+
+    daftarBahanEdit.push(bahan);
+
+    // Clear inputs
+    document.getElementById('inputNamaBahanEdit').value = '';
+    document.getElementById('inputJumlahBahanEdit').value = '';
+    document.getElementById('inputSatuanBahanEdit').value = 'gram';
+
+    // Render
+    renderDaftarBahanEdit();
+
+    // Focus back
+    document.getElementById('inputNamaBahanEdit').focus();
+  }
+
+  function renderDaftarBahanEdit() {
+    const container = document.getElementById('bahanListContainerEdit');
+    if (!container) return;
+
+    if (daftarBahanEdit.length === 0) {
+      container.innerHTML = '<p style="color: #999; text-align: center; margin: 20px 0;">Belum ada bahan ditambahkan</p>';
+      return;
+    }
+
+    container.innerHTML = daftarBahanEdit
+      .map(
+        (bahan) => `
+      <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #3498db;">
+        <div style="flex: 1;">
+          <strong>${bahan.nama}</strong>
+          <span style="color: #666; margin-left: 8px;">${bahan.jumlah} ${bahan.satuan}</span>
+        </div>
+        <button
+          type="button"
+          onclick="hapusBahanEdit(${bahan.id})"
+          style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
+        >
+          Hapus
+        </button>
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  function hapusBahanEdit(id) {
+    daftarBahanEdit = daftarBahanEdit.filter((b) => b.id !== id);
+    renderDaftarBahanEdit();
+  }
+
+  function updateDaftarBahanHiddenEdit() {
+    const hidden = document.getElementById('daftarBahanHiddenEdit');
+    if (hidden) {
+      hidden.value = daftarBahanEdit
+        .map((b) => `${b.nama} ${b.jumlah} ${b.satuan}`)
+        .join('\n');
+    }
+  }
+</script>
