@@ -75,7 +75,7 @@ body.modal-open {
   margin: 0;
 }
 
-.header-actions {
+.header-aksi {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -166,7 +166,7 @@ body.modal-open {
   transform: translateY(-2px);
 }
 
-/* Container */
+/* kontainer */
 .kontainer-utama {
   max-width: 1200px;
   margin: 20px auto;
@@ -382,7 +382,7 @@ body.modal-open {
   font-weight: 700;
 }
 
-/* view toggles: table view shows table and hides grid, grid view shows grid and hides table */
+/* Tombol pengalih tampilan: tampilan tabel menampilkan tabel dan menyembunyikan kisi, tampilan kisi menampilkan kisi dan menyembunyikan tabel */
 .admin-resep-list.view-table .resep-grid {
   display: none;
 }
@@ -396,7 +396,7 @@ body.modal-open {
   display: none;
 }
 
-/* small responsive adjustments */
+/* penyesuaian responsif kecil */
 @media (max-width: 800px) {
   .admin-dashboard .admin-top {
     flex-direction: column;
@@ -479,7 +479,7 @@ body.modal-open {
   margin-top: 12px;
 }
 
-/* Card grid layout for recipes (compact cards for admin) */
+/* Tata letak grid kartu untuk resep (kartu ringkas untuk admin) */
 .resep-grid {
   display: grid;
   grid-auto-flow: row;
@@ -570,12 +570,12 @@ body.modal-open {
   justify-content: flex-end;
 }
 
-/* hide old table by default to keep layout clean */
+/* sembunyikan tabel lama secara default untuk menjaga tata letak tetap bersih */
 .admin-resep-list .table-wrap {
   display: none;
 }
 
-/* Pending recipes card layout (compact and centered to match admin cards) */
+/* Tata letak kartu resep pending (ringkas dan dipusatkan untuk menyesuaikan kartu admin) */
 .admin-resep-pending .kartu {
   max-width: 880px;
   margin-left: auto;
@@ -669,7 +669,7 @@ body.modal-open {
   }
 }
 
-/* Recipe form styles */
+/* Gaya formulir resep */
 .form-resep {
   max-width: 920px;
   margin: 0 auto;
@@ -735,9 +735,7 @@ body.modal-open {
   font-size: 0.92rem;
 }
 
-/* keep existing page helper block unchanged */
-
-/* Page / panel transition helpers */
+/* Bantuan transisi halaman / panel */
 .kontainer-utama {
   transition: opacity var(--transition-duration) ease,
     transform var(--transition-duration) ease;
@@ -752,14 +750,13 @@ body.modal-open {
   pointer-events: none;
 }
 
-/* Page fade helper class */
+/* Kelas pembantu pudar halaman */
 .page-fade {
   transition: opacity var(--transition-duration) ease,
     transform var(--transition-duration) ease;
   will-change: opacity, transform;
 }
 
-/* Keep panels behavior simple: we animate container for page-level transitions */
 .panel {
   transition: opacity var(--transition-duration) ease,
     transform var(--transition-duration) ease;
@@ -792,22 +789,22 @@ body.modal-open {
   box-shadow: var(--bayangan);
 }
 
-/* Centered admin card: limit width and center the main white card on admin dashboard */
+/* Kartu admin yang dipusatkan: batasi lebar dan pusatkan kartu putih utama di dashboard admin */
 .admin-dashboard .kartu {
-  max-width: 1100px; /* keep modest width */
+  max-width: 1100px; /* jaga lebar yang sederhana */
   margin-left: auto;
   margin-right: auto;
-  padding: 22px; /* slightly larger padding for the dashboard card */
+  padding: 22px; /* padding sedikit lebih besar untuk kartu dashboard */
   border-radius: 14px;
   box-shadow: 0 16px 50px rgba(14, 21, 47, 0.06);
   background: linear-gradient(
     180deg,
     #fff,
     #fff
-  ); /* ensure clean white surface */
+  ); /* pastikan permukaan putih bersih */
 }
 
-/* Centered manage-recipes card: keep same sizing and feel as dashboard */
+/* Kartu kelola resep yang dipusatkan: jaga ukuran dan nuansa yang sama seperti dashboard */
 .admin-resep-list .kartu {
   max-width: 1100px;
   margin-left: auto;
@@ -818,7 +815,7 @@ body.modal-open {
   background: linear-gradient(180deg, #fff, #fff);
 }
 
-/* ensure content inside card aligns with grid */
+/* pastikan konten di dalam kartu selaras dengan grid */
 .admin-resep-list .resep-grid,
 .admin-resep-list .table-wrap {
   max-width: 960px;
@@ -826,7 +823,7 @@ body.modal-open {
   margin-right: auto;
 }
 
-/* Compact centered form card for Add/Edit Resep pages */
+/* Kartu formulir ringkas yang dipusatkan untuk halaman Tambah/Edit Resep */
 .admin-resep-form .kartu {
   max-width: 820px;
   margin-left: auto;
@@ -1020,12 +1017,11 @@ body.modal-open {
   font-weight: 700;
   box-shadow: 0 8px 24px rgb(231 76 60 / 12%);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
-  text-decoration: none; /* ensure buttons are not underlined */
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
 }
 
-/* Force white text for primary CTA (not .secondary) */
 .btn-cta:not(.secondary),
 .btn-cta:not(.secondary):link,
 .btn-cta:not(.secondary):visited,
@@ -1055,8 +1051,6 @@ body.modal-open {
 .btn-cta.secondary:visited {
   color: var(--warna-teks);
 }
-
-/* Remove underlines for links inside hero and cards (Chat/Resep headings or CTAs) */
 .hero-ctas a,
 .kartu-judul a,
 .kartu a {
@@ -1102,7 +1096,7 @@ body.modal-open {
   }
 }
 
-/* Enhanced hero and feature styles */
+/* Peningkatan gaya hero dan fitur. */
 .hero-title {
   font-size: 1.8rem;
   margin-bottom: 8px;
@@ -1174,15 +1168,15 @@ body.modal-open {
   }
 }
 
-/* Stats grid (left-to-right cards) - enforced */
+/* Grid statistik (kartu kiri-ke-kanan) - ditegakkan */
 .stats-grid {
   display: flex !important;
   flex-direction: row !important;
   gap: 18px;
   margin-top: 12px;
-  justify-content: flex-start; /* align left-to-right */
+  justify-content: flex-start; /* sejajarkan kiri-ke-kanan */
   align-items: flex-start;
-  overflow-x: auto; /* allow horizontal scroll on narrow screens */
+  overflow-x: auto; /* izinkan gulir horizontal pada layar sempit */
   padding-bottom: 6px;
 }
 
@@ -1200,15 +1194,15 @@ body.modal-open {
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
-  align-items: center; /* keep icon vertically centered */
+  align-items: center; /* jaga ikon tetap terpusat secara vertikal */
   gap: 14px;
   box-shadow: var(--bayangan);
   border: 1px solid rgb(0 0 0 / 4%);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
-  flex: 0 0 240px; /* fixed width to make cards line up horizontally */
+  flex: 0 0 240px; /* lebar tetap agar kartu sejajar secara horizontal */
   max-width: 240px;
   min-height: 84px;
-  text-align: left !important; /* ensure left-aligned text */
+  text-align: left !important; /* pastikan teks rata kiri */
 }
 
 .stat-card:hover {
@@ -1294,7 +1288,7 @@ body.modal-open {
   border: 1px solid rgb(243 156 18 / 14%);
 }
 
-/* Per-stat accent colors */
+/* Warna aksen per-statistik */
 .stat-card.stat-total .stat-icon,
 .stat-box.stat-total .stat-icon {
   background: linear-gradient(
@@ -1315,7 +1309,7 @@ body.modal-open {
   color: #d35400;
 }
 
-/* New responsive stats row/box styles (preferred) */
+/* Gaya baris/box statistik responsif baru (disarankan) */
 .stats-row {
   display: flex;
   gap: 16px;
@@ -1417,7 +1411,7 @@ body.modal-open {
   color: var(--warna-aksen);
 }
 
-/* delta micro-animation */
+/* delta micro-animasi */
 .stat-delta {
   transition: transform 0.18s ease, opacity 0.18s ease;
   opacity: 0.98;
@@ -1429,15 +1423,14 @@ body.modal-open {
   opacity: 1;
 }
 
-/* add bottom padding so fixed footer does not overlap content */
+/* Tambahkan padding bawah agar footer tetap tidak tumpang tindih dengan konten. */
 .kontainer-utama {
   max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
-  padding-bottom: 110px; /* space for footer */
+  padding-bottom: 110px; /* ruang untuk footer */
 }
 
-/* Fixed centered footer */
 .site-footer {
   position: fixed;
   left: 0;
@@ -1467,7 +1460,6 @@ body.modal-open {
   font-size: 1.6rem;
 }
 
-/* Emergency: Force LTR stats layout and left alignment (compat) */
 .kartu .stats-grid,
 .kartu .stats-row {
   display: flex !important;
@@ -1504,7 +1496,7 @@ body.modal-open {
   text-align: left !important;
 }
 
-/* Narrow screen adjustments */
+/* Penyesuaian layar sempit */
 @media (width <= 900px) {
   .kartu .stats-grid > .stat-card,
   .kartu .stats-row > .stat-box {
@@ -1611,7 +1603,7 @@ body.modal-open {
   color: var(--warna-teks-sekunder);
 }
 
-/* Generic tag used for category labels */
+/* Tag generik yang digunakan untuk label kategori */
 .tag {
   display: inline-block;
   font-size: 0.75rem;
@@ -1622,7 +1614,7 @@ body.modal-open {
   margin-left: 6px;
 }
 
-/* Small micro-animation for stats */
+/* Mikro-animasi kecil untuk statistik */
 .stat-value {
   transition: transform 0.4s ease;
   display: inline-block;
@@ -1644,7 +1636,7 @@ body.modal-open {
   color: var(--warna-teks-sekunder);
 }
 
-/* Small action buttons used inside recipe cards */
+/* Tombol aksi kecil yang digunakan di dalam kartu resep */
 .tombol-kecil {
   padding: 6px 10px;
   border-radius: 8px;
@@ -1693,7 +1685,7 @@ body.modal-open {
   margin-bottom: 6px;
 }
 
-/* New item-bahan layout with edit/delete buttons */
+/* Tata letak item-bahan baru dengan tombol edit/hapus */
 .daftar-bahan-kadaluarsa {
   list-style: none;
 }
@@ -1739,7 +1731,7 @@ body.modal-open {
   margin-left: 8px;
 }
 
-/* expiry note column styling */
+/* gaya kolom catatan kadaluarsa */
 .daftar-bahan-kadaluarsa li.item-bahan small.expiry-note {
   color: var(--warna-teks-sekunder);
   font-size: 0.9rem;
@@ -1748,7 +1740,7 @@ body.modal-open {
   text-overflow: ellipsis;
 }
 
-/* ensure checkbox wrapper aligns right in its column */
+/* pastikan pembungkus checkbox sejajar kanan di kolomnya */
 .daftar-bahan-kadaluarsa li.item-bahan .checkbox-wrap {
   justify-self: center;
 }
@@ -1826,17 +1818,17 @@ body.modal-open {
 }
 
 .pesan-wrapper-koki {
-  /* extra breathing room from left card edge */
+  /* ruang ekstra dari tepi kartu kiri */
   padding-left: 6px;
 }
 .pesan-wrapper-pengguna {
-  /* extra breathing room from right card edge */
+  /* ruang ekstra dari tepi kartu kanan */
   padding-right: 6px;
 }
 
 .pesan {
   max-width: 72%;
-  padding: 12px 16px 16px; /* extra bottom padding for timestamp */
+  padding: 12px 16px 16px; /* padding bawah ekstra untuk cap waktu */
   border-radius: 14px;
   line-height: 1.45;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -1848,14 +1840,14 @@ body.modal-open {
   background: var(--warna-primer);
   color: #fff;
   margin-left: auto;
-  margin-right: 6px; /* spacing from right edge */
+  margin-right: 6px; /* jarak dari tepi kanan */
   border-bottom-right-radius: 4px;
 }
 
 .pesan-koki {
   background: var(--warna-kartu);
   border: 1px solid #e6e6e6;
-  margin-left: 6px; /* spacing from left edge */
+  margin-left: 6px; /* jarak dari tepi kiri */
   margin-right: auto;
 }
 
@@ -1881,13 +1873,13 @@ body.modal-open {
   opacity: 0.95;
 }
 
-/* User timestamps should be white and aligned right for visibility */
+/* cap waktu pengguna harus berwarna putih dan rata kanan untuk visibilitas */
 .pesan-pengguna .pesan-meta {
   color: rgba(255, 255, 255, 0.95);
   text-align: right;
 }
 
-/* Make lists inside messages have breathing room */
+/* Beri ruang pada daftar di dalam pesan */
 .pesan p {
   margin: 8px 0;
 }
@@ -1911,12 +1903,12 @@ body.modal-open {
   color: var(--warna-teks-sekunder);
 }
 
-/* Ensure readable line-height for steps */
+/* Pastikan tinggi baris yang dapat dibaca untuk langkah-langkah */
 .pesan {
   line-height: 1.6;
 }
 
-/* ensure long content doesn't hug the container */
+/* pastikan konten panjang tidak menempel pada kontainer */
 .area-pesan {
   padding: 22px;
 }
@@ -2005,7 +1997,7 @@ body.modal-open {
   cursor: pointer;
 }
 
-/* Ensure anchor buttons keep white text and no underline */
+/* Pastikan tombol anchor tetap berwarna putih dan tanpa garis bawah */
 a.tombol-kirim,
 a.tombol-kirim:link,
 a.tombol-kirim:visited {
@@ -2013,7 +2005,7 @@ a.tombol-kirim:visited {
   text-decoration: none;
 }
 
-/* Modal / overlay for confirmations */
+/* Modal / overlay untuk konfirmasi */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -2042,11 +2034,11 @@ a.tombol-kirim:visited {
   text-align: left;
 }
 
-/* Longer confirmation cards to improve visibility */
+/* Kartu konfirmasi lebih panjang untuk meningkatkan visibilitas */
 .modal-kartu--panjang {
   min-height: 260px;
   padding: 26px 32px;
-  margin-top: -18px; /* lift slightly upwards */
+  margin-top: -18px; /* angkat sedikit ke atas */
 }
 .modal-kartu h3 {
   margin: 8px 0 6px 0;
@@ -2076,7 +2068,7 @@ a.tombol-kirim:visited {
   margin-left: 6px;
 }
 
-/* Centered icon style (like Timer modal) */
+/* Gaya ikon yang dipusatkan (seperti modal Timer) */
 .modal-center {
   display: block;
   text-align: center;
@@ -2097,7 +2089,7 @@ a.tombol-kirim:visited {
   margin: -30px auto 8px;
 }
 
-/* success / OK button (green) */
+/* tombol sukses / OK (hijau) */
 .tombol-sukses {
   padding: 8px 14px;
   border-radius: 8px;
@@ -2112,7 +2104,7 @@ a.tombol-kirim:visited {
   transform: translateY(-1px);
 }
 
-/* close / neutral button */
+/* tombol tutup / netral */
 .tombol-tutup {
   padding: 8px 12px;
   border-radius: 8px;
@@ -2124,7 +2116,7 @@ a.tombol-kirim:visited {
   background: #f7f7f7;
 }
 
-/* primary action for cooking - match timer style (fallback) */
+/* tindakan utama untuk memasak - cocokkan gaya timer (cadangan) */
 .tombol-mulai {
   padding: 10px 16px;
   border-radius: 8px;
@@ -2139,7 +2131,7 @@ a.tombol-kirim:visited {
   transform: translateY(-1px);
 }
 
-/* small inline action button (deprecated, keep for fallback) */
+/* tombol aksi kecil inline (deprecated, tetap untuk fallback) */
 .tombol-kecil {
   padding: 8px 12px;
   border-radius: 999px;
@@ -2183,7 +2175,7 @@ a.tombol-kirim:visited {
   }
 }
 
-/* Responsive tweaks */
+/* Penyesuaian responsif */
 @media (max-width: 600px) {
   .kontainer-chat {
     height: 70vh;
@@ -2260,7 +2252,7 @@ a.tombol-kirim:visited {
   font-weight: 600;
 }
 
-/* Timer: continue button and helpers */
+/* Timer: tombol lanjut dan pembantu */
 .tombol-lanjut {
   background: var(--warna-aksen);
   color: #fff;
@@ -2274,7 +2266,7 @@ a.tombol-kirim:visited {
   display: none !important;
 }
 
-/* Hide pause button when marked hidden (used when timer is paused) */
+/* Sembunyikan tombol jeda saat ditandai tersembunyi (digunakan saat timer dijeda) */
 .tombol-jeda.hidden {
   display: none !important;
 }
@@ -2311,7 +2303,7 @@ a.tombol-kirim:visited {
 #daftar-bahan-saya li.item-bahan {
   display: grid;
 
-  /* Layout: nama (min 160px) | metadata (1fr) | actions (auto) - ensures metadata column aligns */
+  /* Layout: nama (min 160px) | metadata (1fr) | actions (auto) - memastikan kolom metadata sejajar */
   grid-template-columns: minmax(200px, auto) 1fr auto;
   grid-template-rows: auto auto;
   gap: 8px 8px;
@@ -2426,7 +2418,7 @@ a.tombol-kirim:visited {
   color: var(--warna-teks);
   line-height: 1.2;
 
-  /* allow up to 2 lines so full timestamps remain readable without creating 3-line rows */
+  /* Izinkan hingga 2 baris agar stempel waktu lengkap tetap terbaca tanpa membuat baris 3 baris.s */
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -2436,7 +2428,7 @@ a.tombol-kirim:visited {
   white-space: normal;
 }
 
-/* ensure consistent spacing across mid/right columns */
+/* pastikan jarak konsisten di seluruh kolom mid/right */
 .bahan-mid .meta-col,
 .bahan-right .meta-col-right {
   min-width: 160px;
@@ -2472,7 +2464,7 @@ a.tombol-kirim:visited {
   color: var(--warna-teks);
   text-align: right;
 
-  /* allow brief wrapping (max 2 lines) so Kadaluarsa remains readable */
+  /* izinkan pembungkusan singkat (maks 2 baris) agar Kadaluarsa tetap terbaca */
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -2557,7 +2549,7 @@ a.tombol-kirim:visited {
   }
 }
 
-/* Upload area */
+/* Area unggah */
 .area-upload {
   border: 3px dashed #ccc;
   border-radius: var(--radius);
@@ -2567,7 +2559,7 @@ a.tombol-kirim:visited {
   transition: all 0.12s ease;
 }
 
-/* Auth / Login & Register (improved layout) */
+/* Auth / Login & Register (tata letak yang ditingkatkan) */
 .auth-body {
   display: flex;
   align-items: center;
@@ -2722,7 +2714,7 @@ a.tombol-kirim:visited {
   display: block;
 }
 
-/* Make sure the input has right padding so text doesn't overlap the icon */
+/* Pastikan input memiliki padding kanan agar teks tidak tumpang tindih dengan ikon */
 .input-with-icon .form-control {
   padding-right: 46px;
 }
@@ -2750,7 +2742,7 @@ a.tombol-kirim:visited {
   margin-bottom: 8px;
 }
 
-/* Spacing improvements for forgot/reset flow */
+/* Perbaikan jarak untuk alur lupa/reset */
 .forgot-page .login-card {
   padding: 34px;
   max-width: 420px;
@@ -2839,7 +2831,7 @@ a.tombol-kirim:visited {
   cursor: pointer;
 }
 
-/* Red text link for auth pages (simple, not button) */
+/* Tautan teks merah untuk halaman auth (sederhana, bukan tombol) */
 .link-red {
   color: var(--warna-primer);
   font-weight: 700;
@@ -2850,7 +2842,7 @@ a.tombol-kirim:visited {
   text-decoration: underline;
 }
 
-/* Legacy button variant kept for compatibility (not used by default) */
+/* Varian tombol warisan yang dipertahankan untuk kompatibilitas (tidak digunakan secara default) */
 .btn-link-red {
   display: inline-block;
   padding: 8px 14px;
@@ -2988,21 +2980,21 @@ a.tombol-kirim:visited {
   min-width: 220px;
 }
 
-/* Modal notification overlay (center) */
+/* Overlay notifikasi modal (tengah) */
 .kontainer-modal {
   position: fixed;
   inset: 0;
-  display: none; /* shown when a modal is present */
+  display: none; /* ditampilkan ketika modal hadir */
   align-items: center;
   justify-content: center;
-  z-index: 2000; /* higher to ensure it overlays everything */
+  z-index: 2000;
 }
 
 .kontainer-modal.active {
   display: flex;
 }
 
-/* Prevent body scroll when modal is open */
+/* Prevent body scroll saat modal terbuka */
 body.modal-open {
   overflow: hidden;
 }
@@ -3033,7 +3025,7 @@ body.modal-open {
   animation: modal-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
 }
 
-/* larger modal card for recipe confirm */
+/* Kartu modal yang lebih besar untuk konfirmasi resep */
 .kontainer-modal .modal-card--panjang {
   min-height: 260px;
   padding: 32px 40px;
@@ -3179,7 +3171,7 @@ body.modal-open {
   transform: translateY(1px);
 }
 
-/* Toasts & modal notifications */
+/* Toasts & modal notifikasi */
 .kontainer-toasts {
   position: fixed;
   top: 12px;
@@ -3188,11 +3180,11 @@ body.modal-open {
   flex-direction: column;
   gap: 8px;
   z-index: 1100;
-  pointer-events: none; /* allow clicks to pass through container except the toasts themselves */
+  pointer-events: none; /* izinkan klik melewati kontainer kecuali toasts itu sendiri */
 }
 
-/* Admin mode: hide user-specific action buttons (e.g., Masak, Timer creation)
-   Admin will use the Admin Dashboard to manage recipes instead of user UI */
+/* Mode admin: sembunyikan tombol aksi khusus pengguna (misalnya, Masak, pembuatan Timer)
+   Admin akan menggunakan Dashboard Admin untuk mengelola resep daripada UI pengguna */
 body.is-admin .tombol-mulai,
 body.is-admin .tombol-timer {
   display: none !important;
@@ -3254,7 +3246,7 @@ body.is-admin .tombol-timer {
   max-width: 520px;
   width: min(92%, 520px);
   box-shadow: 0 18px 36px rgb(0 0 0 / 12%);
-  text-align: center; /* center content for small modal */
+  text-align: center; /* pusatkan konten untuk modal kecil */
 }
 
 .modal-icon {
@@ -3292,7 +3284,7 @@ body.is-admin .tombol-timer {
   }
 }
 
-/* Single card centered layout for login */
+/* Tata letak kartu tunggal terpusat untuk login */
 .auth-single {
   display: flex;
   flex-direction: column;
@@ -3332,7 +3324,7 @@ body.is-admin .tombol-timer {
 .forgot-link a:hover {
   text-decoration: underline;
 }
-/* Styles untuk fitur edit dan delete bahan */
+/* Styles untuk fitur edit dan hapus bahan */
 .bahan-left {
   flex: 1;
 }
@@ -3618,7 +3610,7 @@ body.is-admin .tombol-timer {
   margin-bottom: 12px;
 }
 
-/* Responsive design for mobile */
+/* Desain responsif untuk perangkat mobile */
 @media (width <= 768px) {
   .item-bahan {
     flex-direction: column;
