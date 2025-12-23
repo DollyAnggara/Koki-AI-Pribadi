@@ -301,7 +301,7 @@ window.tambahPesanChat = function (
   tipe,
   opts = { save: true, timestamp: null, simpanKeDatabase: true }
 ) {
-  // Call original function
+  // memanggil fungsi asli
   originalTambahPesanChat.call(this, pesan, tipe, {
     save: opts.save,
     timestamp: opts.timestamp,
@@ -309,7 +309,7 @@ window.tambahPesanChat = function (
 
   // CATATAN: Jangan simpan ke database di frontend
   // Backend (soketTimer.js) sudah menangani saving untuk user messages
-  // Frontend hanya butuh save ke local chatHistory untuk display
+  // Frontend hanya butuh save ke local chatHistory untuk ditampilkan
 };
 
 // Simpan pesan ke sesi di database
@@ -325,7 +325,7 @@ async function simpanPesanKeSession(sessionId, tipe, pesan) {
   }
 }
 
-// Setup event listeners
+// menyiapkan event listeners untuk sesi chat
 function setupSessionChatListeners() {
   const btnSessionBaru = document.getElementById("btnSessionBaru");
   const btnEditNamaSession = document.getElementById("btnEditNamaSession");
@@ -367,7 +367,7 @@ function setupSessionChatListeners() {
   }
 }
 
-// Initialize sesi chat when DOM is ready
+// Inisialisasi obrolan sesi saat DOM siap.
 document.addEventListener("DOMContentLoaded", () => {
   // Hanya inisialisasi jika di halaman chat
   if (document.getElementById("sidebarSession")) {
@@ -376,9 +376,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Reset session saat logout
+// Reset sesi saat logout
 window.addEventListener("beforeunload", () => {
-  // Clear session cache saat user logout
+  // Hapus cache sesi saat pengguna keluar
   const logoutBtn = document.querySelector('a[href*="/logout"]');
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {

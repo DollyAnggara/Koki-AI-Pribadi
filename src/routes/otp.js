@@ -5,13 +5,13 @@
 
 const express = require('express');
 const router = express.Router();
-const otpController = require('../controller/otpController');
+const kontrolerOtp = require('../controller/kontrolerOtp');
 
 // Kirim OTP ke email
-router.post('/send', otpController.sendOtp);
+router.post('/send', kontrolerOtp.sendOtp);
 // Verifikasi OTP
-router.post('/verify', otpController.verifyOtp);
+router.post('/verify', kontrolerOtp.verifyOtp);
 // Test koneksi SMTP 
-router.post('/test', otpController.testSmtp);
+router.post('/test', kontrolerOtp.testSmtp);
 
 module.exports = router;

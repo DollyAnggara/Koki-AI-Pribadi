@@ -1,6 +1,6 @@
 const emailService = require("../utils/emailService");
 
-// Simple in-memory store: { email -> { code, expiresAt } }
+// Penyimpanan sederhana dalam memori: { email -> { code, expiresAt } }
 const otpStore = new Map();
 
 const generateCode = () =>
