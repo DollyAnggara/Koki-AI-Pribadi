@@ -27,4 +27,4 @@ skemaSessionChat.pre("save", function () {
   this.tanggalDiperbarui = new Date();
 });
 
-module.exports = mongoose.model("SessionChat", skemaSessionChat);
+module.exports = mongoose.model("sesiChat", skemaSessionChat);

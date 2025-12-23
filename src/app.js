@@ -42,7 +42,7 @@ const ruteMenu = require("./routes/menu");
 const ruteOtp = require("./routes/otp");
 const ruteDebug = require("./routes/debug");
 const ruteKontak = require("./routes/kontak");
-const ruteSessionChat = require("./routes/session-chat");
+const ruteSesiChat = require("./routes/sesi-chat");
 
 const Pengguna = require("./models/Pengguna");
 const Bahan = require("./models/Bahan");
@@ -168,7 +168,10 @@ const jalankanServer = async () => {
   aplikasi.use("/api/debug", ruteDebug);
   aplikasi.use("/api/kontak", ruteKontak);
   // Endpoint chat sesi
-  aplikasi.use("/api/session-chat", ruteSessionChat);
+  // mount baru untuk API sesi chat (nama Bahasa Indonesia)
+  aplikasi.use("/api/sesi-chat", ruteSesiChat);
+  // compat: maintain old API path for backward compatibility
+  aplikasi.use("/api/session-chat", ruteSesiChat);
 
   // rute admin (UI + aksi)
   const ruteAdmin = require("./routes/admin");
@@ -205,8 +208,8 @@ const jalankanServer = async () => {
   });
 
   // Halaman Lupa Sandi / Reset
-  aplikasi.get("/forgot", (req, res) =>
-    res.render("forgot", { layout: "auth" })
+  aplikasi.get("/lupa_pass", (req, res) =>
+    res.render("lupa_pass", { layout: "auth" })
   );
   aplikasi.get("/reset", (req, res) =>
     res.render("reset", { layout: "auth", token: req.query.token })

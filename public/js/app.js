@@ -145,7 +145,7 @@ function inisialisasiNavigasi() {
   const main =
     document.querySelector("main.kontainer-utama") ||
     document.querySelector("main") ||
-    document.querySelector(".admin-container");
+    document.querySelector(".kontainer-admin");
   // Target cadangan untuk animasi jika target utama tidak ada (beberapa halaman seperti halaman otentikasi menggunakan tata letak yang berbeda)
   const fadeTarget =
     main ||

@@ -6,7 +6,7 @@
     <title>{{#if title}}{{title}}{{else}}Koki AI Pribadi{{/if}}</title>
     <link rel="stylesheet" href="/css/style.css">
     {{#if isAdmin}}<link rel="stylesheet" href="/css/admin.css">{{/if}}
-    <link rel="stylesheet" href="/css/session-chat.css">
+    <link rel="stylesheet" href="/css/sesi-chat.css">
   </head>
   <body class="{{#if isAdmin}}is-admin{{/if}}" data-user-id="{{user._id}}" data-user-name="{{user.namaPengguna}}">
     {{> header}}
@@ -21,6 +21,6 @@
     <!-- Socket.io + frontend script -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="/js/app.js"></script>
-    <script src="/js/session-chat.js"></script>
+    <script src="/js/sesi-chat.js"></script>
   </body>
 </html>

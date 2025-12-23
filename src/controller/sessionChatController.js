@@ -1,4 +1,4 @@
-const SessionChat = require("../models/SessionChat");
+const SesiChat = require("../models/sesiChat");
 const Pengguna = require("../models/Pengguna");
 
 // Buat sesi chat baru
@@ -9,7 +9,7 @@ exports.buatSessionChat = async (req, res) => {
       return res.status(401).json({ error: "Tidak terautentikasi" });
     }
 
-    const sessionBaru = new SessionChat({
+    const sessionBaru = new SesiChat({
       idPengguna,
       namaSession: `Sesi ${new Date().toLocaleDateString("id-ID")}`,
     });
@@ -38,7 +38,7 @@ exports.ambilSemuaSessionChat = async (req, res) => {
       return res.status(401).json({ error: "Tidak terautentikasi" });
     }
 
-    const sessions = await SessionChat.find({ idPengguna, aktif: true })
+    const sessions = await SesiChat.find({ idPengguna, aktif: true })
       .sort({ tanggalDiperbarui: -1 })
       .select("_id namaSession tanggalDibuat tanggalDiperbarui riwayatChat");
 
@@ -70,7 +70,7 @@ exports.ambilDetailSessionChat = async (req, res) => {
       return res.status(401).json({ error: "Tidak terautentikasi" });
     }
 
-    const session = await SessionChat.findOne({
+    const session = await SesiChat.findOne({
       _id: idSession,
       idPengguna,
       aktif: true,
@@ -111,7 +111,7 @@ exports.perbaruiNamaSession = async (req, res) => {
       return res.status(400).json({ error: "Nama sesi tidak boleh kosong" });
     }
 
-    const session = await SessionChat.findOneAndUpdate(
+    const session = await SesiChat.findOneAndUpdate(
       { _id: idSession, idPengguna, aktif: true },
       { namaSession: namaSession.trim() },
       { new: true }
@@ -138,7 +138,7 @@ exports.hapusSession = async (req, res) => {
       return res.status(401).json({ error: "Tidak terautentikasi" });
     }
 
-    const session = await SessionChat.findOneAndUpdate(
+    const session = await SesiChat.findOneAndUpdate(
       { _id: idSession, idPengguna },
       { aktif: false },
       { new: true }
@@ -170,7 +170,7 @@ exports.tambahPesanKeSession = async (req, res) => {
       return res.status(400).json({ error: "Data pesan tidak valid" });
     }
 
-    const session = await SessionChat.findOneAndUpdate(
+    const session = await SesiChat.findOneAndUpdate(
       { _id: idSession, idPengguna, aktif: true },
       {
         $push: {

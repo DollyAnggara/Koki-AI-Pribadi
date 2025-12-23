@@ -1,16 +1,16 @@
-// Manajemen Session Chat
+// Manajemen Sesi Chat (file baru: sesi-chat.js)
 let idSessionAktif = localStorage.getItem("idSessionAktif");
 let daftarSessionChat = [];
 
-// Inisialisasi session chat
+// Inisialisasi sesi chat
 async function inisialisasiSessionChat() {
   try {
-    console.log("🔄 Inisialisasi session chat...");
-    // Ambil semua session user
-    const response = await fetch("/api/session-chat/daftar");
+    console.log("🔄 Inisialisasi sesi chat...");
+    // Ambil semua sesi user
+    const response = await fetch("/api/sesi-chat/daftar");
     const result = await response.json();
 
-    console.log("Session daftar response:", result);
+    console.log("Sesi daftar response:", result);
 
     if (result.sukses && result.data) {
       daftarSessionChat = result.data;
@@ -37,14 +37,14 @@ async function inisialisasiSessionChat() {
         loadSessionChat(idSessionAktif);
       }
     } else {
-      console.error("❌ Gagal ambil session daftar:", result);
+      console.error("❌ Gagal ambil sesi daftar:", result);
     }
   } catch (err) {
-    console.error("❌ Gagal inisialisasi session chat:", err);
+    console.error("❌ Gagal inisialisasi sesi chat:", err);
   }
 }
 
-// Render daftar session
+// Render daftar sesi
 function renderDaftarSession() {
   const daftarSessionEl = document.getElementById("daftarSession");
   if (!daftarSessionEl) return;
@@ -79,7 +79,7 @@ function renderDaftarSession() {
     )
     .join("");
 
-  // Event listeners untuk item session
+  // Event listeners untuk item sesi
   daftarSessionEl.querySelectorAll(".item-session").forEach((item) => {
     item.addEventListener("click", (e) => {
       if (e.target.closest(".btn-hapus-session")) return;
@@ -106,10 +106,10 @@ function renderDaftarSession() {
   });
 }
 
-// Load session chat
+// Load sesi chat
 async function loadSessionChat(sessionId) {
   try {
-    const response = await fetch(`/api/session-chat/${sessionId}`);
+    const response = await fetch(`/api/sesi-chat/${sessionId}`);
     const result = await response.json();
 
     if (result.sukses && result.data) {
@@ -141,7 +141,7 @@ async function loadSessionChat(sessionId) {
         areaPesan.innerHTML = "";
       }
 
-      // Render messages dari session
+      // Render messages dari sesi
       if (result.data.riwayatChat && result.data.riwayatChat.length > 0) {
         result.data.riwayatChat.forEach((msg) => {
           tambahPesanChat(msg.pesan, msg.tipe, {
@@ -164,16 +164,16 @@ async function loadSessionChat(sessionId) {
       renderDaftarSession();
     }
   } catch (err) {
-    console.error("Gagal load session chat:", err);
+    console.error("Gagal load sesi chat:", err);
     tampilkanNotifikasi("Gagal memuat sesi chat", "error");
   }
 }
 
-// Buat session chat baru
+// Buat sesi chat baru
 async function buatSessionChatBaru() {
   try {
     console.log("📝 Membuat sesi chat baru...");
-    const response = await fetch("/api/session-chat/buat", {
+    const response = await fetch("/api/sesi-chat/buat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
@@ -199,15 +199,15 @@ async function buatSessionChatBaru() {
       tampilkanNotifikasi(result.error || "Gagal membuat sesi baru", "error");
     }
   } catch (err) {
-    console.error("❌ Gagal buat session chat baru:", err);
+    console.error("❌ Gagal buat sesi chat baru:", err);
     tampilkanNotifikasi("Gagal membuat sesi baru: " + err.message, "error");
   }
 }
 
-// Hapus session chat
+// Hapus sesi chat
 async function hapusSessionChat(sessionId) {
   try {
-    const response = await fetch(`/api/session-chat/${sessionId}`, {
+    const response = await fetch(`/api/sesi-chat/${sessionId}`, {
       method: "DELETE",
     });
     const result = await response.json();
@@ -234,15 +234,15 @@ async function hapusSessionChat(sessionId) {
       tampilkanNotifikasi("Sesi berhasil dihapus", "sukses");
     }
   } catch (err) {
-    console.error("Gagal hapus session chat:", err);
+    console.error("Gagal hapus sesi chat:", err);
     tampilkanNotifikasi("Gagal menghapus sesi", "error");
   }
 }
 
-// Perbarui nama session
+// Perbarui nama sesi
 async function perbaruiNamaSession(sessionId, namaBaru) {
   try {
-    const response = await fetch(`/api/session-chat/${sessionId}/nama`, {
+    const response = await fetch(`/api/sesi-chat/${sessionId}/nama`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ namaSession: namaBaru }),
@@ -268,7 +268,7 @@ async function perbaruiNamaSession(sessionId, namaBaru) {
       tutupModalEditNama();
     }
   } catch (err) {
-    console.error("Gagal perbarui nama session:", err);
+    console.error("Gagal perbarui nama sesi:", err);
     tampilkanNotifikasi("Gagal memperbarui nama sesi", "error");
   }
 }
@@ -312,16 +312,16 @@ window.tambahPesanChat = function (
   // Frontend hanya butuh save ke local chatHistory untuk display
 };
 
-// Simpan pesan ke session di database
+// Simpan pesan ke sesi di database
 async function simpanPesanKeSession(sessionId, tipe, pesan) {
   try {
-    await fetch(`/api/session-chat/${sessionId}/pesan`, {
+    await fetch(`/api/sesi-chat/${sessionId}/pesan`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tipe, pesan }),
     });
   } catch (err) {
-    console.warn("Gagal simpan pesan ke session:", err);
+    console.warn("Gagal simpan pesan ke sesi:", err);
   }
 }
 
@@ -367,7 +367,7 @@ function setupSessionChatListeners() {
   }
 }
 
-// Initialize session chat when DOM is ready
+// Initialize sesi chat when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
   // Hanya inisialisasi jika di halaman chat
   if (document.getElementById("sidebarSession")) {

@@ -3,7 +3,7 @@ const timerAktif = new Map();
 const sesiMemasak = new Map();
 // Menghapus dependensi Deepseek langsung; gunakan abstraksi layananChatBot yang dapat menggunakan Deepseek atau OpenRouter
 const layananChatBot = require("./layananChatBot");
-const SessionChat = require("../models/SessionChat");
+const SesiChat = require("../models/sesiChat");
 
 const inisialisasiSoketTimer = (io) => {
   const nsMemasak = io.of("/memasak");
@@ -77,7 +77,7 @@ const inisialisasiSoketTimer = (io) => {
           // Simpan greeting ke session jika disediakan
           if (idSession && idPengguna) {
             try {
-              await SessionChat.findOneAndUpdate(
+              await SesiChat.findOneAndUpdate(
                 { _id: idSession, idPengguna },
                 {
                   $push: {
@@ -117,7 +117,7 @@ const inisialisasiSoketTimer = (io) => {
           // Simpan pesan pengguna dan respons AI ke session
           if (idSession && idPengguna) {
             try {
-              await SessionChat.findOneAndUpdate(
+              await SesiChat.findOneAndUpdate(
                 { _id: idSession, idPengguna },
                 {
                   $push: {
@@ -144,7 +144,7 @@ const inisialisasiSoketTimer = (io) => {
           // Simpan respons error
           if (idSession && idPengguna) {
             try {
-              await SessionChat.findOneAndUpdate(
+              await SesiChat.findOneAndUpdate(
                 { _id: idSession, idPengguna },
                 {
                   $push: {
@@ -192,7 +192,7 @@ const inisialisasiSoketTimer = (io) => {
         // Simpan error ke session jika disediakan
         if (data?.idSession && data?.idPengguna) {
           try {
-            await SessionChat.findOneAndUpdate(
+            await SesiChat.findOneAndUpdate(
               { _id: data.idSession, idPengguna: data.idPengguna },
               {
                 $push: {

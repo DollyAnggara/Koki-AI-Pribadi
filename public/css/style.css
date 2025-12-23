@@ -2615,7 +2615,7 @@ a.tombol-kirim:visited {
 }
 
 .login-page .container,
-.register-page .container {
+.hal-register .container {
   max-width: 100%;
   width: 100%;
   padding: 0;

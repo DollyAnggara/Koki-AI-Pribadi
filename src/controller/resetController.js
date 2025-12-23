@@ -15,7 +15,7 @@ const requestReset = async (req, res) => {
     const pengguna = await Pengguna.findOne({ email });
     if (!pengguna) {
       // Demi privasi, tetap tampilkan status berhasil untuk formulir tetapi tampilkan pesan.
-      if (!req.is('application/json')) return res.render('forgot', { layout: 'auth', error: null, success: 'Jika email terdaftar, tautan reset telah dikirim.' });
+      if (!req.is('application/json')) return res.render('lupa_pass', { layout: 'auth', error: null, success: 'Jika email terdaftar, tautan reset telah dikirim.' });
       return res.json({ sukses: true, pesan: 'Jika email terdaftar, tautan reset telah dikirim.' });
     }
 
@@ -32,15 +32,15 @@ const requestReset = async (req, res) => {
     } catch (err) {
       console.error('Gagal kirim email reset:', err);
       console.log(`🔗 (fallback) Reset link for ${pengguna.email}: ${link}`);
-      if (!req.is('application/json')) return res.render('forgot', { layout: 'auth', error: 'Gagal mengirim email. Cek konfigurasi SMTP.', success: null });
+      if (!req.is('application/json')) return res.render('lupa_pass', { layout: 'auth', error: 'Gagal mengirim email. Cek konfigurasi SMTP.', success: null });
       return res.status(500).json({ sukses: false, pesan: 'Gagal mengirim email reset' });
     }
 
-    if (!req.is('application/json')) return res.render('forgot', { layout: 'auth', success: 'Jika email terdaftar, tautan reset telah dikirim.', error: null });
+    if (!req.is('application/json')) return res.render('lupa_pass', { layout: 'auth', success: 'Jika email terdaftar, tautan reset telah dikirim.', error: null });
     return res.json({ sukses: true, pesan: 'Tautan reset dikirim' });
   } catch (err) {
     console.error('❌ Request reset failed:', err);
-    if (!req.is('application/json')) return res.render('forgot', { error: 'Terjadi kesalahan', success: null });
+    if (!req.is('application/json')) return res.render('lupa_pass', { error: 'Terjadi kesalahan', success: null });
     return res.status(500).json({ sukses: false, pesan: 'Gagal proses permintaan reset' });
   }
 };
