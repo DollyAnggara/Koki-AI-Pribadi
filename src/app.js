@@ -34,7 +34,7 @@ const layananEmail = require("./utils/emailService");
 
 // rute
 const ruteHome = require("./routes/home");
-const ruteHalaman = require("./routes/halaman");
+const rutePages = require("./routes/pages");
 const ruteResep = require("./routes/resep");
 const ruteBahan = require("./routes/bahan");
 const rutePengguna = require("./routes/pengguna");
@@ -158,9 +158,7 @@ const jalankanServer = async () => {
   // pasang rute
   aplikasi.use("/", ruteHome);
   // Rute halaman: tampilan terpisah per halaman
-  aplikasi.use("/", ruteHalaman);
-  // compat: keep old route import name for any code expecting rutePages
-  // (no change to path, just variable name updated)
+  aplikasi.use("/", rutePages);
   aplikasi.use("/api/resep", ruteResep);
   aplikasi.use("/api/bahan", ruteBahan);
   aplikasi.use("/api/pengguna", rutePengguna);

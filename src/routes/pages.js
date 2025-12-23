@@ -1,5 +1,5 @@
 /**
- * src/routes/halaman.js
+ * src/routes/pages.js
  * Render per-page views (file .hbs terpisah untuk setiap halaman utama)
  */
 const express = require("express");
@@ -284,5 +284,4 @@ router.get("/pantry", requireAuth, (req, res) => {
   res.render("pantry", { judul: "Pantry - Koki AI Pribadi" });
 });
 
-module.exports = router;
 module.exports = router;
