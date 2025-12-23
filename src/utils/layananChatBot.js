@@ -60,7 +60,7 @@ const formatRecipeOutput = (teks) => {
   ];
 
   sections.forEach((header) => {
-    // Match word character before header and add double newline
+    // Cocokkan karakter kata sebelum header dan tambahkan baris baru ganda
     const regex = new RegExp(
       `(\\S)(${header.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
       "g"
@@ -216,7 +216,7 @@ Kembalikan hanya JSON array tanpa teks tambahan.`;
       try {
         parsed = JSON.parse(text);
       } catch (e) {
-        // attempt to extract JSON substring
+        // coba ekstrak substring JSON
         const m = text.match(/(\[.*\])/s);
         if (m) parsed = JSON.parse(m[1]);
         else throw e;
@@ -224,11 +224,11 @@ Kembalikan hanya JSON array tanpa teks tambahan.`;
       return { sukses: true, data: parsed };
     } catch (err) {
       console.error("❌ OpenAI saranResep error:", err);
-      // fall through to fallback
+      // lanjut ke fallback
     }
   }
 
-  // Fallback: local matching using Resep collection
+  // falback: pencocokan lokal menggunakan koleksi Resep.
   try {
     const semua = await Resep.find();
     const daftarLower = daftarBahan.map((x) => String(x).toLowerCase());

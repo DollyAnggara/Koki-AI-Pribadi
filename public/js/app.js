@@ -1,18 +1,17 @@
-/* public/js/app.js — frontend behavior (cleaned from provided inline script)
-   Note: avoid syntax errors caused by extra spaces before dots or incorrect selectors.
+/* public/js/app.js
 */
 const API_URL = "http://localhost:3000/api";
 let soketMemasak = null;
 let soketNotifikasi = null;
 
-// Per-tab stable session id: keep in sessionStorage so reloads keep history until tab is closed
+// ID sesi per-tab yang stabil: simpan di sessionStorage sehingga reload mempertahankan riwayat sampai tab ditutup
 let idSesiChat = sessionStorage.getItem("koki_chat_session_id");
 if (!idSesiChat) {
   idSesiChat = "sesi_" + Date.now();
   sessionStorage.setItem("koki_chat_session_id", idSesiChat);
 }
 
-// Chat history for current tab (kept in sessionStorage under key koki_chat_<session>)
+// Riwayat chat untuk tab saat ini (disimpan di sessionStorage dengan kunci koki_chat_<session>)
 let chatHistory = [];
 const CHAT_STORAGE_KEY = `koki_chat_${idSesiChat}`;
 
@@ -198,15 +197,15 @@ function inisialisasiNavigasi() {
         e.preventDefault();
         isNavigating = true;
         const href = tombol.href;
-        // visual feedback: mark active immediately
+        // umpan balik visual: tandai aktif segera
         tombolNav.forEach((t) => t.classList.remove("aktif"));
         tombol.classList.add("aktif");
         if (fadeTarget) await fadeOut(fadeTarget);
-        // navigate after transition
+        // menavigasi setelah transisi
         window.location.href = href;
       });
     } else {
-      // legacy behavior (buttons toggling client-side panels)
+      // perilaku lama (tombol yang beralih antar panel di sisi klien)
       tombol.addEventListener("click", async () => {
         if (isNavigating) return;
         isNavigating = true;
@@ -229,14 +228,14 @@ function inisialisasiChat() {
   const inputPesan = document.getElementById("inputPesan");
   if (!formChat) return;
 
-  // Restore history (if any)
+  // Pulihkan riwayat (jika ada)
   const hist = loadChatHistory();
   const areaPesan = document.getElementById("areaPesan");
   if (areaPesan) {
-    areaPesan.innerHTML = ""; // clear any static content to avoid duplicates
+    areaPesan.innerHTML = ""; // bersihkan konten statis untuk menghindari duplikasi
     if (hist && hist.length) {
       hist.forEach((m) => {
-        // render without saving again
+        // render tanpa menyimpan kembali
         tambahPesanChat(m.pesan, m.tipe, {
           save: false,
           timestamp: m.timestamp,
@@ -268,7 +267,7 @@ function inisialisasiChat() {
   });
 }
 
-// Renderer markdown-like minimal dan aman untuk pesan chat
+// Renderer mirip Markdown yang minimal dan aman untuk pesan chat
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -278,13 +277,13 @@ function escapeHtml(s) {
 }
 
 function inlineMarkdown(s) {
-  // bold **text**
+  // cetak tebal **teks**
   s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  // italic *text* (avoid capturing **bold**)
+  // miring *teks* (hindari menangkap **cetak tebal**)
   s = s.replace(/\*(?!\*)(.+?)\*(?!\*)/g, "<em>$1</em>");
-  // inline code `code`
+  // kode inline `kode`
   s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
-  // autolink URLs
+  // tautkan otomatis URL
   s = s.replace(
     /(https?:\/\/[^\s<]+)/g,
     '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
@@ -313,7 +312,7 @@ function renderChatMarkdown(text) {
 
   const flushParagraph = () => {
     if (paraBuf.length === 0) return;
-    // join lines in paragraph with <br> to preserve intentional single-line breaks
+    // gabungkan baris dalam paragraf dengan <br> untuk mempertahankan jeda baris tunggal yang memang dimaksud
     const joined = paraBuf.map((l) => escapeHtml(l.trim())).join("<br>");
     out.push("<p>" + inlineMarkdown(joined) + "</p>");
     paraBuf = [];
@@ -323,9 +322,9 @@ function renderChatMarkdown(text) {
     const line = lines[i];
     const ulMatch = line.match(
       /^\s*[\-\*\u2022\u2023\u25E6\u2043\u2219·\u2013\u2014]\s+(.*)/
-    ); // support common bullets including • · – —
-    const olMatch = line.match(/^\s*(\d+)[\.)]\s+(.*)/); // support "1." and "1)"
-    const continuationMatch = line.match(/^\s{2,}(.*)/); // indented continuation for previous list item
+    ); // dukung peluru umum termasuk • · – —
+    const olMatch = line.match(/^\s*(\d+)[\.)]\s+(.*)/); // dukung "1." dan "1)"
+    const continuationMatch = line.match(/^\s{2,}(.*)/); // indentasi lanjutan untuk item daftar sebelumnya
 
     if (ulMatch) {
       flushParagraph();
@@ -361,9 +360,9 @@ function renderChatMarkdown(text) {
       inOl = false;
     }
 
-    // handle indented continuation lines inside a list item (after checking for list markers)
+    // tangani baris lanjutan yang diberi indent di dalam item daftar (setelah memeriksa penanda daftar)
     if (continuationMatch && (inUl || inOl)) {
-      // append to the last <li> in out (preserve line break)
+      // tambahkan ke <li> terakhir di out (pertahankan jeda baris)
       for (let j = out.length - 1; j >= 0; j--) {
         if (/^\s*<li>/.test(out[j])) {
           const addition =
@@ -393,15 +392,15 @@ function renderChatMarkdown(text) {
     }
 
     if (line.trim() === "") {
-      // empty line separates paragraphs
+      // baris kosong memisahkan paragraf
       flushParagraph();
     } else {
-      // accumulate into paragraph buffer
+      // terakumulasi ke dalam buffer paragraf
       paraBuf.push(line);
     }
   }
 
-  // flush any remaining paragraph buffer
+  // buang sisa buffer paragraf
   flushParagraph();
 
   if (inUl) out.push("</ul>");
@@ -455,7 +454,7 @@ function tambahPesanChat(pesan, tipe, opts = { save: true, timestamp: null }) {
   msg.className = `pesan pesan-${tipe}`;
   msg.innerHTML = renderChatMarkdown(pesan);
 
-  // timestamp meta (short visible + full tooltip)
+  // meta timestamp (tampilan singkat + tooltip lengkap)
   const meta = document.createElement("div");
   meta.className = "pesan-meta";
   try {
@@ -591,7 +590,7 @@ function ensureTimerCardExists(idTimer, data) {
 }
 
 function updateTampilanTimer(idTimer, data) {
-  // If card doesn't exist (e.g., after refresh), create it
+  // Jika kartu tidak ada (misalnya, setelah penyegaran), buatlah
   ensureTimerCardExists(idTimer, data || {});
 
   const tampilan = document.getElementById(`tampilan_${idTimer}`);
@@ -621,7 +620,7 @@ function lanjutkanTimer(idTimer) {
   tampilkanNotifikasi("Timer dilanjutkan", "sukses");
 }
 function hentikanTimer(idTimer) {
-  // Prevent immediate recreation of this timer card if a server 'update_timer' arrives
+  // Cegah pembuatan ulang kartu pengatur waktu ini secara langsung jika server 'update_timer' tiba.
   suppressedTimerCreates.add(idTimer);
   setTimeout(() => suppressedTimerCreates.delete(idTimer), 1200);
 
@@ -728,9 +727,9 @@ function inisialisasiTambahBahan() {
       const data = await resp.json();
       if (data && data.sukses && data.data) {
         tampilkanNotifikasi("Bahan ditambahkan", "sukses");
-        // reload authoritative list from server
+        // Muat ulang daftar otoritatif dari server
         await loadDaftarBahan();
-        // reset fields
+        // mengatur ulang bidang
         if (namaEl) namaEl.value = "";
         if (jumlahEl) jumlahEl.value = "";
         const satuanEl = document.getElementById("satuanBahanBaru");
@@ -762,7 +761,7 @@ function inisialisasiTambahBahan() {
   });
 }
 
-// Modal Edit Bahan Functions
+// Modal Edit Bahan Fungsi
 function bukaModalEditBahan(bahan) {
   document.getElementById("idBahanEdit").value = bahan._id || "";
   document.getElementById("namaBahanEdit").value = bahan.namaBahan || "";
@@ -773,7 +772,7 @@ function bukaModalEditBahan(bahan) {
   document.getElementById("lokasiPenyimpananEdit").value =
     bahan.lokasiPenyimpanan || "rak_dapur";
 
-  // Format dates for input[type="date"]
+  // Format tanggal untuk input[type="date"]
   if (bahan.tanggalPembelian) {
     const tglPembelian = new Date(bahan.tanggalPembelian);
     document.getElementById("tanggalPembelianEdit").value = tglPembelian
@@ -791,7 +790,7 @@ function bukaModalEditBahan(bahan) {
   const modal = document.getElementById("modal-edit-bahan");
   if (modal) {
     modal.style.display = "flex";
-    // Disable body scroll when modal is open
+    // Kunci gulir tubuh saat modal terbuka
     document.body.style.overflow = "hidden";
     document.body.classList.add("modal-open");
   }
@@ -801,7 +800,7 @@ function tutupModalEditBahan() {
   const modal = document.getElementById("modal-edit-bahan");
   if (modal) {
     modal.style.display = "none";
-    // Re-enable body scroll when modal is closed
+    // Aktifkan kembali gulir tubuh saat modal ditutup
     document.body.style.overflow = "";
     document.body.classList.remove("modal-open");
   }
@@ -904,7 +903,7 @@ function inisialisasiModalEditBahan() {
   }
 }
 
-// --- Recipe search: client-side loader and renderer ---
+// --- Pencarian resep: pemuat dan perender sisi klien ---
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -1065,7 +1064,7 @@ function inisialisasiTambahResep() {
         .filter(Boolean);
       daftarBahan = bahanLines
         .map((line) => {
-          // backward-compatible semicolon format: 'nama;jumlah;satuan'
+          // format titik koma yang kompatibel: 'nama;jumlah;satuan'
           if (line.indexOf(";") !== -1) {
             const parts = line.split(";").map((s) => s.trim());
             return {
@@ -1075,13 +1074,13 @@ function inisialisasiTambahResep() {
             };
           }
 
-          // prefer space-separated format: 'Nama [jumlah] [satuan]'
+          // lebih memilih format yang dipisahkan spasi: 'Nama [jumlah] [satuan]'
           const toks = line.split(/\s+/).filter(Boolean);
           // token tunggal -> hanya nama
           if (toks.length === 1)
             return { namaBahan: toks[0], jumlah: 0, satuan: "" };
 
-          // detect numeric token (integer or decimal, supports comma as decimal separator)
+          // mendeteksi token numerik (bilangan bulat atau desimal, mendukung koma sebagai pemisah desimal)
           const isNumeric = (s) => /^\d+(?:[.,]\d+)?$/.test(String(s));
           const last = toks[toks.length - 1];
           const secondLast = toks[toks.length - 2];
@@ -1149,7 +1148,7 @@ function inisialisasiTambahResep() {
         tombolSimpan.textContent = "Simpan";
         return;
       }
-      // If the recipe was created as pending, notify the user it's awaiting admin review
+      // Jika resep dibuat sebagai pending, beri tahu pengguna bahwa resep menunggu tinjauan admin
       const created = data.data || {};
       if (created.status === "pending") {
         tampilkanNotifikasi(
@@ -1159,7 +1158,7 @@ function inisialisasiTambahResep() {
       } else {
         tampilkanNotifikasi("Resep berhasil disimpan", "sukses");
       }
-      // reset form
+      // reset formulir
       inputNama.value = "";
       inputDeskripsi.value = "";
       inputPorsi.value = "";
@@ -1170,7 +1169,7 @@ function inisialisasiTambahResep() {
       daftarBahanForm = [];
       renderDaftarBahanForm();
       form.style.display = "none";
-      // refresh list
+      // menyegarkan daftar
       loadDaftarResep();
     } catch (err) {
       console.error("Gagal submit resep", err);
@@ -1294,7 +1293,7 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
     });
     actions.appendChild(ok);
 
-    // optional secondary (dismiss quietly)
+    // sekunder kedua (tutup dengan tenang)
     const close = document.createElement("button");
     close.className = "notifikasi-secondary";
     close.textContent = "Tutup";
@@ -1314,7 +1313,7 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
     modalCont.appendChild(card);
     modalCont.classList.add("active");
     modalCont.setAttribute("aria-hidden", "false");
-    // lock background scroll while modal is visible
+    // kunci gulir latar belakang saat modal terlihat
     document.body.classList.add("modal-open");
 
     // Jika tidak persisten, sembunyikan otomatis setelah timeout
@@ -1351,8 +1350,8 @@ function tampilkanNotifikasi(pesan, tipe = "info", options = {}) {
 }
 
 /**
- * Show a confirm modal and return a Promise<boolean> that resolves to true when confirmed.
- * options: { title, message, okLabel, cancelLabel }
+ * Tampilkan modal konfirmasi dan kembalikan Promise<boolean> yang akan terpenuhi dengan true saat dikonfirmasi.
+ * opsi: { title, message, okLabel, cancelLabel }
  */
 function showConfirmModal({ title = "Konfirmasi", message = "", okLabel = "Ya", cancelLabel = "Batal" } = {}) {
   return new Promise((resolve) => {
@@ -1437,7 +1436,7 @@ function showConfirmModal({ title = "Konfirmasi", message = "", okLabel = "Ya", 
 }
 
 /**
- * Show a prompt modal with a textarea and return Promise<string|null> (null when cancelled)
+ * Tampilkan modal prompt dengan textarea dan kembalikan Promise<string|null> (null jika dibatalkan)
  */
 function showPromptModal({ title = "Input", message = "", placeholder = "", okLabel = "Kirim", cancelLabel = "Batal" } = {}) {
   return new Promise((resolve) => {
@@ -1552,18 +1551,18 @@ function formatWaktu(detik) {
 function kapitalisasi(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
-let currentBunyi = null;
+let bunyisekarang = null;
 function playBunyi() {
   try {
-    if (currentBunyi) return; // already playing
+    if (bunyisekarang) return; // sedang
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const audioCtx = new AudioCtx();
 
     const beeper = { audioCtx, intervalId: null, oscillators: [] };
 
-    const beepMs = 500; // beep duration
-    const gapMs = 300; // gap between beeps
+    const beepMs = 500; // durasi bunyi beep
+    const gapMs = 300; // jeda antar bunyi beep
 
     function playBeep() {
       const osc = audioCtx.createOscillator();
@@ -1594,10 +1593,10 @@ function playBunyi() {
     playBeep();
     beeper.intervalId = setInterval(playBeep, beepMs + gapMs);
 
-    // vibrate pattern if supported
+    // getarkan perangkat jika didukung
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 
-    currentBunyi = beeper;
+    bunyisekarang = beeper;
   } catch (e) {
     console.warn("Audio not supported", e);
   }
@@ -1605,8 +1604,8 @@ function playBunyi() {
 
 function stopBunyi() {
   try {
-    if (!currentBunyi) return;
-    const { audioCtx, intervalId, oscillators } = currentBunyi;
+    if (!bunyisekarang) return;
+    const { audioCtx, intervalId, oscillators } = bunyisekarang;
     if (intervalId) clearInterval(intervalId);
     // hentikan oscillator yang tersisa dengan aman
     oscillators.forEach(({ osc, gain }) => {
@@ -1622,7 +1621,7 @@ function stopBunyi() {
         audioCtx.close();
       } catch (e) {}
     }, 150);
-    currentBunyi = null;
+    bunyisekarang = null;
     if (navigator.vibrate) navigator.vibrate(0);
   } catch (e) {
     console.warn("stopBunyi error", e);
@@ -3492,7 +3491,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Initialize stats animation now (if values already present) and ensure it will trigger on future updates
+  // Inisialisasi animasi statistik sekarang (jika nilai sudah ada) dan pastikan animasi tersebut akan terpicu pada pembaruan mendatang.
   initStatsCountUp();
 
   // Initialize bahan input untuk halaman resep baru
@@ -3528,15 +3527,15 @@ function tambahBahanKeFormResep() {
 
   daftarBahanForm.push(bahan);
 
-  // Clear inputs
+  // Bersihkan input
   document.getElementById("inputNamaBahanForm").value = "";
   document.getElementById("inputJumlahBahanForm").value = "";
   document.getElementById("inputSatuanBahanForm").value = "gram";
 
-  // Render list
+  // Render daftar
   renderDaftarBahanForm();
 
-  // Focus back to nama input
+  // Fokus kembali ke input nama
   document.getElementById("inputNamaBahanForm").focus();
 }
 
@@ -3599,7 +3598,7 @@ function inisialisasiBahanResepBaru() {
     });
   }
 
-  // Handle form submission to prepare daftarBahanHidden
+  // Tangani pengiriman form untuk menyiapkan daftarBahanHidden
   const form = document.querySelector("form[action='/admin/resep']");
   if (form) {
     form.addEventListener("submit", (e) => {
@@ -3687,16 +3686,16 @@ function tambahBahanKeResep() {
 
   daftarBahanResepBaru.push(bahan);
 
-  // Clear inputs
+  // Bersihkan input
   document.getElementById("inputNamaBahanResep").value = "";
   document.getElementById("inputJumlahBahanResep").value = "";
   document.getElementById("inputSatuanBahanResep").value = "gram";
 
-  // Render list and update hidden value
+  // Render daftar dan perbarui nilai tersembunyi
   renderDaftarBahanResep();
   updateDaftarBahanHidden();
 
-  // Focus back to nama input
+  // Fokus kembali ke input nama
   document.getElementById("inputNamaBahanResep").focus();
 }
 

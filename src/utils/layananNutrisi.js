@@ -18,7 +18,7 @@ const convertToGram = (jumlah, satuan) => {
 const safeNum = (v) => (typeof v === 'number' && !Number.isNaN(v) ? v : 0);
 
 const hitungNutrisiResep = (daftarBahan, jumlahPorsi = 1) => {
-  // ensure safe defaults
+  // memastikan default yang aman
   if (!Array.isArray(daftarBahan)) daftarBahan = [];
   jumlahPorsi = Number(jumlahPorsi) || 1;
 

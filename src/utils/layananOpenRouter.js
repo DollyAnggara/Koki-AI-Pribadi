@@ -70,7 +70,7 @@ async function panggilOpenRouter(
     }
 
     const j = await res.json();
-    // Collect content from choices (support different response shapes)
+    // Kumpulkan konten dari pilihan (mendukung berbagai bentuk respons)
     const choice = j.choices && j.choices[0];
     const part =
       (choice && choice.message && choice.message.content) ||
@@ -81,9 +81,9 @@ async function panggilOpenRouter(
 
     const finishReason = choice && choice.finish_reason;
 
-    // If not truncated, or we exhausted retries, return aggregated content
+    // Jika tidak terpotong, atau kita sudah kehabisan percobaan, kembalikan konten yang terkumpul
     if (!finishReason || finishReason !== "length") {
-      // normalize whitespace and fix accidental word splits across chunks (e.g. "a\nir" => "air")
+      // normalisasi spasi dan perbaiki pemisahan kata yang tidak sengaja di antara potongan (misal "a\nir" => "air")
       assistantAggregate = assistantAggregate
         .replace(/\r/g, "")
         .replace(/\n{2,}/g, "\n\n")
@@ -92,14 +92,14 @@ async function panggilOpenRouter(
       return assistantAggregate;
     }
 
-    // truncated by token limit — attempt continuation
+    // terpotong oleh batas token — coba lanjutkan
     attempts++;
     if (attempts > maxContinuations) {
-      // stop attempting further continuations
+      // hentikan mencoba kelanjutan lebih lanjut
       return assistantAggregate;
     }
 
-    // prepare messages to continue from the assistant partial content
+    // siapkan pesan untuk melanjutkan dari konten asisten yang sebagian
     messages = [
       {
         role: "system",
@@ -114,7 +114,7 @@ async function panggilOpenRouter(
       },
     ];
 
-    // small backoff to avoid rate limits
+    // jeda kecil untuk menghindari batasan laju
     await new Promise((r) => setTimeout(r, 200 * attempts));
   }
 }

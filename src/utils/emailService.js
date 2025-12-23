@@ -1,4 +1,4 @@
-// nodemailer wrapper (sama seperti sebelumnya) - fungsi kirimEmailMenuMingguan & kirimNotifikasiKadaluarsa
+// nodemailer wrapper (fungsi kirimEmailMenuMingguan & kirimNotifikasiKadaluarsa)
 const nodemailer = require("nodemailer");
 // Jika dotenv belum dimuat oleh app saat modul ini di-require,
 // coba muat di sini agar modul lebih tahan saat di-require langsung.
@@ -52,10 +52,10 @@ const kirimEmailMenuMingguan = async (penerima, rencana) => {
       "Email config missing. Set EMAIL_USER and EMAIL_PASS in .env"
     );
   const transporter = buatTransporter();
-  // Determine recipient email
+  // Tentukan email penerima
   const to = (penerima && penerima.email) ? penerima.email : String(penerima || '');
 
-  // Build readable menu HTML/text
+  // Buat menu HTML/text yang mudah dibaca
   const appName = process.env.APP_NAME || 'Koki AI Pribadi';
   let menuHtml = '';
   const namaResepOrText = (val) => {
