@@ -2230,9 +2230,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const storageSelect = document.createElement("select");
       storageSelect.className = "select-penyimpanan";
       const options = [
-        { v: "rak_dapur", t: "Rak Dapur" },
-        { v: "lemari", t: "Lemari" },
         { v: "kulkas", t: "Kulkas" },
+        { v: "rak_dapur", t: "Rak Dapur" },
         { v: "freezer", t: "Freezer" },
       ];
       options.forEach((o) => {

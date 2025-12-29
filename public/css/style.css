@@ -1701,13 +1701,51 @@ body.modal-open {
 .daftar-bahan-kadaluarsa li.item-bahan {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 12px;
   background: #f9f9f9;
   border: 1px solid #eee;
   border-radius: 8px;
   margin-bottom: 10px;
   gap: 16px;
+}
+
+.daftar-bahan-kadaluarsa li.item-bahan span {
+  flex: 2 1 0;
+  min-width: 120px;
+  margin-right: 8px;
+}
+.daftar-bahan-kadaluarsa li.item-bahan .select-penyimpanan {
+  flex: 1 1 0;
+  min-width: 100px;
+  width: 140px;
+  margin-right: 8px;
+}
+.daftar-bahan-kadaluarsa li.item-bahan small.expiry-note {
+  flex: 2 1 0;
+  min-width: 120px;
+  margin-right: 8px;
+}
+.daftar-bahan-kadaluarsa li.item-bahan input[type="checkbox"] {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+}
+
+.daftar-bahan-kadaluarsa li.item-bahan span,
+.daftar-bahan-kadaluarsa li.item-bahan .select-penyimpanan,
+.daftar-bahan-kadaluarsa li.item-bahan small.expiry-note {
+  flex: 0 0 160px;
+  min-width: 160px;
+  margin-right: 8px;
+}
+
+.daftar-bahan-kadaluarsa li.item-bahan .select-penyimpanan {
+  width: 140px;
+  min-width: 140px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
 }
 
 .daftar-bahan-kadaluarsa li.item-bahan.kosong {
@@ -1727,6 +1765,9 @@ body.modal-open {
 
 .daftar-bahan-kadaluarsa li.item-bahan .select-penyimpanan {
   width: 140px;
+  min-width: 140px;
+  display: inline-block;
+  vertical-align: middle;
   padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid rgb(0 0 0 / 6%);
@@ -1736,7 +1777,8 @@ body.modal-open {
 .daftar-bahan-kadaluarsa li.item-bahan input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  margin-left: 8px;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 /* expiry note column styling */
